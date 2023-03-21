@@ -10,6 +10,8 @@ Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. L
 
 The visual guide of this repo and tutorial is in the `visual guide` folder.
 
+**If you run into errors, please review the troubleshooting section further down this page.**
+
 ## Development
 
 1. Clone the repo
@@ -57,6 +59,26 @@ PINECONE_ENVIRONMENT=
 ## Run the app
 
 Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `npm run dev` to launch the local dev environment and then type a question in the chat interface.
+
+## Troubleshooting
+
+In general, keep an eye out in the `issues` and `discussions` section of this repo for solutions.
+
+**General errors**
+
+- Make sure you're running the latest Node version. Run `node -v`
+- Make sure you're using the same versions of LangChain and Pinecone as this repo.
+- Check that you've created an `.env` file that contains your valid (and working) API keys.
+- If you change `modelName` in `OpenAIChat` note that the correct name of the alternative model is `gpt-3.5-turbo`
+- Pinecone indexes of users on the Starter(free) plan are deleted after 7 days of inactivity. To prevent this, send an API request to Pinecone to reset the counter.
+
+**Pinecone errors**
+
+- Make sure your pinecone dashboard `environment` and `index` matches the one in your `config` folder.
+- Check that you've set the vector dimensions to `1536`.
+- Switch your Environment in pinecone to `us-east1-gcp` if the other environment is causing issues.
+
+If you're stuck after trying all these steps, delete `node_modules`, restart your computer, then `pnpm install` again.
 
 ## Credit
 
