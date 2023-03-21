@@ -192,7 +192,7 @@ export default function Home() {
                   }
                   return (
                     <>
-                      <div key={index} className={className}>
+                      <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
                           <ReactMarkdown linkTarget="_blank">
@@ -208,7 +208,7 @@ export default function Home() {
                             className="flex-col"
                           >
                             {message.sourceDocs.map((doc, index) => (
-                              <div key={index}>
+                              <div key={`sourceDoc-${index}`}>
                                 <AccordionItem value={`item-${index}`}>
                                   <AccordionTrigger>
                                     <h3>Source {index + 1}</h3>
