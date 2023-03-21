@@ -30,14 +30,24 @@ export const run = async () => {
     /*create and store the embeddings in the vectorStore*/
     const embeddings = new OpenAIEmbeddings();
     const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
-    //embed the PDF documents
-    await PineconeStore.fromDocuments(
-      index,
-      docs,
-      embeddings,
-      'text',
-      PINECONE_NAME_SPACE,
-    );
+    
+    // Split chunks into groups of 100 to accomodate current pinecone limitation
+    const chunkGroups = [];
+    const CHUNKS_PER_REQUEST = 100;
+    for (let i = 0; i < docs.length; i += CHUNKS_PER_REQUEST) {
+      chunkGroups.push(docs.slice(i, i + CHUNKS_PER_REQUEST));
+    }
+
+    // Upsert each group of chunks
+    for (const group of chunkGroups) {
+      await PineconeStore.fromDocuments(
+        index,
+        group,
+        embeddings,
+        'text',
+        PINECONE_NAME_SPACE,
+      );
+    }
   } catch (error) {
     console.log('error', error);
     throw new Error('Failed to ingest your data');
