@@ -52,13 +52,13 @@ PINECONE_ENVIRONMENT=
 
 2. In `scripts/ingest-data.ts` replace `filePath` with `docs/{yourdocname}.pdf`
 
-3. Run the script `npm run ingest` to 'ingest' and embed your docs
+3. Run the script `pnpm run ingest` to 'ingest' and embed your docs
 
 4. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the app
 
-Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `npm run dev` to launch the local dev environment and then type a question in the chat interface.
+Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `pnpm run dev` to launch the local dev environment and then type a question in the chat interface.
 
 ## Troubleshooting
 
