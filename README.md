@@ -23,7 +23,7 @@ git clone [github https url]
 2. Install packages
 
 ```
-pnpm install
+npm install
 ```
 
 3. Set up your `.env` file
