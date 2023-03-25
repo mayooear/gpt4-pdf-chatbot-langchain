@@ -13,9 +13,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { usePineconeStore } from '@/config/pinecone';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
+  const { PINECONE_NAME_SPACE, PINECONE_INDEX_NAME } = usePineconeStore();
+  const currentTopic = PINECONE_NAME_SPACE.TOPIC;
+  const currentNamespace = PINECONE_NAME_SPACE.NAMESPACE;
+  const currentPrompt = PINECONE_NAME_SPACE.PROMPT;
+  const currentIndex = PINECONE_INDEX_NAME;
+  console.log('currentNamespace', currentNamespace);
+  console.log('currentIndex', currentIndex);
   const [loading, setLoading] = useState<boolean>(false);
   const [sourceDocs, setSourceDocs] = useState<Document[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +35,7 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about this legal case?',
+        message: `Hi, what would you like to learn about ${currentTopic}?`,
         type: 'apiMessage',
       },
     ],
@@ -36,6 +44,20 @@ export default function Home() {
   });
 
   const { messages, pending, history, pendingSourceDocs } = messageState;
+
+  useEffect(() => {
+    //update messageState when PINECONE_NAME_SPACE changes
+    setMessageState({
+      messages: [
+        {
+          message: `Hi, what would you like to learn about ${currentTopic}?`,
+          type: 'apiMessage',
+        },
+      ],
+      history: [],
+      pendingSourceDocs: [],
+    });
+  }, [PINECONE_NAME_SPACE]);
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +106,8 @@ export default function Home() {
         body: JSON.stringify({
           question,
           history,
+          currentNamespace,
+          currentIndex,
         }),
         signal: ctrl.signal,
         onmessage: (event) => {
@@ -163,9 +187,9 @@ export default function Home() {
   return (
     <>
       <Layout>
-        <div className="mx-auto flex flex-col gap-4">
+        <div className="mx-auto flex flex-col gap-4 items-center">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your Legal Docs
+            Chat About {currentTopic}
           </h1>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -277,9 +301,7 @@ export default function Home() {
                     id="userInput"
                     name="userInput"
                     placeholder={
-                      loading
-                        ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                      loading ? 'Waiting for response...' : currentPrompt
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
