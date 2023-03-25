@@ -29,7 +29,7 @@ export default function TopicDropdown() {
   }, [router.query]);
 
   return (
-    <div className="inline-block justify-end text-center px-4">
+    <div className="inline-block justify-end sm:text-center px-2 sm:px-4">
       Select a Topic
       <Menu as="div" className="relative inline-block text-left ml-2">
         <div>
@@ -50,7 +50,7 @@ export default function TopicDropdown() {
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
             {TOPICS.map((topic) => (
               <div className="py-1" key={topic.NAMESPACE}>
                 <Menu.Item>
