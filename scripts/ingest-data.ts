@@ -1,21 +1,18 @@
+import 'dotenv'
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
-import { PDFLoader } from 'langchain/document_loaders';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
-
-/* Name of directory to retrieve files from. You can change this as required */
-const filePath = 'docs/MorseVsFrederick.pdf';
+import { getRawData } from '@/utils/getRawData';
 
 export const run = async () => {
   try {
     /*load raw docs from the pdf file in the directory */
-    const loader = new PDFLoader(filePath);
-    // const loader = new PDFLoader(filePath);
-    const rawDocs = await loader.load();
+    //const loader = new PDFLoader(filePath);
 
-    console.log(rawDocs);
+    const rawDocs = await getRawData();
+    console.log('docs:' + rawDocs);
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
@@ -38,6 +35,7 @@ export const run = async () => {
     for (let i = 0; i < docs.length; i += chunkSize) {
       const chunk = docs.slice(i, i + chunkSize);
       console.log('chunk', i, chunk);
+      if(process.env.DRY_RUN === 'false'){
       await PineconeStore.fromDocuments(
         index,
         chunk,
@@ -45,6 +43,9 @@ export const run = async () => {
         'text',
         PINECONE_NAME_SPACE,
       );
+      }else{
+        console.log('DRY_RUN is true - not uploading')
+      }
     }
   } catch (error) {
     console.log('error', error);

@@ -1,3 +1,4 @@
+import 'dotenv'
 import { OpenAIChat } from 'langchain/llms';
 import { LLMChain, ChatVectorDBQAChain, loadQAChain } from 'langchain/chains';
 import { PineconeStore } from 'langchain/vectorstores';
@@ -36,13 +37,13 @@ export const makeChain = (
   const docChain = loadQAChain(
     new OpenAIChat({
       temperature: 0,
-      modelName: 'gpt-4', //change this to older versions (e.g. gpt-3.5-turbo) if you don't have access to gpt-4
+      modelName: process.env.OPEN_AI_GPT_MODEL, //change this to older versions (e.g. ) if you don't have access to gpt-4
       streaming: Boolean(onTokenStream),
       callbackManager: onTokenStream
         ? CallbackManager.fromHandlers({
             async handleLLMNewToken(token) {
               onTokenStream(token);
-              console.log(token);
+              console.log('LoadQAChain:'+token);
             },
           })
         : undefined,

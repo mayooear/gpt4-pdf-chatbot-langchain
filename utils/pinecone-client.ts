@@ -1,3 +1,4 @@
+import 'dotenv'
 import { PineconeClient } from '@pinecone-database/pinecone';
 
 console.log(process.env.PINECONE_ENVIRONMENT);
