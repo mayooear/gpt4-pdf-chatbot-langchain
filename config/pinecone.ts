@@ -35,14 +35,16 @@ interface PineconeState {
   setPineconeNamespace: (namespace: {
     TOPIC: string;
     NAMESPACE: string;
+    PROMPT?: string;
   }) => void;
 }
 
 export const usePineconeStore = create<PineconeState>((set) => ({
   PINECONE_NAME_SPACE: TOPICS[0],
   PINECONE_INDEX_NAME: PINECONE_INDEX_NAME,
-  setPineconeNamespace: (namespace: { TOPIC: string; NAMESPACE: string }) =>
-    set({ PINECONE_NAME_SPACE: namespace }),
-  setPineconeIndexName: (indexName: string) =>
-    set({ PINECONE_INDEX_NAME: indexName }),
+  setPineconeNamespace: (namespace: {
+    TOPIC: string;
+    NAMESPACE: string;
+    PROMPT?: string;
+  }) => set({ PINECONE_NAME_SPACE: namespace }),
 }));
