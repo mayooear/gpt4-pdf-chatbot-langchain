@@ -15,9 +15,11 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
-    "ingest": "tsx -r dotenv/config scripts/ingest-data.ts"
+    "ingest": "tsx -r dotenv/config scripts/ingest-data.ts",
+    "delete-namespace": "tsx -r dotenv/config scripts/delete-namespace.ts"
   },
   "dependencies": {
+    "@headlessui/react": "^1.7.13",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@pinecone-database/pinecone": "^0.0.10",
     "@radix-ui/react-accordion": "^1.1.1",
@@ -30,7 +32,8 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-markdown": "^8.0.5",
-    "tailwind-merge": "^1.10.0"
+    "tailwind-merge": "^1.10.0",
+    "zustand": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^18.14.6",
