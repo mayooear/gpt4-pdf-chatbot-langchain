@@ -21,10 +21,12 @@ export default async function handler(
 
   /* create vectorstore*/
   const vectorStore = await PineconeStore.fromExistingIndex(
-    index,
     new OpenAIEmbeddings({}),
-    'text',
-    PINECONE_NAME_SPACE, //optional
+    {
+      pineconeIndex: index,
+      textKey: 'text',
+      namespace: PINECONE_NAME_SPACE,
+    },
   );
 
   res.writeHead(200, {

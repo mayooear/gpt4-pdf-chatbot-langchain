@@ -213,7 +213,10 @@ export default function Home() {
                         </div>
                       </div>
                       {message.sourceDocs && (
-                        <div className="p-5">
+                        <div
+                          className="p-5"
+                          key={`sourceDocsAccordion-${index}`}
+                        >
                           <Accordion
                             type="single"
                             collapsible
@@ -246,7 +249,7 @@ export default function Home() {
                   <div className="p-5">
                     <Accordion type="single" collapsible className="flex-col">
                       {sourceDocs.map((doc, index) => (
-                        <div key={`sourceDocs-${index}`}>
+                        <div key={`SourceDocs-${index}`}>
                           <AccordionItem value={`item-${index}`}>
                             <AccordionTrigger>
                               <h3>Source {index + 1}</h3>
