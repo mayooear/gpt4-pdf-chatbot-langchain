@@ -54,7 +54,7 @@ PINECONE_INDEX_NAME=
 
 2. In `scripts/ingest-data.ts` replace `filePath` with `docs/{yourdocname}.pdf`
 
-3. Run the script `npm run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
+3. Run the script `pnpm run ingest` to 'ingest' and embed your docs
 
 4. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
