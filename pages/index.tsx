@@ -173,7 +173,7 @@ export default function Home() {
             Ask about the Senate&rsquo;s RESTRICT Act
           </h1>
           <p className="text-center">
-            Source: <a href={documentSourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-500 hover:underline">"S.686 - RESTRICT Act"</a> (55 pages)
+            Source: <a href={documentSourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-500 hover:underline">&quot;S.686 - RESTRICT Act&quot;</a> (55 pages)
           </p>
           <main className={styles.main}>
             <div className={styles.cloud}>
