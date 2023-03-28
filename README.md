@@ -5,7 +5,7 @@ Notes from @derryl. Will integrate these into docs below when I have time
 Requirements:
 
 - **Node:** I recommend using [volta](https://volta.sh/) to manage your Node versions
-- once correct version is installed do `npm install` in project root
+- using Node v17.9.0 do `npm install` in project root
 - note: the project also wants `pnpm`. Dunno how to get rid of these. But for now you can `volta install pnpm` to silence the warnings
 
 API / Auth:
