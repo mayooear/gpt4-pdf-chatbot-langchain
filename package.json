@@ -46,9 +46,6 @@
     "tsx": "^3.12.3",
     "typescript": "^4.9.5"
   },
-  "engines": {
-    "node": ">=18"
-  },
   "keywords": [
     "starter",
     "gpt4",
@@ -60,5 +57,8 @@
     "legal",
     "pdf",
     "openai"
-  ]
+  ],
+  "volta": {
+    "node": "18.15.0"
+  }
 }
