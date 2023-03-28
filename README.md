@@ -1,3 +1,19 @@
+Copied from https://github.com/mayooear/gpt4-pdf-chatbot-langchain
+
+Notes from @derryl. Will integrate these into docs below when I have time
+
+Requirements:
+
+- **Node:** I recommend using [volta](https://volta.sh/) to manage your Node install
+- once installed do `volta install` in the project root
+
+API / Auth:
+
+- `OPENAI_API_KEY` – you can get this from [our dashboard.](https://platform.openai.com/account/api-keys) You can use a pre-existing one, but I recommend creating a new one so we have better granularity on API usage
+- `PINECONE_***` – This is for the vectorDB / vector persistence on ingested documents. I created a free Pinecone account and invited you. Lemme know if you have trouble getting in. The free account only allows for 1 index, so we'll probably want to upgrade if we find this service useful
+
+======
+
 # GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Files
 
 Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.
@@ -11,6 +27,8 @@ Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. L
 The visual guide of this repo and tutorial is in the `visual guide` folder.
 
 **If you run into errors, please review the troubleshooting section further down this page.**
+
+
 
 ## Development
 
