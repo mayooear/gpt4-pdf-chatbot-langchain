@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=18"
+    "node": ">=17.9.0"
   },
   "license": "MIT",
   "author": "Mayooear<twitter:@mayowaoshin>",
