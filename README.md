@@ -1,6 +1,6 @@
-# GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Docs
+# GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Files
 
-Use the new GPT-4 api to build a chatGPT chatbot for Large PDF docs (56 pages used in this example).
+Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.
 
 Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
 
@@ -48,15 +48,15 @@ PINECONE_INDEX_NAME=
 
 5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAIChat` to `gpt-3.5-turbo`, if you don't have access to `gpt-4`. Please verify outside this repo that you have access to `gpt-4`, otherwise the application will not work with it.
 
-## Convert your PDF to embeddings
+## Convert your PDF files to embeddings
 
-1. In `docs` folder replace the pdf with your own pdf doc.
+**This repo can load multiple PDF files**
 
-2. In `scripts/ingest-data.ts` replace `filePath` with `docs/{yourdocname}.pdf`
+1. Inside `docs` folder, add your pdf files or folders that contain pdf files.
 
-3. Run the script `npm run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
+2. Run the script `npm run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
-4. Check Pinecone dashboard to verify your namespace and vectors have been added.
+3. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the app
 
@@ -73,6 +73,7 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Check that you've created an `.env` file that contains your valid (and working) API keys, environment and index name.
 - If you change `modelName` in `OpenAIChat` note that the correct name of the alternative model is `gpt-3.5-turbo`
 - Make sure you have access to `gpt-4` if you decide to use. Test your openAI keys outside the repo and make sure it works and that you have enough API credits.
+- Your pdf file is corrupted and cannot be parsed.
 
 **Pinecone errors**
 
@@ -80,9 +81,7 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Check that you've set the vector dimensions to `1536`.
 - Make sure your pinecone namespace is in lowercase.
 - Pinecone indexes of users on the Starter(free) plan are deleted after 7 days of inactivity. To prevent this, send an API request to Pinecone to reset the counter.
-- Retry with a new Pinecone index.
-
-If you're stuck after trying all these steps, delete `node_modules`, restart your computer, then `pnpm install` again.
+- Retry from scratch with a new Pinecone index and cloned repo.
 
 ## Credit
 
