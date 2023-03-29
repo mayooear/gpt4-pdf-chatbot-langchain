@@ -63,6 +63,6 @@ export const makeChain = (
     combineDocumentsChain: docChain,
     questionGeneratorChain: questionGenerator,
     returnSourceDocuments: true,
-    k: 6, //number of source documents to return
+    k: 2, //number of source documents to return
   });
 };
