@@ -10,12 +10,6 @@ const hpFilePath = 'docs/hp-data/90151.html'
 
 type SourceOptions = 'html-files'|'org-pdf'| 'hp-files' | undefined
 
-
-interface Document {
-  pageContent: string
-  metadata: Record<string,string>
-}
-
 const getRawData = async ():Promise<Document[]> => {
   const source:SourceOptions = process.env.SOURCE_FILES as SourceOptions // 'OrgPDF'
 

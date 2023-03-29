@@ -1,0 +1,14 @@
+GET /tools/2018-census-place-summaries/middleton HTTP/1.1
+Host: www.stats.govt.nz
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0
+Accept: application/json
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://www.stats.govt.nz/tools/2018-census-place-summaries/middleton
+X-Requested-With: XMLHttpRequest
+SecurityID: 
+Connection: keep-alive
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+If-None-Match: "143aa2e8618e23c718b180c3d3bf553b-gzip"

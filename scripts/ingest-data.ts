@@ -5,13 +5,19 @@ import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { getRawData } from '@/utils/getRawData';
+import { getCensus } from '@/utils/getCensus';
 
 export const run = async () => {
+
+  if (!process.env.OPENAI_API_KEY || !process.env.PINECONE_API_KEY || !process.env.PINECONE_ENVIRONMENT) {
+    throw new Error('One or more required environment variables are not defined.');
+  }
   try {
     /*load raw docs from the pdf file in the directory */
     //const loader = new PDFLoader(filePath);
 
-    const rawDocs = await getRawData();
+    // const rawDocs = await getRawData();
+    const rawDocs = await getCensus()
     console.log('docs:' + rawDocs);
 
     /* Split text into chunks */

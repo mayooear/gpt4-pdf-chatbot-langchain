@@ -6,6 +6,11 @@ if (!process.env.PINECONE_ENVIRONMENT || !process.env.PINECONE_API_KEY) {
   throw new Error('Pinecone environment or api key vars missing');
 }
 
+export interface Document {
+  pageContent: string
+  metadata: Record<string,string>
+}
+
 async function initPinecone() {
   try {
     const pinecone = new PineconeClient();

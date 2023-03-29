@@ -6,27 +6,19 @@ import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { getRawData } from '@/utils/getRawData';
+import { getCensus } from '@/utils/getCensus';
 
+export const run = async () => {
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  const { propertyQuery } = req.query;
+  const censusIndexName = 'census-v1-3-30'
 
-  console.log('propertyQuery init for ',{
-    "propertyQuery": propertyQuery
-  })
-  if (!propertyQuery) {
-    return res.status(400).json({ message: 'No propertyQuery in the request' });
-  }
   // OpenAI recommends replacing newlines with spaces for best results
 
 // TODO: use propertyQuery
-  const rawDocs = await getRawData();
-  console.log('Docs:', {
-    "rawDocs": rawDocs
-  });
+  const censusDocs = await getCensus();
+ // console.log('Docs:', {
+ //   "censusDocs": censusDocs
+ // });
 
   /* Split text into chunks */
   const textSplitter = new RecursiveCharacterTextSplitter({
@@ -34,16 +26,14 @@ export default async function handler(
     chunkOverlap: 200,
   });
 
-  const docs = await textSplitter.splitDocuments(rawDocs);
+  const docs = await textSplitter.splitDocuments(censusDocs);
   console.log('split docs', docs);
 
   console.log('creating vector store...');
   /*create and store the embeddings in the vectorStore*/
   const embeddings = new OpenAIEmbeddings();
   
-  
-  // TOTHINK: New index per-property thread?
-  const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
+  const index = pinecone.Index(censusIndexName); //change to your own index name
 
   try {
 
@@ -63,17 +53,16 @@ export default async function handler(
       }else{
         console.log('DRY_RUN is true - not uploading')
 
-        res.send({ success: true, dryRun: true})
+        console.log({ success: true, dryRun: true})
       }
     }
 
-    res.send({ success: true})
+    console.log({ success: true})
 
   } catch (error) {
     console.log('error', error);
-    res.send({error: error})
+    console.log({error: error})
   } finally {
-    res.send({ success: true})
-    res.end();
+    console.log('END')
   }
 }
