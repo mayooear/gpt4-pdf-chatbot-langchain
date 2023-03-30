@@ -11,6 +11,8 @@ https://github.com/deldersveld/topojson/blob/master/countries/new-zealand/new-ze
 Geo Heirarchy?
 https://www.stats.govt.nz/api/v1/geo/places/all
 
+Add wikipedia for each place 
+
 
 ## Data Storage Options
 
