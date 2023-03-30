@@ -8,8 +8,12 @@ https://datafinder.stats.govt.nz/1
 https://nzdotstat.stats.govt.nz/wbos/Index.aspx
 https://github.com/deldersveld/topojson/blob/master/countries/new-zealand/new-zealand-regional-councils.json
 
+Geo Heirarchy?
+https://www.stats.govt.nz/api/v1/geo/places/all
+
 
 ## Data Storage Options
+
 
 ### Geographic Hierachaical 
 Top Graph 
@@ -27,6 +31,32 @@ Top Graph
 ### Attribute Key-Value pair 
 "This approach allows for more flexible queries and a more conversational interaction between the user and the chatbot." 
 Attribute-Value Pairs: Another approach is to structure the database using attribute-value pairs. For example, the database can contain information on regions, population, age groups, and income levels, among other variables. The chatbot can then use natural language processing (NLP) algorithms to extract the user's query and search the database for matching attribute-value pairs.
+
+
+
+
+
+## MetaData ideas:
+"Qualitiy of info"
+Geo Heirarchy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Docs
 

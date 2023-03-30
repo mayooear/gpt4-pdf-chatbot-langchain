@@ -30,7 +30,7 @@ export const run = async () => {
   const docs = await textSplitter.splitDocuments(censusDocs);
   console.log('split docs', docs);
 
-  console.log('creating vector store...');
+  if(process.env.DRY_RUN === 'false') console.log('creating vector store...');
   /*create and store the embeddings in the vectorStore*/
   const embeddings = new OpenAIEmbeddings();
   
@@ -68,6 +68,12 @@ export const run = async () => {
   }
 }
 
-if(require.main == module){
-  run();
-}
+(async () => {
+  await run();
+  if(process.env.DRY_RUN === 'false'){
+    console.log('ingestion complete');
+  }else{
+    console.log('DRY ingestion complete');
+  }
+
+})();

@@ -90,10 +90,10 @@ const censusPlaces:CensusPlace[] = [
 ]
 
 const getCensusDataForAllPlaces = async (): Promise<Document[]> => {
-  const documents:Document[] = [];
+  let documents:Document[] = [];
   for (const url of censusPlaces) {
     const docs = await processCensusUrl(url);
-    documents.push.apply(docs);
+    documents.push(...docs);
   }
   return documents;
 };
@@ -101,7 +101,19 @@ const getCensusDataForAllPlaces = async (): Promise<Document[]> => {
 const processCensusUrl = async (place:CensusPlace): Promise<Document[]> => {
     try {
         // TODO: this is hardcoded to middleton, chch - new to add lookup/map
-      const response = await fetch(`https://www.stats.govt.nz/${place.url}`);
+      const response = await fetch(`https://www.stats.govt.nz/${place.url}`, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://www.stats.govt.nz/tools/2018-census-place-summaries/middleton',
+          'X-Requested-With': 'XMLHttpRequest',
+          'SecurityID': '',
+          'If-None-Match': '"143aa2e8618e23c718b180c3d3bf553b-gzip"'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -115,18 +127,30 @@ const processCensusUrl = async (place:CensusPlace): Promise<Document[]> => {
       return [];
     }
   };
+
+  const getCensusDocPageContent = (place:CensusPlace, data: any):string => {
+    return data.PageBlocks.map((pb) => {
+      return `${pb.Title} ${pb.Intro} ${pb.CensusContent} ${pb.Title} ${pb.HighlightData}`
+    }).join('\n')
+  }
+
+  const getCensusDocMetadata = (place:CensusPlace, data: any):Record<string,string> => {
+    return {
+      "region": place.name,
+      "island": place.island
+    }
+  }
   
   const mapCensusPlaceToDocument = (place:CensusPlace, data: any): Document[] => {
     // Map the data to the Document type as required
     // Example: return data.map(item => ({ ...item }));
     // Implement the mapping logic here
+
+    const metadata = getCensusDocMetadata(place, data);
+    const pageContent = getCensusDocPageContent(place, data);
     return [{
-        pageContent: 'content',
-        metadata: {
-            "filePath": 'woah',
-            "region": place.name,
-            "island": place.island
-        }
+        pageContent: pageContent,
+        metadata: metadata
     }]
   };
 
