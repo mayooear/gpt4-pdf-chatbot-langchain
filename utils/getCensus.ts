@@ -89,7 +89,7 @@ const censusPlaces:CensusPlace[] = [
     }
 ]
 
-const getCensusForURLs = async (): Promise<Document[]> => {
+const getCensusDataForAllPlaces = async (): Promise<Document[]> => {
   const documents:Document[] = [];
   for (const url of censusPlaces) {
     const docs = await processCensusUrl(url);
@@ -132,6 +132,6 @@ const processCensusUrl = async (place:CensusPlace): Promise<Document[]> => {
 
 
   export {
-    getCensusForURLs,
+    getCensusDataForAllPlaces,
     mapCensusPlaceToDocument
   }

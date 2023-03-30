@@ -1,11 +1,11 @@
-import 'dotenv'
+import dotenv from 'dotenv'
+dotenv.config();
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { getRawData } from '@/utils/getRawData';
-import { getCensus } from '@/utils/getCensus';
+import { getCensusDataForAllPlaces } from '@/utils/getCensus';
 
 
 
@@ -16,7 +16,7 @@ export const run = async () => {
   // OpenAI recommends replacing newlines with spaces for best results
 
 // TODO: use propertyQuery
-  const censusDocs = await getCensus();
+  const censusDocs = await getCensusDataForAllPlaces();
  // console.log('Docs:', {
  //   "censusDocs": censusDocs
  // });
@@ -66,4 +66,8 @@ export const run = async () => {
   } finally {
     console.log('END')
   }
+}
+
+if(require.main == module){
+  run();
 }

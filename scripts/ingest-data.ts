@@ -5,7 +5,6 @@ import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { getRawData } from '@/utils/getRawData';
-import { getCensus } from '@/utils/getCensus';
 
 export const run = async () => {
 

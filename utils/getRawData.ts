@@ -3,6 +3,7 @@ import { PDFLoader } from 'langchain/document_loaders';
 import { htmlToText } from 'html-to-text';
 import glob from 'glob';
 import fs from 'fs/promises'
+import { Document } from './pinecone-client';
 /* Name of directory to retrieve files from. You can change this as required */
 const filePath = 'docs/MorseVsFrederick.pdf';
 const hpFilePath = 'docs/hp-data/90151.html'
