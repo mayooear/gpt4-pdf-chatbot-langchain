@@ -7,6 +7,8 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { getRawData } from '@/utils/getRawData';
 import { getCensus } from '@/utils/getCensus';
 
+
+
 export const run = async () => {
 
   //const censusIndexName = ''
