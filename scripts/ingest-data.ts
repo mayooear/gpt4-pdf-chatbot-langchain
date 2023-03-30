@@ -16,8 +16,8 @@ export const run = async () => {
     /*load raw docs from the pdf file in the directory */
     //const loader = new PDFLoader(filePath);
 
-    // const rawDocs = await getRawData();
-    const rawDocs = await getCensus()
+    const rawDocs = await getRawData();
+    //const rawDocs = await getCensus()
     console.log('docs:' + rawDocs);
 
     /* Split text into chunks */
