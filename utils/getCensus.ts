@@ -129,7 +129,27 @@ const processCensusUrl = async (place:CensusPlace): Promise<Document[]> => {
   };
 
   const getCensusDocPageContent = (place:CensusPlace, data: any):string => {
+
+    // @ts-ignore
     return data.PageBlocks.map((pb) => {
+      switch(pb.ClassName){
+        // TODO: use IndicatorBlock entries to replace HighlightData with human-readable meanful names
+        case "IndicatorBlock": {
+          const data = JSON.parse(pb.HighlightData)
+        }
+
+        case "TextBlock": {
+
+        }
+
+        case "GraphTableBlock": {
+
+        }
+
+        case "CensusRecordBlock": {
+
+        }
+      }
       return `${pb.Title} ${pb.Intro} ${pb.CensusContent} ${pb.Title} ${pb.HighlightData}`
     }).join('\n')
   }
