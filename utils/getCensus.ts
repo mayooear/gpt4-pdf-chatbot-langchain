@@ -1,4 +1,4 @@
-import { Document } from "./makechain";
+import { Document } from "./pinecone-client";
 
 const getCensus = async (): Promise<Document[]> => {
     try {

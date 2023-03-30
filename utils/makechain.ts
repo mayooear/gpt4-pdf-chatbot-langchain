@@ -13,6 +13,8 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:`);
 
+
+// TODO: update this prompt
 const QA_PROMPT = PromptTemplate.fromTemplate(
   `You are an AI assistant providing helpful advice. You are given the following extracted parts of a long document and a question. Provide a conversational answer based on the context provided.
 You should only provide hyperlinks that reference the context below. Do NOT make up hyperlinks.

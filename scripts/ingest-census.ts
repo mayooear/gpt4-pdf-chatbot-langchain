@@ -1,5 +1,4 @@
 import 'dotenv'
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
@@ -10,7 +9,7 @@ import { getCensus } from '@/utils/getCensus';
 
 export const run = async () => {
 
-  const censusIndexName = 'census-v1-3-30'
+  //const censusIndexName = ''
 
   // OpenAI recommends replacing newlines with spaces for best results
 
@@ -33,7 +32,7 @@ export const run = async () => {
   /*create and store the embeddings in the vectorStore*/
   const embeddings = new OpenAIEmbeddings();
   
-  const index = pinecone.Index(censusIndexName); //change to your own index name
+  const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
 
   try {
 
