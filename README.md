@@ -48,12 +48,8 @@ Geo Heirarchy
 
 
 
-
-
-
-
-
-
+# DEBUG place data for any place via the wikiUrl:
+e.g. http://localhost:3000/debug/places/Auckland_Region
 
 
 

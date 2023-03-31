@@ -1,12 +1,7 @@
 import WikiJS from "wikijs";
 import { Document } from "./pinecone-client";
+import { Place, places } from "./places";
 
-interface Place {
-  url: string
-  island: 'North'|'South'
-  name: string
-  wikiUrl: string
-}
 
 /**
  * Used Wiki API Data (with some pre-processing)
@@ -21,105 +16,6 @@ interface WikiContent {
   content:string
 }
 
-const places:Place[] = [
-  {
-    "name": "Northland",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/northland-region",
-    "wikiUrl": "Northland_Region"
-  },
-  {
-    "name": "Auckland",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/auckland-region",
-    "wikiUrl": "Auckland_Region"
-  },
-  {
-    "name": "Waikato",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/waikato-region",
-    "wikiUrl": "Waikato_Region"
-  },
-  {
-    "name": "Bay of Plenty",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/bay-of-plenty-region",
-    "wikiUrl": "Bay_of_Plenty_Region"
-  },
-  {
-    "name": "Gisborne",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/gisborne-region",
-    "wikiUrl": "Gisborne_District"
-  },
-  {
-    "name": "Hawke’s Bay",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/hawkes-bay-region",
-    "wikiUrl": "Hawke%27s_Bay_Region"
-  },
-  {
-    "name": "Taranaki",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/taranaki-region",
-    "wikiUrl": "Taranaki_Region"
-  },
-  {
-    "name": "Manawatū-Whanganui",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/manawatu-whanganui-region",
-    "wikiUrl": "Manawat%C5%AB-Whanganui"
-  },
-  {
-    "name": "Wellington",
-    "island": "North",
-    "url": "tools/2018-census-place-summaries/wellington-region",
-    "wikiUrl": "Wellington_Region"
-  },
-  {
-    "name": "Tasman",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/tasman-region",
-    "wikiUrl": "Tasman_District"
-  },
-  {
-    "name": "Nelson",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/nelson-region",
-    "wikiUrl": "Nelson,_New_Zealand"
-  },
-  {
-    "name": "Marlborough",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/marlborough-region",
-    "wikiUrl": "Marlborough_Region"
-  },
-  {
-    "name": "West Coast",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/west-coast-region",
-    "wikiUrl": "West_Coast_Region"
-  },
-  {
-    "name": "Canterbury",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/canterbury-region",
-    "wikiUrl": "Canterbury_Region"
-  },
-  {
-    "name": "Otago",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/otago-region",
-    "wikiUrl": "Otago_Region"
-  },
-  {
-    "name": "Southland",
-    "island": "South",
-    "url": "tools/2018-census-place-summaries/southland-region",
-    "wikiUrl": "Southland_Region"
-  }
-]
-
 const getDocumentsForAllPlaces = async (): Promise<Document[]> => {
   let documents:Document[] = [];
   for (const place of places) {
@@ -129,7 +25,7 @@ const getDocumentsForAllPlaces = async (): Promise<Document[]> => {
   return documents;
 };
 
-const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
+export const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
     try {
         // TODO: this is hardcoded to middleton, chch - new to add lookup/map
       /*const wikiResponse = await fetch(`https://en.wikipedia.org${place.wikiUrl}`, {
@@ -148,7 +44,7 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
                       })*/
 
       const wikiResponse = await WikiJS({ apiUrl: 'https://en.wikipedia.org/w/api.php' })
-                      .page('West_Coast_Region')
+                      .page(place.wikiUrl)
                       .then(async (page) => {
                         const info = await page.info();
                         const content = await page.content(); 
@@ -194,7 +90,7 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
     // Implement the mapping logic here
 
     const metadata = getPlaceDocMetadata(place, censusData, wikiData);
-    const pageContent = getPlaceDocPageContent(place, censusData, wikiData);
+    const pageContent:string = getPlaceDocPageContent(place, censusData, wikiData);
     return [{
         pageContent: pageContent,
         metadata: metadata
@@ -218,11 +114,11 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
       TITLE: ${wikiContentBlock.title}
       CONTENT: ${wikiContentBlock.content}
       `
-    }).join('\n')
+    }).join('&#10;')
 
    /* 
    TEMP: DONT Include census data yet
-   pageContent += Object.keys(wikiData.info).map((infoKey) => `${infoKey?.toUpperCase()}:${wikiData.info[infoKey]}`).join('\n')
+   pageContent += Object.keys(wikiData.info).map((infoKey) => `${infoKey?.toUpperCase()}:${wikiData.info[infoKey]}`).join('&#10;')
 
     // @ts-ignore
     pageContent += data.PageBlocks.map((pb) => {
@@ -245,7 +141,7 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
         }
       }
       return `${pb.Title} ${pb.Intro} ${pb.CensusContent} ${pb.Title} ${pb.HighlightData}`
-    }).join('\n')*/
+    }).join('&#10;')*/
 
     return pageContent;
   }
