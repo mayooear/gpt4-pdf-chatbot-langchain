@@ -5,21 +5,13 @@ import { PineconeStore } from 'langchain/vectorstores';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { getCensusDataForAllPlaces } from '@/utils/getCensus';
+import { getDocumentsForAllPlaces } from '@/utils/getDocumentsForAllPlaces';
 
 
 
 export const run = async () => {
 
-  //const censusIndexName = ''
-
-  // OpenAI recommends replacing newlines with spaces for best results
-
-// TODO: use propertyQuery
-  const censusDocs = await getCensusDataForAllPlaces();
- // console.log('Docs:', {
- //   "censusDocs": censusDocs
- // });
+  const censusDocs = await getDocumentsForAllPlaces();
 
   /* Split text into chunks */
   const textSplitter = new RecursiveCharacterTextSplitter({

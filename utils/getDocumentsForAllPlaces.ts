@@ -1,3 +1,4 @@
+import WikiJS from "wikijs";
 import { Document } from "./pinecone-client";
 
 interface Place {
@@ -7,106 +8,119 @@ interface Place {
   wikiUrl: string
 }
 
+/**
+ * Used Wiki API Data (with some pre-processing)
+ */
+interface WikiData {
+  wikiContent:WikiContent[]
+  info: Record<string,string>
+}
+
+interface WikiContent {
+  title:string
+  content:string
+}
+
 const places:Place[] = [
   {
     "name": "Northland",
     "island": "North",
     "url": "tools/2018-census-place-summaries/northland-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Northland_Region"
+    "wikiUrl": "Northland_Region"
   },
   {
     "name": "Auckland",
     "island": "North",
     "url": "tools/2018-census-place-summaries/auckland-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Auckland_Region"
+    "wikiUrl": "Auckland_Region"
   },
   {
     "name": "Waikato",
     "island": "North",
     "url": "tools/2018-census-place-summaries/waikato-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Waikato_Region"
+    "wikiUrl": "Waikato_Region"
   },
   {
     "name": "Bay of Plenty",
     "island": "North",
     "url": "tools/2018-census-place-summaries/bay-of-plenty-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Bay_of_Plenty_Region"
+    "wikiUrl": "Bay_of_Plenty_Region"
   },
   {
     "name": "Gisborne",
     "island": "North",
     "url": "tools/2018-census-place-summaries/gisborne-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Gisborne_District"
+    "wikiUrl": "Gisborne_District"
   },
   {
     "name": "Hawke’s Bay",
     "island": "North",
     "url": "tools/2018-census-place-summaries/hawkes-bay-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Hawke%27s_Bay_Region"
+    "wikiUrl": "Hawke%27s_Bay_Region"
   },
   {
     "name": "Taranaki",
     "island": "North",
     "url": "tools/2018-census-place-summaries/taranaki-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Taranaki_Region"
+    "wikiUrl": "Taranaki_Region"
   },
   {
     "name": "Manawatū-Whanganui",
     "island": "North",
     "url": "tools/2018-census-place-summaries/manawatu-whanganui-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Manawat%C5%AB-Whanganui"
+    "wikiUrl": "Manawat%C5%AB-Whanganui"
   },
   {
     "name": "Wellington",
     "island": "North",
     "url": "tools/2018-census-place-summaries/wellington-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Wellington_Region"
+    "wikiUrl": "Wellington_Region"
   },
   {
     "name": "Tasman",
     "island": "South",
     "url": "tools/2018-census-place-summaries/tasman-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Tasman_District"
+    "wikiUrl": "Tasman_District"
   },
   {
     "name": "Nelson",
     "island": "South",
     "url": "tools/2018-census-place-summaries/nelson-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Nelson,_New_Zealand"
+    "wikiUrl": "Nelson,_New_Zealand"
   },
   {
     "name": "Marlborough",
     "island": "South",
     "url": "tools/2018-census-place-summaries/marlborough-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Marlborough_Region"
+    "wikiUrl": "Marlborough_Region"
   },
   {
     "name": "West Coast",
     "island": "South",
     "url": "tools/2018-census-place-summaries/west-coast-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/West_Coast_Region"
+    "wikiUrl": "West_Coast_Region"
   },
   {
     "name": "Canterbury",
     "island": "South",
     "url": "tools/2018-census-place-summaries/canterbury-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Canterbury_Region"
+    "wikiUrl": "Canterbury_Region"
   },
   {
     "name": "Otago",
     "island": "South",
     "url": "tools/2018-census-place-summaries/otago-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Otago_Region"
+    "wikiUrl": "Otago_Region"
   },
   {
     "name": "Southland",
     "island": "South",
     "url": "tools/2018-census-place-summaries/southland-region",
-    "wikiUrl": "https://en.wikipedia.org/wiki/Southland_Region"
+    "wikiUrl": "Southland_Region"
   }
 ]
 
-const getCensusDataForAllPlaces = async (): Promise<Document[]> => {
+const getDocumentsForAllPlaces = async (): Promise<Document[]> => {
   let documents:Document[] = [];
   for (const place of places) {
     const docs = await getDocumentFromPlace(place);
@@ -118,7 +132,11 @@ const getCensusDataForAllPlaces = async (): Promise<Document[]> => {
 const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
     try {
         // TODO: this is hardcoded to middleton, chch - new to add lookup/map
-    /*  const wikiResponse = await fetch(place.wikiUrl)
+      /*const wikiResponse = await fetch(`https://en.wikipedia.org${place.wikiUrl}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }})
                       .then((res) => {
                         if(!res.ok){
                           throw new Error("res not ok")
@@ -127,10 +145,20 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
                         return res.text()
                       }).catch((err) => {
                         console.error('Could not get wiki')
-                      })
-            */          
-                      const wikiResponse = {};
+                      })*/
 
+      const wikiResponse = await WikiJS({ apiUrl: 'https://en.wikipedia.org/w/api.php' })
+                      .page('West_Coast_Region')
+                      .then(async (page) => {
+                        const info = await page.info();
+                        const content = await page.content(); 
+
+                        return {
+                          wikiContent: content as unknown as WikiContent[],
+                          info: info as unknown as Record<string,string>
+                        }
+                      })
+                      
       const censusResponse = await fetch(`https://www.stats.govt.nz/${place.url}`, {
         method: 'GET',
         headers: {
@@ -152,12 +180,49 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
       return [];
     }
   };
+  
+  /**
+   * Take all API call data and generate a PineCone document
+   * @param place 
+   * @param censusData 
+   * @param wikiData 
+   * @returns Document for PineCone upload
+   */
+  const mapCensusPlaceToDocument = (place:Place, censusData: any, wikiData:WikiData): Document[] => {
+    // Map the data to the Document type as required
+    // Example: return data.map(item => ({ ...item }));
+    // Implement the mapping logic here
 
-  const getPlaceDocPageContent = (place:Place, data: any, wikiData: any):string => {
+    const metadata = getPlaceDocMetadata(place, censusData, wikiData);
+    const pageContent = getPlaceDocPageContent(place, censusData, wikiData);
+    return [{
+        pageContent: pageContent,
+        metadata: metadata
+    }]
+  };
+
+
+  const getPlaceDocMetadata = (place:Place, censusData: any, wikiData: any):Record<string,string> => {
+    return {
+      "region": place.name,
+      "island": place.island
+    }
+  }
+
+  const getPlaceDocPageContent = (place:Place, data: any, wikiData: WikiData):string => {
 
     let pageContent = ''
 
-    pageContent += wikiData
+    pageContent += wikiData.wikiContent.map((wikiContentBlock:any) => {
+      return `
+      TITLE: ${wikiContentBlock.title}
+      CONTENT: ${wikiContentBlock.content}
+      `
+    }).join('\n')
+
+   /* 
+   TEMP: DONT Include census data yet
+   pageContent += Object.keys(wikiData.info).map((infoKey) => `${infoKey?.toUpperCase()}:${wikiData.info[infoKey]}`).join('\n')
 
     // @ts-ignore
     pageContent += data.PageBlocks.map((pb) => {
@@ -180,33 +245,13 @@ const getDocumentFromPlace = async (place:Place): Promise<Document[]> => {
         }
       }
       return `${pb.Title} ${pb.Intro} ${pb.CensusContent} ${pb.Title} ${pb.HighlightData}`
-    }).join('\n')
+    }).join('\n')*/
 
     return pageContent;
   }
 
-  const getPlaceDocMetadata = (place:Place, censusData: any, wikiData: any):Record<string,string> => {
-    return {
-      "region": place.name,
-      "island": place.island
-    }
-  }
-  
-  const mapCensusPlaceToDocument = (place:Place, censusData: any, wikiData:any): Document[] => {
-    // Map the data to the Document type as required
-    // Example: return data.map(item => ({ ...item }));
-    // Implement the mapping logic here
-
-    const metadata = getPlaceDocMetadata(place, censusData, wikiData);
-    const pageContent = getPlaceDocPageContent(place, censusData, wikiData);
-    return [{
-        pageContent: pageContent,
-        metadata: metadata
-    }]
-  };
-
 
   export {
-    getCensusDataForAllPlaces,
+    getDocumentsForAllPlaces,
     mapCensusPlaceToDocument
   }

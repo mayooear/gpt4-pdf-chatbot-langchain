@@ -8,6 +8,10 @@ const nextConfig = {
   swcMinify: true,
   webpack(config) {
     config.experiments = { ...config.experiments, topLevelAwait: true };
+    // In order for webpack to build wikijs properly, you must add an option to your webpack configuration file:
+    //config.externals = {
+    //  'isomorphic-fetch': 'fetch',
+    //}
     return config;
   },
 };
