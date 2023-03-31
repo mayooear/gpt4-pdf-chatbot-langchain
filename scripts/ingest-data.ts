@@ -1,4 +1,4 @@
-import 'dotenv'
+import 'dotenv';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { PineconeStore } from 'langchain/vectorstores';
@@ -7,9 +7,14 @@ import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { getRawData } from '@/utils/getRawData';
 
 export const run = async () => {
-
-  if (!process.env.OPENAI_API_KEY || !process.env.PINECONE_API_KEY || !process.env.PINECONE_ENVIRONMENT) {
-    throw new Error('One or more required environment variables are not defined.');
+  if (
+    !process.env.OPENAI_API_KEY ||
+    !process.env.PINECONE_API_KEY ||
+    !process.env.PINECONE_ENVIRONMENT
+  ) {
+    throw new Error(
+      'One or more required environment variables are not defined.',
+    );
   }
   try {
     /*load raw docs from the pdf file in the directory */
@@ -40,16 +45,16 @@ export const run = async () => {
     for (let i = 0; i < docs.length; i += chunkSize) {
       const chunk = docs.slice(i, i + chunkSize);
       console.log('chunk', i, chunk);
-      if(process.env.DRY_RUN === 'false'){
-      await PineconeStore.fromDocuments(
-        index,
-        chunk,
-        embeddings,
-        'text',
-        PINECONE_NAME_SPACE,
-      );
-      }else{
-        console.log('DRY_RUN is true - not uploading')
+      if (process.env.DRY_RUN === 'false') {
+        await PineconeStore.fromDocuments(
+          index,
+          chunk,
+          embeddings,
+          'text',
+          PINECONE_NAME_SPACE,
+        );
+      } else {
+        console.log('DRY_RUN is true - not uploading');
       }
     }
   } catch (error) {

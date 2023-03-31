@@ -36,6 +36,8 @@
     "react-dom": "18.2.0",
     "react-markdown": "^8.0.5",
     "tailwind-merge": "^1.10.0",
+    "use-google-maps-script": "^0.1.2",
+    "use-places-autocomplete": "^4.0.0",
     "wikijs": "^6.4.1"
   },
   "devDependencies": {

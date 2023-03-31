@@ -1,4 +1,4 @@
-import 'dotenv'
+import 'dotenv';
 import { OpenAIChat } from 'langchain/llms';
 import { LLMChain, ChatVectorDBQAChain, loadQAChain } from 'langchain/chains';
 import { PineconeStore } from 'langchain/vectorstores';
@@ -12,7 +12,6 @@ Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone question:`);
-
 
 // TODO: update this prompt
 const QA_PROMPT = PromptTemplate.fromTemplate(
@@ -45,7 +44,7 @@ export const makeChain = (
         ? CallbackManager.fromHandlers({
             async handleLLMNewToken(token) {
               onTokenStream(token);
-              console.log('LoadQAChain:'+token);
+              console.log('LoadQAChain:' + token);
             },
           })
         : undefined,

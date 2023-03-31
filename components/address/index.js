@@ -164,7 +164,7 @@ const ReadySearchBox = ({ setShowChat }) => {
 export function SearchBox({ onSelectAddress, defaultValue, setShowChat }) {
   // NZ address
   const { isLoaded, loadError } = useGoogleMapsScript({
-    googleMapsApiKey: 'AIzaSyBohKQoEUOCUnB_v5m5knuIaDNzX7vJCFU' ?? '',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
     libraries,
   });
 
