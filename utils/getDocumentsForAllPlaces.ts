@@ -53,8 +53,7 @@ export const getDocumentFromPlace = async (place:Place): Promise<Document[]> => 
                           wikiContent: content as unknown as WikiContent[],
                           info: info as unknown as Record<string,string>
                         }
-                      })
-                      
+                      }) 
       const censusResponse = await fetch(`https://www.stats.govt.nz/${place.url}`, {
         method: 'GET',
         headers: {
