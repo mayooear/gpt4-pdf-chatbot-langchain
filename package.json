@@ -16,7 +16,7 @@
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
     "ingest": "tsx -r dotenv/config scripts/ingest-data.ts",
-    "ingest-census": "tsx -r dotenv/config scripts/ingest-census.ts"
+    "ingest-places": "tsx -r dotenv/config scripts/ingest-places.ts"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -35,7 +35,8 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-markdown": "^8.0.5",
-    "tailwind-merge": "^1.10.0"
+    "tailwind-merge": "^1.10.0",
+    "wikijs": "^6.4.1"
   },
   "devDependencies": {
     "@types/node": "^18.14.6",

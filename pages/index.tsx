@@ -135,7 +135,7 @@ export default function Home() {
         e.preventDefault();
       }
     },
-    [query],
+    [query, handleSubmit],
   );
 
   const chatMessages = useMemo(() => {

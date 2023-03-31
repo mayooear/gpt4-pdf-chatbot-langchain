@@ -15,7 +15,7 @@ export default async function handler(
     return res.status(400).json({ message: 'No question in the request' });
   }
   // OpenAI recommends replacing newlines with spaces for best results
-  const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
+  const sanitizedQuestion = question.trim().replaceAll('&#10;', ' ');
 
   const index = pinecone.Index(PINECONE_INDEX_NAME);
 
@@ -34,7 +34,7 @@ export default async function handler(
   });
 
   const sendData = (data: string) => {
-    res.write(`data: ${data}\n\n`);
+    res.write(`data: ${data}`);
   };
 
   sendData(JSON.stringify({ data: '' }));
