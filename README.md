@@ -4,9 +4,10 @@
 
 
 ## Potiental Data sources:
-https://datafinder.stats.govt.nz/1
-https://nzdotstat.stats.govt.nz/wbos/Index.aspx
-https://github.com/deldersveld/topojson/blob/master/countries/new-zealand/new-zealand-regional-councils.json
+- "Auckland Region travel guide from Wikivoyage"
+- https://datafinder.stats.govt.nz/1
+- https://nzdotstat.stats.govt.nz/wbos/Index.aspx
+- https://github.com/deldersveld/topojson/blob/master/countries/new-zealand/new-zealand-regional-councils.json
 
 Geo Heirarchy?
 https://www.stats.govt.nz/api/v1/geo/places/all
