@@ -72,7 +72,7 @@ export const getDocumentFromPlace = async (place:Place): Promise<Document[]> => 
  
       return mapCensusPlaceToDocument(place, censusResponse, wikiResponse);;
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error(`Error fetching data for ${place.wikiUrl}`, error);
       return [];
     }
   };
