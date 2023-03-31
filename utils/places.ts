@@ -41,7 +41,7 @@ const places:Place[] = [
       "name": "Hawke’s Bay",
       "island": "North",
       "url": "tools/2018-census-place-summaries/hawkes-bay-region",
-      "wikiUrl": "Hawke%27s_Bay_Region"
+      "wikiUrl": "Hawke's_Bay"
     },
     {
       "name": "Taranaki",
@@ -53,7 +53,7 @@ const places:Place[] = [
       "name": "Manawatū-Whanganui",
       "island": "North",
       "url": "tools/2018-census-place-summaries/manawatu-whanganui-region",
-      "wikiUrl": "Manawat%C5%AB-Whanganui"
+      "wikiUrl": "Manawatū-Whanganui"
     },
     {
       "name": "Wellington",
