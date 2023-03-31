@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useRouter } from 'next/router';
 import { Place, places } from '@/utils/places';
 import { getDocumentFromPlace } from '@/utils/getDocumentsForAllPlaces';
 import { GetStaticProps } from 'next';
@@ -29,7 +28,7 @@ const PlacePage = ({ place, placeDocument }:PlacePageProps) => {
       <pre>{JSON.stringify(placeDocument[0].metadata, undefined, 4)}</pre>
       <h1>Content:</h1>
       {placeDocument.map((doc) => {
-        return (<textarea defaultValue={JSON.stringify(doc, undefined, 2)} style={{width: '100%', height: '800px'}}/>)
+        return (<textarea key={doc.metadata["region"]} defaultValue={JSON.stringify(doc, undefined, 2)} style={{width: '100%', height: '800px'}}/>)
       })}
     </div>
   );
