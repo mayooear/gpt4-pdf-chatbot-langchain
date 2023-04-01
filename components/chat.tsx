@@ -36,8 +36,9 @@ const Chat = (props: any) => {
 
   const { query } = useRouter();
 
-  //const [query, setQuery] = useState<string>('');
+  const [inputQuery, setInputQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [sourceDocs, setSourceDocs] = useState<Document[]>([]);
   const [error, setError] = useState<string | null>(null);
   const ctrl = new AbortController();
@@ -65,56 +66,60 @@ const Chat = (props: any) => {
   useEffect(() => {
     textAreaRef.current?.focus();
 
+    if(!hasLoaded){
+      setHasLoaded(true);
+        
+      try {
+        fetchEventSource('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lat: query.lat,
+            lng: query.lng,
+            history,
+          }),
+          signal: ctrl.signal,
+          onmessage: (event) => {
+            if (event.data === '[DONE]') {
 
-    try {
-      fetchEventSource('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lat: query.lat,
-          lng: query.lng,
-          history,
-        }),
-        signal: ctrl.signal,
-        onmessage: (event) => {
-          if (event.data === '[DONE]') {
-            setMessageState((state) => ({
-              history: [...state.history],
-              messages: [
-                ...state.messages,
-                {
-                  type: 'apiMessage',
-                  message: state.pending ?? '',
-                  sourceDocs: state.pendingSourceDocs,
-                },
-              ],
-              pending: undefined,
-              pendingSourceDocs: undefined,
-            }));
-            setLoading(false);
-            ctrl.abort();
-          } else {
-            const data = JSON.parse(event.data);
-            if (data.sourceDocs) {
               setMessageState((state) => ({
-                ...state,
-                pendingSourceDocs: data.sourceDocs,
+                history: [...state.history],
+                messages: [
+                  ...state.messages,
+                  {
+                    type: 'apiMessage',
+                    message: state.pending ?? '',
+                    sourceDocs: state.pendingSourceDocs,
+                  },
+                ],
+                pending: undefined,
+                pendingSourceDocs: undefined,
               }));
+              setLoading(false);
+              ctrl.abort();
             } else {
-              setMessageState((state) => ({
-                ...state,
-                pending: (state.pending ?? '') + data.data,
-              }));
+              const data = JSON.parse(event.data);
+              if (data.sourceDocs) {
+                setMessageState((state) => ({
+                  ...state,
+                  pendingSourceDocs: data.sourceDocs,
+                }));
+              } else {
+                setMessageState((state) => ({
+                  ...state,
+                  pending: (state.pending ?? '') + data.data,
+                }));
+              }
             }
-          }
-        },
-      });
-    } catch (error) {
-      setLoading(false);
-      setError('An error occurred while fetching the data. Please try again.');
-      console.log('error', error);
+          },
+        });
+      } catch (error) {
+        setLoading(false);
+        setError('An error occurred while fetching the data. Please try again.');
+        console.log('error', error);
+      }
     }
   }, [query.lat, query.lng, history, ctrl])
 
@@ -129,7 +134,7 @@ const Chat = (props: any) => {
       return;
     }
 
-    const question = query?.trim();
+    const question = inputQuery?.trim();
 
     setMessageState((state) => ({
       ...state,
@@ -144,7 +149,7 @@ const Chat = (props: any) => {
     }));
 
     setLoading(true);
-    setQuery('');
+    setInputQuery('');
     setMessageState((state) => ({ ...state, pending: '' }));
 
 
@@ -359,8 +364,8 @@ const Chat = (props: any) => {
                       ? 'Waiting for response...'
                       : 'What is this legal case about?'
                   }
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  value={inputQuery}
+                  onChange={(e) => setInputQuery(e.target.value)}
                   className={styles.textarea}
                 />
                 <button

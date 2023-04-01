@@ -10,7 +10,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { lat, lng, questionIn, history } = req.query;
+  const { lat, lng, questionIn, history } = req.body;
 
   let sanitizedQuestion;
   // if we don't have history, we're string the chat, get summary info and provide it (ignore the questionIn)
