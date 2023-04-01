@@ -75,17 +75,16 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Check that you've created an `.env` file that contains your valid (and working) API keys, environment and index name.
 - If you change `modelName` in `OpenAIChat` note that the correct name of the alternative model is `gpt-3.5-turbo`
 - Make sure you have access to `gpt-4` if you decide to use. Test your openAI keys outside the repo and make sure it works and that you have enough API credits.
-- Your pdf file is corrupted and cannot be parsed.
 - Check that you don't have multiple OPENAPI keys in your global environment. If you do, the local `env` file from the project will be overwritten by systems `env` variable.
 - Try to hard code your API keys into the `process.env` variables.
-- 
+
 
 **Pinecone errors**
 
 - Make sure your pinecone dashboard `environment` and `index` matches the one in the `pinecone.ts` and `.env` files.
 - Check that you've set the vector dimensions to `1536`.
 - Make sure your pinecone namespace is in lowercase.
-- Pinecone indexes of users on the Starter(free) plan are deleted after 7 days of inactivity. To prevent this, send an API request to Pinecone to reset the counter.
+- Pinecone indexes of users on the Starter(free) plan are deleted after 7 days of inactivity. To prevent this, send an API request to Pinecone to reset the counter before 7 days.
 - Retry from scratch with a new Pinecone project, index, and cloned repo.
 
 ## Credit
