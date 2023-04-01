@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/accordion';
 // Link
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const buttonStyle = {
   backgroundColor: '#3f51b5',
@@ -31,10 +32,15 @@ const buttonStyle = {
 };
 
 const Chat = (props: any) => {
-  const [query, setQuery] = useState<string>('');
+  console.log('props', props);
+
+  const { query } = useRouter();
+
+  //const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [sourceDocs, setSourceDocs] = useState<Document[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const ctrl = new AbortController();
   const [messageState, setMessageState] = useState<{
     messages: Message[];
     pending?: string;
@@ -58,7 +64,59 @@ const Chat = (props: any) => {
 
   useEffect(() => {
     textAreaRef.current?.focus();
-  }, []);
+
+
+    try {
+      fetchEventSource('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lat: query.lat,
+          lng: query.lng,
+          history,
+        }),
+        signal: ctrl.signal,
+        onmessage: (event) => {
+          if (event.data === '[DONE]') {
+            setMessageState((state) => ({
+              history: [...state.history],
+              messages: [
+                ...state.messages,
+                {
+                  type: 'apiMessage',
+                  message: state.pending ?? '',
+                  sourceDocs: state.pendingSourceDocs,
+                },
+              ],
+              pending: undefined,
+              pendingSourceDocs: undefined,
+            }));
+            setLoading(false);
+            ctrl.abort();
+          } else {
+            const data = JSON.parse(event.data);
+            if (data.sourceDocs) {
+              setMessageState((state) => ({
+                ...state,
+                pendingSourceDocs: data.sourceDocs,
+              }));
+            } else {
+              setMessageState((state) => ({
+                ...state,
+                pending: (state.pending ?? '') + data.data,
+              }));
+            }
+          }
+        },
+      });
+    } catch (error) {
+      setLoading(false);
+      setError('An error occurred while fetching the data. Please try again.');
+      console.log('error', error);
+    }
+  }, [query.lat, query.lng, history, ctrl])
 
   //handle form submission
   async function handleSubmit(e: any) {
@@ -71,7 +129,7 @@ const Chat = (props: any) => {
       return;
     }
 
-    const question = query.trim();
+    const question = query?.trim();
 
     setMessageState((state) => ({
       ...state,
@@ -89,7 +147,6 @@ const Chat = (props: any) => {
     setQuery('');
     setMessageState((state) => ({ ...state, pending: '' }));
 
-    const ctrl = new AbortController();
 
     try {
       fetchEventSource('/api/chat', {
