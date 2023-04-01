@@ -4,18 +4,40 @@ import { PineconeStore } from 'langchain/vectorstores';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import WikiJS from 'wikijs';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { question, history } = req.body;
+  const { lat, lng, questionIn, history } = req.query;
 
-  if (!question) {
-    return res.status(400).json({ message: 'No question in the request' });
+  let sanitizedQuestion;
+  // if we don't have history, we're string the chat, get summary info and provide it (ignore the questionIn)
+  if(!history){
+    const RADIUS = 1000
+
+    const latNum = parseFloat(lat as string);
+    const lngNum = parseFloat(lng as string);
+
+    if(!latNum || !lngNum){
+        res.status(400).json({ error: 'Invalid lat/lng query params'})
+    }
+
+    const result = await WikiJS().geoSearch(latNum, lngNum, RADIUS)
+        .then((res) => {
+            // TODO: do we need to filter to just regions here?
+            return res[0];
+        })
+        .then((pageName) => WikiJS().page(pageName))
+        .then((page) => page.summary())
+
+    sanitizedQuestion = `Here is some context, give a summary: ${result}`
+  }else{
+
+    // OpenAI recommends replacing newlines with spaces for best results
+    sanitizedQuestion = typeof questionIn === 'string' ? questionIn.trim().replaceAll('&#10;', ' ') : ''
   }
-  // OpenAI recommends replacing newlines with spaces for best results
-  const sanitizedQuestion = question.trim().replaceAll('&#10;', ' ');
 
   const index = pinecone.Index(PINECONE_INDEX_NAME);
 
