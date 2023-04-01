@@ -162,6 +162,8 @@ const Chat = (props: any) => {
         body: JSON.stringify({
           question,
           history,
+          lat: query.lat,
+          lng: query.lng,
         }),
         signal: ctrl.signal,
         onmessage: (event) => {
