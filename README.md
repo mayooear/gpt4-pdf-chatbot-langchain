@@ -62,6 +62,38 @@ PINECONE_INDEX_NAME=
 
 Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `pnpm run dev` to launch the local dev environment, and then type a question in the chat interface.
 
+Create `my-app-pm2.json` file to run serer forever.
+
+```
+{
+  "apps": [
+    {
+      "name": "langchain-app",
+      "cwd": "./",
+      "script": "pnpm",
+      "args": "start"
+    }
+  ]
+}
+```
+
+- Run pm2
+
+```angular2html
+pm2 start my-app-pm2.json -i max
+```
+
+- List pm2
+
+```angular2html
+pm2 list
+```
+
+- Kill pm2
+```angular2html
+pm2 kill
+```
+
 ## Troubleshooting
 
 In general, keep an eye out in the `issues` and `discussions` section of this repo for solutions.
