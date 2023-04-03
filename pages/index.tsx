@@ -129,9 +129,9 @@ export default function Home() {
   //prevent empty submissions
   const handleEnter = useCallback(
     (e: any) => {
-      if (e.key === 'Enter' && query) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)&& query) {
         handleSubmit(e);
-      } else if (e.key == 'Enter') {
+      }else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
       }
     },
