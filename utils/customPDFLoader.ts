@@ -35,9 +35,10 @@ export class CustomPDFLoader extends BufferLoader {
   ): Promise<Document[]> {
     const { pdf } = await PDFLoaderImports();
     const parsed = await pdf(raw);
+    const pageContent = parsed.text.replace(/\s+/g, ' ').trim(); // replace multiple whitespace with single space and trim
     return [
       new Document({
-        pageContent: parsed.text,
+        pageContent,
         metadata: {
           ...metadata,
           pdf_numpages: parsed.numpages,
