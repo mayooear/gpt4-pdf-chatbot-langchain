@@ -6,7 +6,7 @@
     "node": ">=18"
   },
   "license": "MIT",
-  "author": "Mayooear<twitter:@mayowaoshin>",
+  "author": "kai",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -56,8 +56,6 @@
     "typescript",
     "nextjs",
     "langchain",
-    "law",
-    "legal",
     "pdf",
     "openai"
   ]
