@@ -6,7 +6,7 @@ import { PDFLoader } from 'langchain/document_loaders';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 
 /* Name of directory to retrieve files from. You can change this as required */
-const filePath = 'docs/AerSale-Employee-Handbook-0918.pdf';
+const filePath = 'docs/testdoc.pdf';
 
 export const run = async () => {
   try {
