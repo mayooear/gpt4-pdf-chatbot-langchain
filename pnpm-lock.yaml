@@ -13,7 +13,7 @@ specifiers:
   dotenv: ^16.0.3
   eslint: 8.35.0
   eslint-config-next: 13.2.3
-  langchain: 0.0.41
+  langchain: ^0.0.51
   lucide-react: ^0.125.0
   next: 13.2.3
   pdf-parse: 1.1.1
@@ -33,7 +33,7 @@ dependencies:
   '@radix-ui/react-accordion': 1.1.1_biqbaboplfbrettd7655fr4n2y
   clsx: 1.2.1
   dotenv: 16.0.3
-  langchain: 0.0.41_gmj7kmepz6e4hbef53kmpddf3a
+  langchain: 0.0.51_ppsbqni3ixqkis2lkrnfyb5ism
   lucide-react: 0.125.0_react@18.2.0
   next: 13.2.3_biqbaboplfbrettd7655fr4n2y
   pdf-parse: 1.1.1
@@ -57,6 +57,15 @@ devDependencies:
   typescript: 4.9.5
 
 packages:
+
+  /@anthropic-ai/sdk/0.4.3:
+    resolution: {integrity: sha512-SZrlXvjUUYT9rPmSzlTtmVk1OjVNpkCzILRluhiYwNcxXfQyvPJDi0CI6PyymygcgtqEF5EVqhKmC/PtPsNEIw==}
+    dependencies:
+      '@fortaine/fetch-event-source': 3.0.6
+      cross-fetch: 3.1.5
+    transitivePeerDependencies:
+      - encoding
+    dev: false
 
   /@babel/runtime/7.21.0:
     resolution: {integrity: sha512-xwII0//EObnq89Ji5AKYQaRYiW/nZ3llSv29d49IuxPhKbtJoLP+9QUUZ4nVragQVtaVGeZrpB+ZtG/Pdy/POw==}
@@ -304,6 +313,11 @@ packages:
     resolution: {integrity: sha512-JXdzbRiWclLVoD8sNUjR443VVlYqiYmDVT6rGUEIEHU5YJW0gaVZwV2xgM7D4arkvASqD0IlLUVjHiFuxaftRw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
+
+  /@fortaine/fetch-event-source/3.0.6:
+    resolution: {integrity: sha512-621GAuLMvKtyZQ3IA6nlDWhV1V/7PGOTNIGLUifxt0KzM+dZIweJ6F3XvQF3QnqeNfS1N7WQ0Kil1Di/lhChEw==}
+    engines: {node: '>=16.15'}
+    dev: false
 
   /@humanwhocodes/config-array/0.11.8:
     resolution: {integrity: sha512-UybHIJzJnR5Qc/MsD9Kr+RpO2h+/P1GhOwdiLPXK5TWk5sgTdu88bTD9UP+CKbPPh5Rni1u0GjAdYQLemG8g+g==}
@@ -869,10 +883,6 @@ packages:
       get-intrinsic: 1.2.0
       is-string: 1.0.7
     dev: true
-
-  /array-keyed-map/2.1.3:
-    resolution: {integrity: sha512-JIUwuFakO+jHjxyp4YgSiKXSZeC0U+R1jR94bXWBcVlFRBycqXlb+kH9JHxBGcxnVuSqx5bnn0Qz9xtSeKOjiA==}
-    dev: false
 
   /array-union/2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
@@ -1666,11 +1676,6 @@ packages:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
     dev: false
 
-  /eventsource-parser/0.1.0:
-    resolution: {integrity: sha512-M9QjFtEIkwytUarnx113HGmgtk52LSn3jNAtnWKi3V+b9rqSfQeVdLsaD5AG/O4IrGQwmAAHBIsqbmURPTd2rA==}
-    engines: {node: '>=14.18'}
-    dev: false
-
   /exponential-backoff/3.1.1:
     resolution: {integrity: sha512-dX7e/LHVJ6W3DE1MHWi9S1EYzDESENfLrYohG2G++ovZrYOkm4Knwa0mc1cn84xJOR4KEU0WSchhLbd0UklbHw==}
     dev: false
@@ -1741,6 +1746,11 @@ packages:
       flatted: 3.2.7
       rimraf: 3.0.2
     dev: true
+
+  /flat/5.0.2:
+    resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
+    hasBin: true
+    dev: false
 
   /flatted/3.2.7:
     resolution: {integrity: sha512-5nqDSxl8nn5BSNxyR3n4I6eDmbolI6WT+QqR547RwxQapgjQBmtktdP+HTBb/a/zLsbzERTONyUB5pefh5TtjQ==}
@@ -1911,13 +1921,6 @@ packages:
     dependencies:
       get-intrinsic: 1.2.0
     dev: true
-
-  /gpt3-tokenizer/1.1.5:
-    resolution: {integrity: sha512-O9iCL8MqGR0Oe9wTh0YftzIbysypNQmS5a5JG3cB3M4LMYjlAVvNnf8LUzVY9MrI7tj+YLY356uHtO2lLX2HpA==}
-    engines: {node: '>=12'}
-    dependencies:
-      array-keyed-map: 2.1.3
-    dev: false
 
   /graceful-fs/4.2.10:
     resolution: {integrity: sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==}
@@ -2242,26 +2245,33 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /langchain/0.0.41_gmj7kmepz6e4hbef53kmpddf3a:
-    resolution: {integrity: sha512-X7JaexSicy1xfXpJNaQtUSTAjuNmpx0m56ygpMhGZ1ZKhXCXUTIXN4odUMOyP2+h9UnsthjZFrILFNZglghv4g==}
+  /langchain/0.0.51_ppsbqni3ixqkis2lkrnfyb5ism:
+    resolution: {integrity: sha512-uKjH4NZjiuKXVFfRhHSNEiPpwFb/P34hVpkg6HSFCJ2iynrtLTRNRLLAHbkXb1e2gMZT0cFVrKZuwC59xL13+g==}
+    engines: {node: '>=18'}
     peerDependencies:
       '@dqbd/tiktoken': ^1.0.2
+      '@getmetal/metal-sdk': '*'
       '@huggingface/inference': ^1.5.1
       '@pinecone-database/pinecone': ^0.0.10
       '@supabase/supabase-js': ^2.10.0
       cheerio: ^1.0.0-rc.12
       chromadb: ^1.3.0
       cohere-ai: ^5.0.2
-      d3-dsv: ^3.0.1
+      d3-dsv: ^2.0.0
+      epub2: ^3.0.1
       hnswlib-node: ^1.4.2
-      pdf-parse: ^1.1.1
+      html-to-text: ^9.0.5
+      mammoth: '*'
+      pdfjs-dist: ^3.4.120
       puppeteer: ^19.7.2
       redis: ^4.6.4
-      serpapi: ^1.1.1
+      replicate: ^0.9.0
       srt-parser-2: ^1.2.2
       typeorm: ^0.3.12
     peerDependenciesMeta:
       '@dqbd/tiktoken':
+        optional: true
+      '@getmetal/metal-sdk':
         optional: true
       '@huggingface/inference':
         optional: true
@@ -2277,38 +2287,45 @@ packages:
         optional: true
       d3-dsv:
         optional: true
+      epub2:
+        optional: true
       hnswlib-node:
         optional: true
-      pdf-parse:
+      html-to-text:
+        optional: true
+      mammoth:
+        optional: true
+      pdfjs-dist:
         optional: true
       puppeteer:
         optional: true
       redis:
         optional: true
-      serpapi:
+      replicate:
         optional: true
       srt-parser-2:
         optional: true
       typeorm:
         optional: true
     dependencies:
+      '@anthropic-ai/sdk': 0.4.3
+      '@fortaine/fetch-event-source': 3.0.6
       '@pinecone-database/pinecone': 0.0.10
       browser-or-node: 2.1.1
-      eventsource-parser: 0.1.0
       exponential-backoff: 3.1.1
       expr-eval: 2.0.2
-      gpt3-tokenizer: 1.1.5
+      flat: 5.0.2
       is-binary-path: 2.1.0
       jsonpointer: 5.0.1
       object-hash: 3.0.0
       openai: 3.2.1
-      p-queue: 7.3.4
-      pdf-parse: 1.1.1
+      p-queue: 6.6.2
       uuid: 9.0.0
       yaml: 2.2.1
       zod: 3.21.4
     transitivePeerDependencies:
       - debug
+      - encoding
     dev: false
 
   /language-subtag-registry/0.3.22:
@@ -2825,6 +2842,11 @@ packages:
       word-wrap: 1.2.3
     dev: true
 
+  /p-finally/1.0.0:
+    resolution: {integrity: sha512-LICb2p9CB7FS+0eR1oqWnHhp0FljGLZCWBE9aix0Uye9W8LTQPwMTYVGWQWIw9RdQiDg4+epXQODwIYJtSJaow==}
+    engines: {node: '>=4'}
+    dev: false
+
   /p-limit/3.1.0:
     resolution: {integrity: sha512-TYOanM3wGwNGsZN2cVTYPArw454xnXj5qmWF1bEoAc4+cU/ol7GVh7odevjp1FNHduHc3KZMcFduxU5Xc6uJRQ==}
     engines: {node: '>=10'}
@@ -2839,17 +2861,19 @@ packages:
       p-limit: 3.1.0
     dev: true
 
-  /p-queue/7.3.4:
-    resolution: {integrity: sha512-esox8CWt0j9EZECFvkFl2WNPat8LN4t7WWeXq73D9ha0V96qPRufApZi4ZhPwXAln1uVVal429HVVKPa2X0yQg==}
-    engines: {node: '>=12'}
+  /p-queue/6.6.2:
+    resolution: {integrity: sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ==}
+    engines: {node: '>=8'}
     dependencies:
       eventemitter3: 4.0.7
-      p-timeout: 5.1.0
+      p-timeout: 3.2.0
     dev: false
 
-  /p-timeout/5.1.0:
-    resolution: {integrity: sha512-auFDyzzzGZZZdHz3BtET9VEz0SE/uMEAx7uWfGPucfzEwwe/xH0iVeZibQmANYE/hp9T2+UUZT5m+BKyrDp3Ew==}
-    engines: {node: '>=12'}
+  /p-timeout/3.2.0:
+    resolution: {integrity: sha512-rhIwUycgwwKcP9yTOOFK/AKsAopjjCakVqLHePO3CC6Mir1Z99xT+R63jZxAT5lFZLa2inS5h+ZS2GvR99/FBg==}
+    engines: {node: '>=8'}
+    dependencies:
+      p-finally: 1.0.0
     dev: false
 
   /parent-module/1.0.1:

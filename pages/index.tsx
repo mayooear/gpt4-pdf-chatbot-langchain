@@ -17,7 +17,6 @@ import {
 export default function Home() {
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [sourceDocs, setSourceDocs] = useState<Document[]>([]);
   const [messageState, setMessageState] = useState<{
     messages: Message[];
     pending?: string;
@@ -31,10 +30,10 @@ export default function Home() {
       },
     ],
     history: [],
-    pendingSourceDocs: [],
+    sourceDocs: [],
   });
 
-  const { messages, pending, history, pendingSourceDocs } = messageState;
+  const { messages, pending, history, sourceDocs } = messageState;
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,17 +62,13 @@ export default function Home() {
           message: question,
         },
       ],
-      pending: undefined,
     }));
 
     setLoading(true);
     setQuery('');
-    setMessageState((state) => ({ ...state, pending: '' }));
-
-    const ctrl = new AbortController();
 
     try {
-      fetchEventSource('/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,40 +77,37 @@ export default function Home() {
           question,
           history,
         }),
-        signal: ctrl.signal,
-        onmessage: (event) => {
-          if (event.data === '[DONE]') {
-            setMessageState((state) => ({
-              history: [...state.history, [question, state.pending ?? '']],
-              messages: [
-                ...state.messages,
-                {
-                  type: 'apiMessage',
-                  message: state.pending ?? '',
-                  sourceDocs: state.pendingSourceDocs,
-                },
-              ],
-              pending: undefined,
-              pendingSourceDocs: undefined,
-            }));
-            setLoading(false);
-            ctrl.abort();
-          } else {
-            const data = JSON.parse(event.data);
-            if (data.sourceDocs) {
-              setMessageState((state) => ({
-                ...state,
-                pendingSourceDocs: data.sourceDocs,
-              }));
-            } else {
-              setMessageState((state) => ({
-                ...state,
-                pending: (state.pending ?? '') + data.data,
-              }));
-            }
-          }
-        },
       });
+      const data = await response.json();
+      console.log('data', data);
+
+      if (data.error) {
+        toast({
+          title: 'Something went wrong',
+          description: data.error,
+          variant: 'destructive',
+        });
+      } else {
+        setMessageState((state) => ({
+          ...state,
+          messages: [
+            ...state.messages,
+            {
+              type: 'apiMessage',
+              message: data.text,
+              sourceDocs: data.sourceDocuments,
+            },
+          ],
+          history: [...state.history, [question, data.text]],
+          // sourceDocs: data.sourceDocs,
+        }));
+      }
+      console.log('messageState', messageState);
+
+      setLoading(false);
+
+      //scroll to bottom
+      messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
     } catch (error) {
       setLoading(false);
       console.log('error', error);
@@ -131,21 +123,6 @@ export default function Home() {
     }
   };
 
-  const chatMessages = useMemo(() => {
-    return [
-      ...messages,
-      ...(pending
-        ? [
-            {
-              type: 'apiMessage',
-              message: pending,
-              sourceDocs: pendingSourceDocs,
-            },
-          ]
-        : []),
-    ];
-  }, [messages, pending, pendingSourceDocs]);
-
   return (
     <>
       <Layout>
@@ -156,7 +133,7 @@ export default function Home() {
           <main className={styles.main}>
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
-                {chatMessages.map((message, index) => {
+                {messages.map((message, index) => {
                   let icon;
                   let className;
                   if (message.type === 'apiMessage') {
@@ -184,7 +161,7 @@ export default function Home() {
                     );
                     // The latest message sent by the user will be animated while waiting for a response
                     className =
-                      loading && index === chatMessages.length - 1
+                      loading && index === messages.length - 1
                         ? styles.usermessagewaiting
                         : styles.usermessage;
                   }
