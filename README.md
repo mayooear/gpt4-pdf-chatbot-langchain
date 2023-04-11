@@ -22,6 +22,10 @@ git clone [github https url]
 
 2. Install packages
 
+First run `npm install pnpm -g` to install pnpm globally (if you haven't already).
+
+Then run:
+
 ```
 pnpm install
 ```
@@ -44,7 +48,7 @@ PINECONE_INDEX_NAME=
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key) to retrieve API keys and insert into your `.env` file.
 - Visit [pinecone](https://pinecone.io/) to create and retrieve your API keys, and also retrieve your environment and index name from the dashboard.
 
-4. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store your embeddings on Pinecone when you run `pnpm run ingest`. This namespace will later be used for queries and retrieval.
+4. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store your embeddings on Pinecone when you run `npm run ingest`. This namespace will later be used for queries and retrieval.
 
 5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAIChat` to `gpt-3.5-turbo`, if you don't have access to `gpt-4`. Please verify outside this repo that you have access to `gpt-4`, otherwise the application will not work with it.
 
@@ -60,7 +64,7 @@ PINECONE_INDEX_NAME=
 
 ## Run the app
 
-Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `pnpm run dev` to launch the local dev environment, and then type a question in the chat interface.
+Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `npm run dev` to launch the local dev environment, and then type a question in the chat interface.
 
 ## Troubleshooting
 
@@ -77,7 +81,6 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Make sure you have access to `gpt-4` if you decide to use. Test your openAI keys outside the repo and make sure it works and that you have enough API credits.
 - Check that you don't have multiple OPENAPI keys in your global environment. If you do, the local `env` file from the project will be overwritten by systems `env` variable.
 - Try to hard code your API keys into the `process.env` variables.
-
 
 **Pinecone errors**
 
