@@ -1,4 +1,10 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';
@@ -203,7 +209,7 @@ export default function Home() {
                         : styles.usermessage;
                   }
                   return (
-                    <>
+                    <React.Fragment key={`chatMessageWrapper-${index}`}>
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
@@ -242,7 +248,7 @@ export default function Home() {
                           </Accordion>
                         </div>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
                 {sourceDocs.length > 0 && (
