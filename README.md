@@ -12,23 +12,27 @@ The visual guide of this repo and tutorial is in the `visual guide` folder.
 
 **If you run into errors, please review the troubleshooting section further down this page.**
 
+Prelude: Please make sure you have already downloaded node on your system and the version is 18 or greater.
+
 ## Development
 
-1. Clone the repo
+1. Clone the repo or download the ZIP
 
 ```
 git clone [github https url]
 ```
 
+
 2. Install packages
 
-First run `npm install pnpm -g` to install pnpm globally (if you haven't already).
+First run `npm install yarn -g` to install yarn globally (if you haven't already).
 
 Then run:
 
 ```
-pnpm install
+yarn install
 ```
+After installation, you should now see a `node_modules` folder.
 
 3. Set up your `.env` file
 
@@ -50,7 +54,7 @@ PINECONE_INDEX_NAME=
 
 4. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store your embeddings on Pinecone when you run `npm run ingest`. This namespace will later be used for queries and retrieval.
 
-5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAIChat` to `gpt-3.5-turbo`, if you don't have access to `gpt-4`. Please verify outside this repo that you have access to `gpt-4`, otherwise the application will not work with it.
+5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAI` to `gpt-4`, if you have access to `gpt-4` api. Please verify outside this repo that you have access to `gpt-4` api, otherwise the application will not work.
 
 ## Convert your PDF files to embeddings
 
@@ -77,10 +81,10 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - `Console.log` the `env` variables and make sure they are exposed.
 - Make sure you're using the same versions of LangChain and Pinecone as this repo.
 - Check that you've created an `.env` file that contains your valid (and working) API keys, environment and index name.
-- If you change `modelName` in `OpenAIChat` note that the correct name of the alternative model is `gpt-3.5-turbo`
-- Make sure you have access to `gpt-4` if you decide to use. Test your openAI keys outside the repo and make sure it works and that you have enough API credits.
+- If you change `modelName` in `OpenAI`, make sure you have access to the api for the appropriate model.
+- Make sure you have enough OpenAI credits and a valid card on your billings account.
 - Check that you don't have multiple OPENAPI keys in your global environment. If you do, the local `env` file from the project will be overwritten by systems `env` variable.
-- Try to hard code your API keys into the `process.env` variables.
+- Try to hard code your API keys into the `process.env` variables if there are still issues.
 
 **Pinecone errors**
 
