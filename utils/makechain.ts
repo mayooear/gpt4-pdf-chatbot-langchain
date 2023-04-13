@@ -1,5 +1,5 @@
-import { OpenAIChat } from 'langchain/llms';
-import { PineconeStore } from 'langchain/vectorstores';
+import { OpenAI } from 'langchain/llms/openai';
+import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
 
 const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
@@ -19,9 +19,9 @@ Question: {question}
 Helpful answer in markdown:`;
 
 export const makeChain = (vectorstore: PineconeStore) => {
-  const model = new OpenAIChat({
+  const model = new OpenAI({
     temperature: 0, // increase temepreature to get more creative answers
-    modelName: 'gpt-4', //change this to gpt-3.5-turbo if you don't have access to gpt-4 api
+    modelName: 'gpt-3.5-turbo', //change this to gpt-4 if you have access
   });
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
@@ -33,6 +33,5 @@ export const makeChain = (vectorstore: PineconeStore) => {
       returnSourceDocuments: true, //The number of source documents returned is 4 by default
     },
   );
-
   return chain;
 };
