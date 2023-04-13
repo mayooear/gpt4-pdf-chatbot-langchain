@@ -15,7 +15,10 @@ export const run = async () => {
     // const loader = new PDFLoader(filePath);
     const rawDocs = await loader.load();
 
-    console.log(rawDocs);
+    console.log('rawDocs', rawDocs);
+    console.log('rawDocs len', rawDocs.length);
+    console.log('typeof rawDocs', typeof rawDocs);
+    console.log('typeof rawDocs[0]', typeof rawDocs[0]);
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
@@ -24,7 +27,7 @@ export const run = async () => {
     });
 
     const docs = await textSplitter.splitDocuments(rawDocs);
-    console.log('split docs', docs);
+    // console.log('split docs', docs);
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
@@ -35,17 +38,17 @@ export const run = async () => {
 
     /* Pinecone recommends a limit of 100 vectors per upsert request to avoid errors*/
     const chunkSize = 50;
-    for (let i = 0; i < docs.length; i += chunkSize) {
-      const chunk = docs.slice(i, i + chunkSize);
-      console.log('chunk', i, chunk);
-      await PineconeStore.fromDocuments(
-        index,
-        chunk,
-        embeddings,
-        'text',
-        PINECONE_NAME_SPACE,
-      );
-    }
+    // for (let i = 0; i < docs.length; i += chunkSize) {
+    //   const chunk = docs.slice(i, i + chunkSize);
+    //   // console.log('chunk', i, chunk);
+    //   await PineconeStore.fromDocuments(
+    //     index,
+    //     chunk,
+    //     embeddings,
+    //     'text',
+    //     'pdf-test',
+    //   );
+    // }
   } catch (error) {
     console.log('error', error);
     throw new Error('Failed to ingest your data');
