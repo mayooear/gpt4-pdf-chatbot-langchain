@@ -9,9 +9,9 @@
   "author": "Mayooear<twitter:@mayowaoshin>",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "set PORT=3007 && next dev",
     "build": "next build",
-    "start": "next start",
+    "start": " next start",
     "type-check": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
