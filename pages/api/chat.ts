@@ -1,9 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeChain } from '@/utils/makechain';
+// import { Chroma } from 'langchain/vectorstores/chroma';
+// import { ChromaClient } from 'chromadb';
+import { HNSWLib } from "langchain/vectorstores/hnswlib";
+/*
+import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+*/
+
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,9 +32,10 @@ export default async function handler(
   const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
   try {
+    /*
     const index = pinecone.Index(PINECONE_INDEX_NAME);
 
-    /* create vectorstore*/
+    // create vectorstore
     const vectorStore = await PineconeStore.fromExistingIndex(
       new OpenAIEmbeddings({}),
       {
@@ -36,6 +43,20 @@ export default async function handler(
         textKey: 'text',
         namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
       },
+    );
+    */
+    // const chroma = new ChromaClient("http://localhost:8000");
+    // const collection = await chroma.getCollection("gpttest");
+    // create vectorstore
+    // const vectorStore = await Chroma.fromExistingCollection(
+    //   new OpenAIEmbeddings({}), {
+    //     collectionName: 'gpttest'
+    //   },
+    // );
+    const directory = "C:/GitHubRepo/gpt4-pdf-chatbot-langchain/hnsw_store";
+    const vectorStore = await HNSWLib.load(
+      directory,
+      new OpenAIEmbeddings()
     );
 
     //create chain
