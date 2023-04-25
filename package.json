@@ -18,6 +18,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@pinecone-database/pinecone": "0.0.12",
     "@radix-ui/react-accordion": "^1.1.1",
+    "chromadb": "1.4.1",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
     "langchain": "0.0.55",
@@ -49,7 +50,7 @@
   "keywords": [
     "starter",
     "gpt4",
-    "pinecone",
+    "chroma",
     "typescript",
     "nextjs",
     "langchain",

@@ -881,6 +881,13 @@ chokidar@^3.5.3:
   optionalDependencies:
     fsevents "~2.3.2"
 
+chromadb@1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/chromadb/-/chromadb-1.4.1.tgz#a81a826956051617fdd25299fc5d3132bcb9ebd6"
+  integrity sha512-vRcig4CJxJXs++cKMt9tHmk9YjQprxzLK9sVYD6iXfqRJBoXeoFzk/RS95Dz1J6/7aSfBwDsyx3AE2ePP9FnYA==
+  dependencies:
+    axios "^0.26.0"
+
 client-only@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/client-only/-/client-only-0.0.1.tgz#38bba5d403c41ab150bff64a95c85013cf73bca1"
