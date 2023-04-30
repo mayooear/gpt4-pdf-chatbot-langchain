@@ -3,17 +3,17 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { pinecone } from '@/utils/pinecone-client';
 import { CustomPDFLoader } from '@/utils/customPDFLoader';
-import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 
 /* Name of directory to retrieve your files from */
 const filePath = 'docs';
 
-export const run = async () => {
+export const run = async (file?: File, namespace?: string) => {
   try {
     /*load raw docs from the all files in the directory */
     const directoryLoader = new DirectoryLoader(filePath, {
-      '.pdf': (path) => new CustomPDFLoader(path),
+      '.pdf': (path) => new CustomPDFLoader(file || path),
     });
 
     // const loader = new PDFLoader(filePath);
@@ -36,7 +36,7 @@ export const run = async () => {
     //embed the PDF documents
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex: index,
-      namespace: PINECONE_NAME_SPACE,
+      namespace: namespace || 'default_namespace',
       textKey: 'text',
     });
   } catch (error) {
@@ -45,7 +45,7 @@ export const run = async () => {
   }
 };
 
-(async () => {
-  await run();
-  console.log('ingestion complete');
-})();
+// (async () => {
+//   await run();
+//   console.log('ingestion complete');
+// })();
