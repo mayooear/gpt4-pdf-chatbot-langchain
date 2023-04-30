@@ -5,6 +5,7 @@ import { run } from '../../scripts/ingest-data';
 // import { File } from 'langchain/document';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
+    console.log('calling the api...')
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
@@ -23,7 +24,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     const buffer = Buffer.from(file, 'base64');
     const blob = new Blob([buffer], { type: 'application/pdf' });
     console.log('blob:', blob)
-    await run(blob as unknown as File,fileName); // Cast the Blob to File
+    await run(blob as unknown as File,fileName,fileName); // Cast the Blob to File
     res.status(200).send('Ingestion complete');
   } catch (error) {
     res.status(500).send('Failed to ingest your data');
