@@ -37,3 +37,28 @@ export const run = async (file: File, fileName: string, namespace?: string) => {
     throw new Error('Failed to ingest your data');
   }
 };
+
+// export const runIngestChunks = async (chunks: string[], fileName: string) => {
+//   try {
+//     const docs = chunks.map(
+//       (text) =>
+//         new Document({
+//           pageContent: text,
+//           metadata: { source: fileName },
+//         })
+//     );
+
+//     const embeddings = new OpenAIEmbeddings();
+//     const index = pinecone.Index(PINECONE_INDEX_NAME);
+
+//     // Embed the text chunks
+//     await PineconeStore.fromDocuments(docs, embeddings, {
+//       pineconeIndex: index,
+//       namespace: fileName,
+//       textKey: 'text',
+//     });
+//   } catch (error) {
+//     console.log('error', error);
+//     throw new Error('Failed to ingest your data');
+//   }
+// };
