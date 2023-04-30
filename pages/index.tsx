@@ -12,11 +12,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import FileIngestionForm from '@/components/FileIngestionForm';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
+  const [fileName, setFileName] = useState<string|null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const savedFileName = localStorage.getItem('currFileName');
+    if (savedFileName) {
+      setFileName(savedFileName);
+    }
+  }, []);
+
   const [messageState, setMessageState] = useState<{
     messages: Message[];
     pending?: string;
@@ -25,12 +35,13 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about this legal case?',
+        message: 'Hi, what would you like to learn about this '+ (fileName ? fileName : '') +' document?',
         type: 'apiMessage',
       },
     ],
     history: [],
   });
+  
 
   const { messages, history } = messageState;
 
@@ -69,6 +80,7 @@ export default function Home() {
     setQuery('');
 
     try {
+      const fileName = localStorage.getItem('currFileName') || 'default_namespace';
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -77,6 +89,7 @@ export default function Home() {
         body: JSON.stringify({
           question,
           history,
+          fileName,
         }),
       });
       const data = await response.json();
@@ -120,14 +133,23 @@ export default function Home() {
     }
   };
 
+  const handleFileIngested = (fileName: string) => {
+    setFileName(fileName);
+  };
+
   return (
     <>
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your Legal Docs
+            Chat With {fileName ? '' : 'Your Docs'}
+          </h1>
+          <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
+            {fileName ? fileName : ''}
           </h1>
           <main className={styles.main}>
+          <FileIngestionForm onFileIngested={handleFileIngested} />
+          <br/>
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
                 {messages.map((message, index) => {
@@ -224,7 +246,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : 'What is this document about?'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -260,11 +282,11 @@ export default function Home() {
             )}
           </main>
         </div>
-        <footer className="m-auto p-4">
+        {/* <footer className="m-auto p-4">
           <a href="https://twitter.com/mayowaoshin">
             Powered by LangChainAI. Demo built by Mayo (Twitter: @mayowaoshin).
           </a>
-        </footer>
+        </footer> */}
       </Layout>
     </>
   );
