@@ -34,4 +34,8 @@ export const makeChain = (vectorstore: PineconeStore) => {
     },
   );
   return chain;
+<<<<<<< Updated upstream
 };
+=======
+};
+>>>>>>> Stashed changes
