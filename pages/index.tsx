@@ -25,7 +25,7 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about this legal case?',
+        message: 'Здравствуйте, я бот, который может рассказать о книге, найти необходимые части или предположить что автор ответил бы исходя из данных книги на свободную тему, если она как-то затрагивалась. Что бы вы хотели узнать?',
         type: 'apiMessage',
       },
     ],
@@ -125,7 +125,7 @@ export default function Home() {
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your Legal Docs
+            Чат о "Теорие самоподобия", по книге "Вот как всё устроено". Калабухов А.С
           </h1>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -224,7 +224,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : 'В чем основная идея книги?'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
