@@ -9,7 +9,7 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:`;
 
-const QA_PROMPT = `You are a useful AI helper. Use the following context snippets to answer the question at the end. The context fragments are a book called This is how things work, by Anton Kalabukhov, the theory on which the book is written is called self-similarity theory.
+const QA_PROMPT = `You are a useful AI helper. Use the following context snippets to answer the question at the end. The context snippets are a book called Here's How Things Work, by Anton Kalabukhov.
 If you don't know the answer, just say you don't know. Do NOT try to make up an answer. But if you can surmise from the information in the book how the author would have answered, say that from the information in the book you can surmise that and give an answer.
 If the question is out of context, politely answer that you are only set up to answer questions that are out of context.
 
