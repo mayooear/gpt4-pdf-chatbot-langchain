@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "author": "Mayooear<twitter:@mayowaoshin>",
+  "author": "Mayooear <twitter:@mayowaoshin>",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -57,5 +57,10 @@
     "legal",
     "pdf",
     "openai"
-  ]
+  ],
+  "description": "Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.",
+  "main": "next.config.js",
+  "directories": {
+    "doc": "docs"
+  }
 }
