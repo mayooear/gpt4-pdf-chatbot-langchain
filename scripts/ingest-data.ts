@@ -12,6 +12,8 @@ import {
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/csv";
 import { DocxLoader } from "langchain/document_loaders/fs/docx";
+import { UnstructuredHTMLLoader } from "langchain/document_loaders/fs/html";
+
 
 /* Name of directory to retrieve your files from */
 const filePath = 'docs';
@@ -26,6 +28,7 @@ export const run = async () => {
       '.jsonl': (path) => new JSONLinesLoader(path, "/html"),
       '.txt': (path) => new TextLoader(path),
       '.csv': (path) => new CSVLoader(path, "text"),
+      '.html': (path) => new UnstructuredHTMLLoader(path),
     });
 
     // const loader = new PDFLoader(filePath);
