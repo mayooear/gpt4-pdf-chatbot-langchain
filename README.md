@@ -98,6 +98,7 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 
   - `docker build . -t gpt4-pdf-chatbot-langchain`
   - `docker run -d -p 3000:3000 -e OPENAI_API_KEY= <OPENAI_API_KEY> -e PINECONE_API_KEY=<PINECONE_API_KEY> -e PINECONE_ENVIRONMENT=<PINECONE_ENVIRONMENT> -e PINECONE_INDEX_NAME=<PINECONE_INDEX_NAME> --name gpt4-pdf-chatbot-langchain gpt4-pdf-chatbot-langchain:latest`
+  
 ## Credit
 
 Frontend of this repo is inspired by [langchain-chat-nextjs](https://github.com/zahidkhawaja/langchain-chat-nextjs)
