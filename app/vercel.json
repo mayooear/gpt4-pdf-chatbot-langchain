@@ -1,0 +1,16 @@
+{
+    "builds": [
+      {
+        "src": "server.js", // Replace with the actual server file name and extension
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "/$1",
+        "continue": true
+      }
+    ]
+  }
+  
