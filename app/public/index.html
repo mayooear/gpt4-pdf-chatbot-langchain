@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Metadata of the Webpage -->
+    <!-- Character-set Metadata -->
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!-- Viewport Metadata -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Description Metadata-->
+    <meta name="description" content="Valumetrics - Annual Reports For Everyone" />
+    <!-- Author Metadata -->
+    <meta name="author" content="Odhran Russell" />
+    <!-- Keyword Metadata -->
+    <meta
+      name="keywords"
+      content="Valumetrics Annual Report summariser 10k summariser "
+    />
+    <!-- Webpage Logo -->
+    <link rel="shortcut icon" href="/img/favicon.ico" />
+    <!-- Webpage Title -->
+    <title>Valumetrics</title>
+
+    <!-- Import CSS: Main Stylesheet -->
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+
+  <body>
+    <div id="particles-js">
+      <div class="header-bar">
+        <img src="/img/logo.png" alt="Logo" class="header-logo" />
+        <a href="/app" class="header-launch-app">Launch App</a>
+      </div>
+      <div class="header">
+        <h1>
+          <span class="site-title">Valumetrics</span>
+          <span class="site-description">Annual Reports For Everyone</span>
+        </h1>
+        <div class="header-icons">
+          <a aria-label="My LinkedIn Profile" target="_blank" href="https://www.linkedin.com/company/valumetrics/">
+            <i class="icon fa fa-linkedin" aria-hidden="true"></i>
+          </a>
+          <a aria-label="My Github Profile" target="_blank" href="https://github.com/valumetrics">
+            <i class="icon fa fa-github-alt" aria-hidden="true"></i>
+          </a>
+          
+          <a aria-label="Send Email" href="mailto:russell.odhran@gmail.com" target="_blank"
+            ><i class="icon fa fa-envelope"></i
+          ></a>
+        </div>
+        <div class="header-links">
+          <a class="link" href="#about" data-scroll>About</a>
+          <a class="link" href="#projects" data-scroll>Product</a>
+        </div>
+      </div>
+      <a class="down" href="#about" data-scroll><i class="icon fa fa-chevron-down" aria-hidden="true"></i></a>
+    </div>
+
+    <!-- About Section -->
+    <section id="about">
+
+      <div class="user-details">
+        <h1>About Us</h1>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="/img/webp/Professional-Picture-Me.webp"
+            alt="Professional Me"
+            width="20%"
+            style="border-radius: 50%"
+          />
+          <img
+            src="/img/jpg/Professional-Picture-Me.jpg"
+            alt="Professional Me"
+            width="20%"
+            style="border-radius: 50%"
+          />
+        </picture>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="/img/webp/PXL_20230228_221843408.PORTRAIT.webp"
+            alt="Professional Me"
+            width="20%"
+            style="border-radius: 50%"
+          />
+          <img
+            src="/img/jpg/PXL_20230228_221843408.PORTRAIT.jpg"
+            alt="Professional Me"
+            width="20%"
+            style="border-radius: 50%"
+          />
+        </picture>
+       
+        <p>
+          Our goal is to create a state of the art NLP model for summarising annual reports. The models will all be trained on <strong>gold standard summaries</strong> that will make it much more efficient at summarising 
+          annual reports. The reason we feel this is needed is because there are a number of problems with annual reports right now and the way users use them.
+        </p>
+        <hr style="color:black; border:0; clear:both; display:block; width:96%; background-color: black; height: 1.5px;">
+        <h3>
+          The Problem
+        </h3>
+        <p style="background-color: #578CEF; color:white; border-radius: 4%;">
+          The first problem is that they are long and full of jargon as a result of regulation with there being a positive correlaton between time and the average lengths of annual reports. This makes it
+          much more difficult for annual report users to find the relevant information quickly to make informed decisions.
+        </p>
+     
+      <p style="background-color: #578CEF; color:white; border-radius: 4%;">
+        Secondly, annual reports are tailored to investors, when in actuality a wide range of people access them. 31.5% of people who access annual reports are part of the core financial community. Our summary model
+        will allow any user to interpret an annual report quickly and efficiently. 
+      </p>
+     
+      <p style="background-color: #578CEF; color:white; border-radius: 4%;">
+        Finally, people only care about certain aspects such as ESG/sustainability which is not a heading in a 10k. The top three reasons an annual report is accessed is for reasons of financial performance, strategy and sustainability where information
+        about may not be available in one place and no defined section in the traditional 10k.
+      </p>
+     
+    </section>
+
+    <section id="projects">
+      <div class="user-details">
+        <h1>Our Product</h1>
+      </div>
+      <h3>We want to reduce the information gap with a user centric, one-size fits all approach to accessing annual reports</h3>
+      <p>
+        We have fine-tuned a state-of-the-art NLP model built by Google on annual reports using <strong>gold-standard summaries</strong> made by the team.
+        We have nine different models for the different sections of the annual report. 
+      </p>
+
+      <hr style="color:black; border:0; clear:both; display:block; width:96%; background-color: black; height: 1.5px;">
+ 
+      <p>
+        We also found that natural processing models like ChatGPT will not 
+        provide great results as they are designed to be general purpose NLPs. Our model incorporates training data that has been <strong>specifically built to 
+          summarize annual reports</strong> and should theoretically provide much higher Rouge scores than any other model on the market.
+      </p>
+
+      <div class="user-details">
+        <h1>MVP</h1>
+      </div>
+      <div class="user-projects">
+        <div class="images-right">
+          <picture>
+            <source type="image/webp" srcset="/img/webp/bus.webp" alt="Graph" />
+            <img alt="Graph" src="/img/jpg/bus.png" />
+          </picture>
+        </div>
+        <div class="contents" style="text-align: center">
+          <h3>Item 1 - Business Overview</h3>
+          <p style="text-align: justify">
+            We are actively developing a model and training it on gold standard summaries to summarise item 1 in a 10k - the Business Overview, where <strong>25.6%</strong> of annual report readers seek
+            when they access a 10k
+          </p>
+          <a class="project-link" href="">Coming Soon!</a>
+        </div>
+      </div>
+
+      <div class="user-projects">
+        <div class="images-left">
+          <picture>
+            <source type="image/webp" srcset="/img/webp/item1a.webp" alt="Item1a" />
+            <img alt="Item1a" src="/img/jpg/item1a.png" />
+          </picture>
+        </div>
+        <div class="contents-right" style="text-align: center">
+          <h3>Item 1A - Risk Factors</h3>
+         
+          <p style="text-align: justify">
+            We are days away from deploying our first model - Item 1A Risk summarisation model that will be trained on over 1000 pieces of labelled data. Just under 
+            <strong>8%</strong> of annual report readers seek to view the company's risks when they access the annual report.
+          </p>
+          <a class="project-link" href="#gohere">Check it out!</a>
+        </div>
+      </div>
+
+      <div class="user-projects">
+        <div class="images-right">
+          <picture>
+            <source type="image/webp" srcset="/img/webp/graph.webp" alt="Graph" />
+            <img alt="Graph" src="graph.jpg" />
+          </picture>
+        </div>
+        <div class="contents" style="text-align: center">
+          <h3>Search By Category</h3>
+          <p style="text-align: justify">
+           Post-MVP we plan on releasing a search by category. This would allow investors to search for <strong>exactly what they want</strong> as shown in the graph. 
+           The predefined sections of the 10k are simply <strong>not good enough</strong>.
+          </p>
+          <a class="project-link" href="">
+            Coming Soon!
+          </a>
+        </div>
+      </div>
+
+      <div class="user-projects">
+        <div class="images-left">
+          <h3>Summarise Item 1A by ticker</h3>
+          <p style="text-align: justify">
+            At the moment the model only supports tickers that issue a 10k, so only American publically listed companies. We are in the process of adding a checkpoint
+            for training on the 20f annual reports (the international standards)
+          </p>
+          <div class="form__group" style="padding-top:65px" id="gohere">
+            <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
+            <form action="/" target="dummyframe" method="post" id="ticker-form">
+            <input type="text" class="form__input" id="name" name='ticker' placeholder="Please enter ticker" required="" />
+            <label for="name" class="form__label">Enter Ticker</label>
+            </form>
+          </div>
+        </div>
+        <div class="images-right">
+          <p style="text-align: justify">
+              {{ value }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>&copy; Valumetrics, 2023</p>
+    </footer>
+
+    <!-- Import JS: Particles Theme -->
+    
+    <script src="/js/particles.min.js"></script> 
+    <!-- Import JS: Sweet Scroll -->
+    <script src="/js/sweet-scroll.min.js"></script>
+    <!-- Import JS: Google Analytics -->
+    <script src="/js/google-analytics.js"></script>
+    <!-- Import JS: Main Script -->
+    <script src="/js/main.js"></script>
+    <!-- Import Jquery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(function() {
+        $('#ticker-form').submit(function(event) {
+          event.preventDefault(); // prevent the form from submitting normally
+          $.ajax({
+            type: 'POST',
+            url: '/',
+            data: $(this).serialize(), // serialize the form data
+            success: function(response) {
+              $('#gohere').html(response); // replace the form with the response
+            },
+            error: function() {
+              alert('An error occurred.'); // display an error message if the request fails
+            }
+          });
+        });
+      });
+      </script>
+  </body>
+</html>
