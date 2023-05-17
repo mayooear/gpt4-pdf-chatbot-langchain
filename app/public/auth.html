@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Valumetrics Login</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--===============================================================================================-->	
+	<link rel="icon" type="image/png" href="/img/favicon.ico"/>
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/bootstrap/css/bootstrap.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/font-awesome-4.7.0/css/font-awesome.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/Linearicons-Free-v1.0.0/icon-font.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animate/animate.css">
+<!--===============================================================================================-->	
+	<link rel="stylesheet" type="text/css" href="vendor/css-hamburgers/hamburgers.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animsition/css/animsition.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/select2/select2.min.css">
+<!--===============================================================================================-->	
+	<link rel="stylesheet" type="text/css" href="vendor/daterangepicker/daterangepicker.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="css/util.css">
+	<link rel="stylesheet" type="text/css" href="css/auth.css">
+<!--===============================================================================================-->
+</head>
+<body>
+    <div class="header-bar">
+        <img src="/img/logo.png" alt="Logo" class="header-logo" />
+      </div>
+    <div id="particles-js"></div>
+	<div class="limiter">
+		<div class="container-login100">
+			<div class="wrap-login100 p-l-110 p-r-110 p-t-62 p-b-33">
+				<form class="login100-form validate-form flex-sb flex-w" action="/auth" method="POST">
+					<span class="login100-form-title p-b-53">
+						Sign In With
+					</span>
+
+					<a href="#" class="btn-face m-b-20">
+						<i class="fa fa-facebook-official"></i>
+						Facebook
+					</a>
+
+					<a href="#" class="btn-google m-b-20">
+						<img src="/img/icons/icon-google.png" alt="GOOGLE">
+						Google
+					</a>
+					
+					<div class="p-t-31 p-b-9">
+						<span class="txt1">
+							Username
+						</span>
+					</div>
+					<div class="wrap-input100 validate-input" data-validate = "Username is required">
+						<input class="input100" type="text" name="username" >
+						<span class="focus-input100"></span>
+					</div>
+					
+					<div class="p-t-13 p-b-9">
+						<span class="txt1">
+							Password
+						</span>
+
+						<a href="#" class="txt2 bo1 m-l-5">
+							Forgot?
+						</a>
+					</div>
+					<div class="wrap-input100 validate-input" data-validate = "Password is required">
+						<input class="input100" type="password" name="pass" >
+						<span class="focus-input100"></span>
+					</div>
+
+					<div class="container-login100-form-btn m-t-17">
+						<button type="submit" class="login100-form-btn">
+							Sign In
+						</button>
+					</div>
+
+					<div class="w-full text-center p-t-55">
+						<span class="txt2">
+							Not a member?
+						</span>
+
+						<a href="#" class="txt2 bo1">
+							Sign up now
+						</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+
+	<div id="dropDownSelect1"></div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <script>
+		particlesJS('particles-js', {
+			"particles": {
+				"number": {
+					"value": 80,
+					"density": {
+						"enable": true,
+						"value_area": 800
+					}
+				},
+				"color": {
+					"value": "#ffffff"
+				},
+				"shape": {
+					"type": "circle",
+					"stroke": {
+						"width": 0,
+						"color": "#000000"
+					},
+					"polygon": {
+						"nb_sides": 5
+					},
+					"image": {
+						"src": "img/github.svg",
+							"width": 100,
+							"height": 100
+					}
+				},
+				"opacity": {
+					"value": 0.5,
+					"random": false,
+					"anim": {
+						"enable": false,
+						"speed": 1,
+						"opacity_min": 0.1,
+						"sync": false
+					}
+				},
+				"size": {
+					"value": 3,
+					"random": true,
+					"anim": {
+						"enable": false,
+						"speed": 40,
+						"size_min": 0.1,
+						"sync": false
+					}
+				},
+				"line_linked": {
+					"enable": true,
+					"distance": 150,
+					"color": "#ffffff",
+					"opacity": 0.4,
+					"width": 1
+				},
+				"move": {
+					"enable": true,
+					"speed": 6,
+					"direction": "none",
+					"random": false,
+					"straight": false,
+					"out_mode": "out",
+					"bounce": false,
+					"attract": {
+						"enable": false,
+						"rotateX": 600,
+						"rotateY": 1200
+					}
+				}
+			},
+			"interactivity": {
+				"detect_on": "canvas",
+				"events": {
+					"onhover": {
+						"enable": true,
+						"mode": "grab"
+					},
+					"onclick": {
+						"enable": true,
+						"mode": "push"
+					},
+					"resize": true
+				},
+				"modes": {
+					"grab": {
+						"distance": 140,
+						"line_linked": {
+							"opacity": 1
+						}
+					},
+					"bubble": {
+						"distance": 400,
+						"size": 40,
+						"duration": 2,
+						"opacity": 8,
+						"speed": 3
+					},
+					"repulse": {
+						"distance": 200,
+						"duration": 0.4
+					},
+					"push": {
+						"particles_nb": 4
+					},
+					"remove": {
+						"particles_nb": 2
+					}
+				}
+			},
+			"retina_detect": true
+		});
+	</script>
+	
+<!--===============================================================================================-->
+	<script src="vendor/jquery/jquery-3.2.1.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/animsition/js/animsition.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/bootstrap/js/popper.js"></script>
+	<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/select2/select2.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/daterangepicker/moment.min.js"></script>
+	<script src="vendor/daterangepicker/daterangepicker.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/countdowntime/countdowntime.js"></script>
+<!--===============================================================================================-->
+	<script src="js/auth.js"></script>
+</body>
+</html>

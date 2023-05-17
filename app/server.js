@@ -3,6 +3,8 @@ import next from 'next';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
 
+const app = express();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -11,13 +13,17 @@ const nextApp = next({ dev });
 const handle = nextApp.getRequestHandler();
 
 nextApp.prepare().then(() => {
-  const app = express();
-
   // Serve static files from the public directory
   app.use(express.static(path.join(__dirname, 'public')));
 
   app.get('/app', (req, res) => {
     return nextApp.render(req, res, '/app', req.query);
+  });
+
+  // Move the /auth route definition here
+  app.get('/auth', (req, res) => {
+    // Replace res.render() with res.sendFile() to send the HTML file directly
+    res.sendFile(path.join(__dirname, 'public/auth.html'));
   });
 
   app.all('*', (req, res) => {
