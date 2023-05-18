@@ -5,6 +5,9 @@ import path, { dirname } from 'path';
 import session from 'express-session';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
+import check from 'express-validator';
+import pg from 'pg';
+import bcrypt from 'bcrypt';
 
 
 const app = express();
@@ -25,6 +28,8 @@ passport.use(new LocalStrategy(
     } else {
       return done(null, false);
     }
+
+    // Implement bcrypt here once we have a db
   }
 ));
 
@@ -78,6 +83,46 @@ nextApp.prepare().then(() => {
   app.get('/sign-up', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/sign-up.html'));
   });
+
+  // Sign-up auth + sanitisation
+
+  app.post('/sign-up', [
+    check('username').trim().isLength({ min: 1 }).escape(),
+    check('email').trim().isEmail().normalizeEmail(),
+    check('password').trim().isLength({ min: 6 }).escape(),
+  ], (req, res) => {
+    const { username, email, password, confirm_password } = req.body;
+    if (password !== confirm_password) {
+      res.status(500);
+      throw new Error("Passwords do not match");
+    }
+
+    // Generate salt
+
+    const saltRounds = 7;
+    const salt = bcrypt.genSalt(saltRounds, (erorr, salt) => {
+      if (error) {
+        res.status(500)
+        throw error;
+      }
+    });
+
+    // Hash the password
+
+    const hash = bcrypt.hash(password, salt, (error, hash) => {
+      if (erorr) {
+        res.status(500);
+        throw error;
+      }
+    });
+    
+    const query = `INSERT INTO users (username, email, password) VALUES (?, ?, ?);`
+
+    res.redirect('/app');
+
+    // Handle error and inject SQL once we have connection;
+
+  })
 
   app.all('*', (req, res) => {
     return handle(req, res);
