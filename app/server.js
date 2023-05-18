@@ -68,13 +68,16 @@ nextApp.prepare().then(() => {
   });
 
   app.get('/auth', (req, res) => {
-    // Replace res.render() with res.sendFile() to send the HTML file directly
     res.sendFile(path.join(__dirname, 'public/auth.html'));
   });
 
   app.post('/auth', passport.authenticate('local', { failureRedirect: '/auth'}), (req, res) => {
     res.redirect('/app');
   })
+
+  app.get('/sign-up', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/sign-up.html'));
+  });
 
   app.all('*', (req, res) => {
     return handle(req, res);
