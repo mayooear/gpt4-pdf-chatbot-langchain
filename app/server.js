@@ -5,7 +5,7 @@ import path, { dirname } from 'path';
 import session from 'express-session';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
-import check from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 
@@ -87,10 +87,15 @@ nextApp.prepare().then(() => {
   // Sign-up auth + sanitisation
 
   app.post('/sign-up', [
-    check('username').trim().isLength({ min: 1 }).escape(),
-    check('email').trim().isEmail().normalizeEmail(),
-    check('password').trim().isLength({ min: 6 }).escape(),
+    body('username').trim().isLength({ min: 1 }).escape(),
+    body('email').trim().isEmail().normalizeEmail(),
+    body('password').trim().isLength({ min: 6 }).escape(),
   ], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
     const { username, email, password, confirm_password } = req.body;
     if (password !== confirm_password) {
       res.status(500);
