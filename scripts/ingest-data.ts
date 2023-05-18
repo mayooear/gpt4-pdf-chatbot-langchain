@@ -3,6 +3,7 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { pinecone } from '@/utils/pinecone-client';
 import { CustomPDFLoader } from '@/utils/customPDFLoader';
+import { CustomExcelLoader } from "@/utils/customExcelLoader";
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 
@@ -11,13 +12,13 @@ const filePath = 'docs';
 
 export const run = async () => {
   try {
-    /*load raw docs from the all files in the directory */
     const directoryLoader = new DirectoryLoader(filePath, {
+      '.xlsx': (path) => new CustomExcelLoader(path),
+      '.xls': (path) => new CustomExcelLoader(path),
       '.pdf': (path) => new CustomPDFLoader(path),
     });
-
-    // const loader = new PDFLoader(filePath);
     const rawDocs = await directoryLoader.load();
+    // console.log(rawDocs)
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
@@ -26,7 +27,7 @@ export const run = async () => {
     });
 
     const docs = await textSplitter.splitDocuments(rawDocs);
-    console.log('split docs', docs);
+    // console.log('split docs', docs);
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
