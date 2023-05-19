@@ -41,3 +41,4 @@ next-env.d.ts
 
 #PDF files
 /docs
+/test-files

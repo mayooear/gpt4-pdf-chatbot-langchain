@@ -20,8 +20,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [chatTitle, setChatTitle] = useState<string>('');
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
-  const [loadingMessage1, setLoadingMessage1] = useState<string>('');
-  const [loadingMessage2, setLoadingMessage2] = useState<string>('');
+  const [userInputPlaceholder, setUserInputPlaceholder] = useState<string>('');
   const [footerUrl, setFooterUrl] = useState<string>('');
   const [footerText, setFooterText] = useState<string>('');
   const [messageState, setMessageState] = useState<{
@@ -47,15 +46,13 @@ export default function Home() {
     // load static page content from .env values
     const { CHAT_PAGE_TITLE } = data;
     const { WELCOME_MESSAGE } = data;
-    const { LOADING_MESSAGE1 } = data;
-    const { LOADING_MESSAGE2 } = data;
+    const { USER_INPUT_PLACEHOLDER } = data;
     const { FOOTER_URL } = data;
     const { FOOTER_TEXT } = data;
     // use defaults if .env values are not set
     setChatTitle(CHAT_PAGE_TITLE || 'Chat With Your Legal Docs');
     setWelcomeMessage(WELCOME_MESSAGE || 'Hi, what would you like to learn about this legal case?');
-    setLoadingMessage1(LOADING_MESSAGE1 || 'Waiting for response...');
-    setLoadingMessage2(LOADING_MESSAGE2 || 'What is this legal case about?');
+    setUserInputPlaceholder(USER_INPUT_PLACEHOLDER || 'What is this legal case about?');
     setFooterUrl(FOOTER_URL || 'https://twitter.com/mayowaoshin');
     setFooterText(FOOTER_TEXT || 'Powered by LangChainAI. Demo built by Mayo (Twitter: @mayowaoshin).');
     
@@ -257,8 +254,8 @@ export default function Home() {
                     name="userInput"
                     placeholder={
                       loading
-                        ? loadingMessage1
-                        : loadingMessage2
+                        ? 'Waiting for response...'
+                        : userInputPlaceholder
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
