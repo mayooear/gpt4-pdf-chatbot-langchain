@@ -19,6 +19,8 @@ const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
 const handle = nextApp.getRequestHandler();
 
+app.use(express.json());
+
 // Middleware
 
 passport.use(new LocalStrategy(
@@ -57,12 +59,10 @@ passport.deserializeUser((username, done) => {
   }
 })
 
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 app.use(session({ secret: 'shfksadjfhs', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
-
-
 
 nextApp.prepare().then(() => {
   // Serve static files from the public directory
@@ -76,9 +76,9 @@ nextApp.prepare().then(() => {
     res.sendFile(path.join(__dirname, 'public/auth.html'));
   });
 
-  app.post('/auth', passport.authenticate('local', { failureRedirect: '/auth'}), (req, res) => {
+  app.post('/auth', passport.authenticate('local', { failureRedirect: '/auth' }), (req, res) => {
     res.redirect('/app');
-  })
+  });
 
   app.get('/sign-up', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/sign-up.html'));
@@ -103,31 +103,28 @@ nextApp.prepare().then(() => {
     }
 
     // Generate salt
-
     const saltRounds = 7;
-    const salt = bcrypt.genSalt(saltRounds, (erorr, salt) => {
+    bcrypt.genSalt(saltRounds, (error, salt) => {
       if (error) {
-        res.status(500)
-        throw error;
-      }
-    });
-
-    // Hash the password
-
-    const hash = bcrypt.hash(password, salt, (error, hash) => {
-      if (erorr) {
         res.status(500);
         throw error;
       }
+
+      // Hash the password
+      bcrypt.hash(password, salt, (error, hash) => {
+        if (error) {
+          res.status(500);
+          throw error;
+        }
+
+        const query = `INSERT INTO users (username, email, password) VALUES (?, ?, ?);`
+        
+        // Handle error and inject SQL once we have connection;
+
+        res.redirect('/app');
+      });
     });
-    
-    const query = `INSERT INTO users (username, email, password) VALUES (?, ?, ?);`
-
-    res.redirect('/app');
-
-    // Handle error and inject SQL once we have connection;
-
-  })
+  });
 
   app.all('*', (req, res) => {
     return handle(req, res);
