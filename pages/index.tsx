@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from 'react';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
@@ -17,18 +18,18 @@ export default function Home() {
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatTitle, setChatTitle] = useState<string>('');
+  const [welcomeMessage, setWelcomeMessage] = useState<string>('');
+  const [userInputPlaceholder, setUserInputPlaceholder] = useState<string>('');
+  const [footerUrl, setFooterUrl] = useState<string>('');
+  const [footerText, setFooterText] = useState<string>('');
   const [messageState, setMessageState] = useState<{
     messages: Message[];
     pending?: string;
     history: [string, string][];
     pendingSourceDocs?: Document[];
   }>({
-    messages: [
-      {
-        message: 'Hi, what would you like to learn about this legal case?',
-        type: 'apiMessage',
-      },
-    ],
+    messages: [],
     history: [],
   });
 
@@ -39,7 +40,37 @@ export default function Home() {
 
   useEffect(() => {
     textAreaRef.current?.focus();
-  }, []);
+    fetch('/api/chat-static') // Make a request to the chat-static API route
+    .then((response) => response.json())
+    .then((data) => {
+    // load static page content from .env values
+    const { CHAT_PAGE_TITLE } = data;
+    const { WELCOME_MESSAGE } = data;
+    const { USER_INPUT_PLACEHOLDER } = data;
+    const { FOOTER_URL } = data;
+    const { FOOTER_TEXT } = data;
+    // use defaults if .env values are not set
+    setChatTitle(CHAT_PAGE_TITLE || 'Chat With Your Legal Docs');
+    setWelcomeMessage(WELCOME_MESSAGE || 'Hi, what would you like to learn about this legal case?');
+    setUserInputPlaceholder(USER_INPUT_PLACEHOLDER || 'What is this legal case about?');
+    setFooterUrl(FOOTER_URL || 'https://twitter.com/mayowaoshin');
+    setFooterText(FOOTER_TEXT || 'Powered by LangChainAI. Demo built by Mayo (Twitter: @mayowaoshin).');
+    
+    setMessageState((prevState) => ({
+      ...prevState,
+      messages: [
+        {
+          message: welcomeMessage,
+          type: 'apiMessage',
+        },
+      ],
+    }));
+  })
+  .catch((error) => {
+    console.error('Failed to fetch chat data:', error);
+    // Handle error
+  });
+  }, [welcomeMessage]);
 
   //handle form submission
   async function handleSubmit(e: any) {
@@ -125,7 +156,7 @@ export default function Home() {
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your Legal Docs
+            {chatTitle}
           </h1>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -224,7 +255,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : userInputPlaceholder
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -261,11 +292,12 @@ export default function Home() {
           </main>
         </div>
         <footer className="m-auto p-4">
-          <a href="https://twitter.com/mayowaoshin">
-            Powered by LangChainAI. Demo built by Mayo (Twitter: @mayowaoshin).
+          <a href={footerUrl}>
+            {footerText}
           </a>
         </footer>
       </Layout>
     </>
   );
 }
+
