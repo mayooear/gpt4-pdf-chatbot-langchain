@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { prompt } = req.body;
+  const { prompt, n, resolution } = req.body;
   const api_base = 'https://fagkveld-generativ-ai.openai.azure.com/';
   const api_key = process.env.AZURE_OPENAI_API_KEY || '';
   const api_version = '2023-06-01-preview';
@@ -12,8 +12,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
   const body = {
     prompt: prompt,
-    n: 3,
-    resolution: '1024x1024'
+    n: n,
+    resolution: resolution
   };
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   const submission = await response.json();

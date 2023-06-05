@@ -5,15 +5,21 @@ const DallE = () => {
   const [prompt, setPrompt] = useState('');
   const [imageUrls, setImageUrls] = useState([] as any[]);
   const [isLoading, setIsLoading] = useState(false);
+  const [n, setN] = useState(1);
 
   const generateImage = async () => {
     setIsLoading(true);
+    const body = {
+      prompt,
+      n,
+      resolution: '1024x1024',
+    };
     const res = await fetch('/api/generateImage', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     console.log(data);
@@ -30,6 +36,15 @@ const DallE = () => {
           className={styles['input-prompt']}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+        />
+        <input
+          type="number"
+          min="1"
+          max="5"
+          placeholder="Number of images"
+          className={styles['input-number']}
+          value={n}
+          onChange={(e) => setN(Number(e.target.value))}
         />
         <button
           onClick={generateImage}

@@ -21,6 +21,14 @@
   border: 1px solid #ddd;
 }
 
+.input-number {
+  width: 15%;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
 .generate-button {
   padding: 0.5rem 1rem;
   border: none;
