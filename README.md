@@ -37,15 +37,25 @@ After installation, you should now see a `node_modules` folder.
 3. Set up your `.env` file
 
 - Copy `.env.example` into `.env`
+Then get the keys from Tidemann
   Your `.env` file should look like this:
 
 ```
-OPENAI_API_KEY=
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_API_INSTANCE_NAME=
+AZURE_OPENAI_API_DEPLOYMENT_NAME=
+AZURE_OPENAI_API_DEPLOYMENT_NAME_GPT35=
+AZURE_OPENAI_API_VERSION=
+AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME=
 
+
+# Update these with your pinecone details from your dashboard. 
+# PINECONE_INDEX_NAME is in the indexes tab under "index name" in blue
+# PINECONE_ENVIRONMENT is in indexes tab under "Environment". Example: "us-east1-gcp"
 PINECONE_API_KEY=
 PINECONE_ENVIRONMENT=
-
 PINECONE_INDEX_NAME=
+
 
 ```
 
