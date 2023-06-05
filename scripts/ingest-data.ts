@@ -32,7 +32,12 @@ export const run = async () => {
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
-    const embeddings = new OpenAIEmbeddings();
+    const embeddings = new OpenAIEmbeddings({ 
+      azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+      azureOpenAIApiInstanceName: process.env.AZURE_OPENAI_API_INSTANCE_NAME,
+      azureOpenAIApiDeploymentName: process.env.AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME,
+      azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION,}
+    );
     const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
 
     //embed the PDF documents
