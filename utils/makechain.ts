@@ -2,7 +2,7 @@ import { OpenAI } from 'langchain/llms/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
 
-const PROMPT = {
+const PROMPT: { [key: string]: { CONDENSE_PROMPT: string; QA_PROMPT: string; } } = {
   'CH':{
     CONDENSE_PROMPT: `给定以下对话和后续问题，将后续问题重新表述为独立问题。
 
