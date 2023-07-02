@@ -1,7 +1,7 @@
 import { OpenAI } from 'langchain/llms/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
-
+import {QA_PROMPT6 } from '../config/prompts'
 const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
 Chat History:
@@ -26,9 +26,9 @@ export const makeChain = (vectorstore: PineconeStore) => {
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
-    vectorstore.asRetriever(),
+    vectorstore.asRetriever(4),
     {
-      qaTemplate: QA_PROMPT,
+      qaTemplate: QA_PROMPT6,
       questionGeneratorTemplate: CONDENSE_PROMPT,
       returnSourceDocuments: true, //The number of source documents returned is 4 by default
     },

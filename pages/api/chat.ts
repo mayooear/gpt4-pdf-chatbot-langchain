@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { CohereEmbeddings } from 'langchain/embeddings/cohere';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { EMBEDDING_TYPE} from '@/config/settings';
 
 export default async function handler(
   req: NextApiRequest,
@@ -30,7 +32,7 @@ export default async function handler(
 
     /* create vectorstore*/
     const vectorStore = await PineconeStore.fromExistingIndex(
-      new OpenAIEmbeddings({}),
+      EMBEDDING_TYPE=="openai"?  new  OpenAIEmbeddings({}):new CohereEmbeddings({modelName:"embed-multilingual-v2.0"}),
       {
         pineconeIndex: index,
         textKey: 'text',

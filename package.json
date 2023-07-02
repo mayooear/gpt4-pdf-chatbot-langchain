@@ -20,6 +20,7 @@
     "@pinecone-database/pinecone": "0.1.6",
     "@radix-ui/react-accordion": "^1.1.2",
     "clsx": "^1.2.1",
+    "cohere-ai": "^6.2.2",
     "dotenv": "^16.3.1",
     "langchain": "0.0.101",
     "lucide-react": "^0.257.0",
