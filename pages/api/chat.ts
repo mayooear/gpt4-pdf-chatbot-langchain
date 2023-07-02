@@ -3,6 +3,7 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { CohereEmbeddings } from 'langchain/embeddings/cohere';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeChain } from '@/utils/makechain';
+import {BaseChatMessage, HumanChatMessage, AIChatMessage} from 'langchain/schema';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { EMBEDDING_TYPE} from '@/config/settings';
@@ -13,7 +14,18 @@ export default async function handler(
 ) {
   const { question, history } = req.body;
 
-  console.log('question', question);
+  let histories: BaseChatMessage[] = [];
+  history.forEach(hist => {
+    if(hist['type'] === 'human')  {
+      let req: BaseChatMessage = new HumanChatMessage(question);
+      histories.push(req);
+    } else if (hist['type'] === 'ai') {
+      let respond: BaseChatMessage = new AIChatMessage(question);
+      histories.push(respond);
+    }
+  });
+
+  console.log('question:', question);
 
   //only accept post requests
   if (req.method !== 'POST') {
@@ -45,13 +57,13 @@ export default async function handler(
     //Ask a question using chat history
     const response = await chain.call({
       question: sanitizedQuestion,
-      chat_history: history || [],
+      chat_history: histories || [],
     });
 
     console.log('response', response);
     res.status(200).json(response);
   } catch (error: any) {
-    console.log('error', error);
+    console.log('error:', error);
     res.status(500).json({ error: error.message || 'Something went wrong' });
   }
 }
