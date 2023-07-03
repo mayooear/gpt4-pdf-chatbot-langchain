@@ -1,0 +1,19 @@
+From node:20.1.0-alpine3.17
+
+# Create non-root group and user
+RUN addgroup -S bot \
+&& adduser -D -S -h /var/cache/bot -s /sbin/nologin -G bot --uid 1001 bot 
+
+# Change directory to project directory
+WORKDIR /app
+
+ADD . /app
+RUN source .env 
+
+RUN npm install -g  next
+# Install dependancies
+RUN yarn install
+
+USER 1001
+
+CMD ["npm", "run", "dev"]
