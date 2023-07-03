@@ -20,13 +20,13 @@ Helpful answer in markdown:`;
 
 export const makeChain = (vectorstore: PineconeStore) => {
   const model = new OpenAI({
-    temperature: 0, // increase temepreature to get more creative answers
+    temperature: 0.5, // increase temepreature to get more creative answers
     modelName: 'gpt-3.5-turbo-0613', //change this to gpt-4 if you have access
   });
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
-    vectorstore.asRetriever(3),
+    vectorstore.asRetriever(1),
     {
       qaTemplate: QA_PROMPT6,
       questionGeneratorTemplate: CONDENSE_PROMPT,

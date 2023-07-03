@@ -7,6 +7,7 @@ import {BaseChatMessage, HumanChatMessage, AIChatMessage} from 'langchain/schema
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { EMBEDDING_TYPE} from '@/config/settings';
+import axios from 'axios'
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,12 +16,13 @@ export default async function handler(
   const { question, history } = req.body;
 
   let histories: BaseChatMessage[] = [];
+
   history.forEach(hist => {
     if(hist['type'] === 'human')  {
       let req: BaseChatMessage = new HumanChatMessage(question);
       histories.push(req);
     } else if (hist['type'] === 'ai') {
-      let respond: BaseChatMessage = new AIChatMessage(question);
+      let respond: BaseChatMessage = new AIChatMessage(hist["data"]);
       histories.push(respond);
     }
   });
@@ -36,9 +38,12 @@ export default async function handler(
   if (!question) {
     return res.status(400).json({ message: 'No question in the request' });
   }
+  var sanitizedQuestion = question.trim().replaceAll('\n', ' ');
+  
   // OpenAI recommends replacing newlines with spaces for best results
-  const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
-
+ 
+  //sanitizedQuestion = q2.trim().replaceAll('\n', ' ');
+  
   try {
     const index = pinecone.Index(PINECONE_INDEX_NAME);
 
@@ -59,7 +64,7 @@ export default async function handler(
       question: sanitizedQuestion,
       chat_history: histories || [],
     });
-
+    
     console.log('response', response);
     res.status(200).json(response);
   } catch (error: any) {
