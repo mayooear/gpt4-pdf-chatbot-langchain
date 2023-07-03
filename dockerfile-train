@@ -1,0 +1,26 @@
+From node:20.1.0-alpine3.17
+
+# Create non-root group and user
+RUN addgroup -S bot \
+&& adduser -D -S -h /var/cache/bot -s /sbin/nologin -G bot --uid 1001 bot 
+
+
+# Add some useful tools
+RUN apk add --no-cache bash musl curl && \
+    npm i -g pm2@5.3.0
+
+
+# Change directory to project directory
+WORKDIR /app
+
+ADD . /app
+RUN source .env 
+# Install dependancies
+RUN yarn add sharp && yarn install && npm cache clean --force && npm cache verify
+
+# Ingest documents and build Next app
+RUN npm run ingest
+
+USER 1001
+
+CMD ["npm", "run", "ingest"]
