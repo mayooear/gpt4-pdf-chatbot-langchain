@@ -6,6 +6,7 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
+import {BaseChatMessage, HumanChatMessage, AIChatMessage} from 'langchain/schema';
 import {
   Accordion,
   AccordionContent,
@@ -20,7 +21,7 @@ export default function Home() {
   const [messageState, setMessageState] = useState<{
     messages: Message[];
     pending?: string;
-    history: [string, string][];
+    history: BaseChatMessage[];
     pendingSourceDocs?: Document[];
   }>({
     messages: [
@@ -81,7 +82,8 @@ export default function Home() {
       });
       const data = await response.json();
       console.log('data', data);
-
+      let req: BaseChatMessage = new HumanChatMessage(question);
+      let respond: BaseChatMessage = new AIChatMessage(data.text);
       if (data.error) {
         setError(data.error);
       } else {
@@ -95,7 +97,7 @@ export default function Home() {
               sourceDocs: data.sourceDocuments,
             },
           ],
-          history: [...state.history, [question, data.text]],
+          history: [...state.history, req, respond],
         }));
       }
       console.log('messageState', messageState);
