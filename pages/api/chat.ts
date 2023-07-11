@@ -41,7 +41,7 @@ export default async function handler(
     );
 
     //create chain
-    const chain = makeChain(vectorStore, history);
+    const chain = makeChain(vectorStore);
 
     const pastMessages = history.map((message: string, i: number) => {
       if (i % 2 === 0) {
