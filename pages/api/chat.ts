@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import { AIMessage, HumanMessage } from 'langchain/schema';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
@@ -12,6 +13,7 @@ export default async function handler(
   const { question, history } = req.body;
 
   console.log('question', question);
+  console.log('history', history);
 
   //only accept post requests
   if (req.method !== 'POST') {
@@ -40,10 +42,19 @@ export default async function handler(
 
     //create chain
     const chain = makeChain(vectorStore);
+
+    const pastMessages = history.map((message: string, i: number) => {
+      if (i % 2 === 0) {
+        return new HumanMessage(message);
+      } else {
+        return new AIMessage(message);
+      }
+    });
+
     //Ask a question using chat history
     const response = await chain.call({
       question: sanitizedQuestion,
-      chat_history: history || [],
+      chat_history: pastMessages
     });
 
     console.log('response', response);
