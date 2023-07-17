@@ -1,6 +1,7 @@
 import { Document } from 'langchain/document';
 import { readFile } from 'fs/promises';
 import { BaseDocumentLoader } from 'langchain/document_loaders';
+import mammoth from 'mammoth';
 
 export abstract class BufferLoader extends BaseDocumentLoader {
   constructor(public filePathOrBlob: string | Blob) {
@@ -46,6 +47,25 @@ export class CustomPDFLoader extends BufferLoader {
     ];
   }
 }
+
+/*a new class to import word documents
+export class WordLoader extends c {
+  public async parse(
+    raw: Buffer,
+    metadata: Document['metadata'],
+  ): Promise<Document[]> {
+    const parsed = await mammoth.extractRawText({buffer: raw});
+    return [
+      new Document({
+        pageContent: parsed.value,
+        metadata: {
+          ...metadata,
+        },
+      }),
+    ];
+  }
+}
+*/
 
 async function PDFLoaderImports() {
   try {

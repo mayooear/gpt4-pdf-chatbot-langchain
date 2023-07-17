@@ -5,6 +5,7 @@ import { pinecone } from '@/utils/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+import path from 'path';
 
 /* Name of directory to retrieve your files from 
    Make sure to add your PDF files inside the 'docs' folder
@@ -16,6 +17,8 @@ export const run = async () => {
     /*load raw docs from the all files in the directory */
     const directoryLoader = new DirectoryLoader(filePath, {
       '.pdf': (path) => new PDFLoader(path),
+      //'.pdf': (path) => new WordLoader(path),
+
     });
 
     // const loader = new PDFLoader(filePath);
@@ -23,11 +26,25 @@ export const run = async () => {
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
+      chunkSize: 1536,
       chunkOverlap: 200,
     });
+    
+    //original code
+    // const docs = await textSplitter.splitDocuments(rawDocs);
 
-    const docs = await textSplitter.splitDocuments(rawDocs);
+    let docs = [];
+    for (let rawDoc of rawDocs) {
+      const fileName = path.basename(rawDoc.metadata.source);
+      const splitDocs = await textSplitter.splitDocuments(
+        [rawDoc],   
+        {
+          chunkHeader: `Interview with ${fileName}\n\n---\n\n`,
+          appendChunkOverlapHeader: true,
+        }
+      );
+      docs = [...docs, ...splitDocs];
+    }
     console.log('split docs', docs);
 
     console.log('creating vector store...');
