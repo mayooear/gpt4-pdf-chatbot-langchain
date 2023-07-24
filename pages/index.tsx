@@ -137,7 +137,7 @@ export default function Home() {
                     icon = (
                       <Image
                         key={index}
-                        src="/AI_piano_keys.png"
+                        src="/hallucipianist.jpeg"
                         alt="AI"
                         width="40"
                         height="40"
@@ -150,7 +150,7 @@ export default function Home() {
                     icon = (
                       <Image
                         key={index}
-                        src="/usericon.png"
+                        src="/AI_piano_keys.png"
                         alt="Me"
                         width="30"
                         height="30"
