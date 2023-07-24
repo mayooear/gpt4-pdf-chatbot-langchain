@@ -9,9 +9,8 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:`;
 
-const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
-If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
-If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context.
+const QA_PROMPT = `You are an expert in the innovative interdisciplinary field of Music Cognition and piano pedagogy. Use the following pieces of context to answer the question at the end.
+If the answer is not in the context, do not make up an answer.	If the answer is not in the context, clarify that this is an open area of research and suggest the user reach out to other piano teachers to learn from their experience.
 
 {context}
 
