@@ -195,7 +195,7 @@ export default function Home() {
                                       {doc.pageContent}
                                     </ReactMarkdown>
                                     <p className="mt-2">
-                                      <b>Source:</b> {'See Project'}
+                                      <b>Source:</b> {doc.metadata.source}
                                     </p>
                                   </AccordionContent>
                                 </AccordionItem>
