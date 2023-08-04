@@ -1,8 +1,8 @@
-# GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Files
+# GPT-4 & Polyfact - Create a ChatGPT Chatbot for Your PDF Files
 
 Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.
 
-Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
+Tech stack used includes Polyfact SDK, Typescript, and Next.js. Polyfact is a framework that makes it easier to build scalable AI/LLM apps and chatbots.
 
 [Tutorial video](https://www.youtube.com/watch?v=ih9PBGVVOO4)
 
@@ -79,7 +79,7 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Make sure you're running the latest Node version. Run `node -v`
 - Try a different PDF or convert your PDF to text first. It's possible your PDF is corrupted, scanned, or requires OCR to convert to text.
 - `Console.log` the `env` variables and make sure they are exposed.
-- Make sure you're using the same versions of LangChain and Pinecone as this repo.
+- Make sure you're using the same versions of Polyfact as this repo.
 - Check that you've created an `.env` file that contains your valid (and working) API keys, environment and index name.
 - If you change `modelName` in `OpenAI`, make sure you have access to the api for the appropriate model.
 - Make sure you have enough OpenAI credits and a valid card on your billings account.

@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
-import { Message } from '@/types/chat';
+import { Answer, Message, MessageType, Ressource } from '@/types/chat';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import LoadingDots from '@/components/ui/LoadingDots';
-import { Document } from 'langchain/document';
+
 import {
   Accordion,
   AccordionContent,
@@ -13,15 +13,16 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
+import { Chat } from 'polyfact';
+import { QA_PROMPT } from '@/utils/makechain';
+
 export default function Home() {
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [messageState, setMessageState] = useState<{
     messages: Message[];
-    pending?: string;
     history: [string, string][];
-    pendingSourceDocs?: Document[];
   }>({
     messages: [
       {
@@ -36,13 +37,21 @@ export default function Home() {
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const chat = useRef<Chat>(
+    new Chat(
+      { autoMemory: true, systemPrompt: QA_PROMPT },
+      {
+        token: '<Get one at app.polyfact.com>',
+      },
+    ),
+  );
 
   useEffect(() => {
     textAreaRef.current?.focus();
   }, []);
 
   //handle form submission
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     setError(null);
@@ -54,53 +63,17 @@ export default function Home() {
 
     const question = query.trim();
 
-    setMessageState((state) => ({
-      ...state,
-      messages: [
-        ...state.messages,
-        {
-          type: 'userMessage',
-          message: question,
-        },
-      ],
-    }));
+    addMessage('userMessage', question);
 
     setLoading(true);
     setQuery('');
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question,
-          history,
-        }),
-      });
-      const data = await response.json();
-      console.log('data', data);
+      const answer = chat.current.sendMessageStreamWithInfos(question);
 
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setMessageState((state) => ({
-          ...state,
-          messages: [
-            ...state.messages,
-            {
-              type: 'apiMessage',
-              message: data.text,
-              sourceDocs: data.sourceDocuments,
-            },
-          ],
-          history: [...state.history, [question, data.text]],
-        }));
-      }
-      console.log('messageState', messageState);
-
-      setLoading(false);
+      answer.on('data', (data) => handleData(data));
+      answer.on('infos', (infos) => handleInfos(infos, question));
+      answer.on('end', () => setLoading(false));
 
       //scroll to bottom
       messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
@@ -109,6 +82,72 @@ export default function Home() {
       setError('An error occurred while fetching the data. Please try again.');
       console.log('error', error);
     }
+  }
+
+  function addMessage(
+    type: MessageType,
+    message: string,
+    sourceDocs: Ressource[] = [],
+  ) {
+    setMessageState((state) => ({
+      ...state,
+      messages: [
+        ...state.messages,
+        {
+          type,
+          message,
+          sourceDocs,
+        },
+      ],
+    }));
+  }
+
+  function handleData(data: any) {
+    setMessageState((state) => {
+      const newMessages = [...state.messages];
+      const lastMessageIndex = newMessages.length - 1;
+
+      if (lastMessageIndex >= 0) {
+        if (newMessages[lastMessageIndex].type === 'userMessage') {
+          newMessages.push({
+            type: 'apiMessage',
+            message: data.toString(),
+            sourceDocs: [],
+          });
+        } else if (newMessages[lastMessageIndex].type === 'apiMessage') {
+          newMessages[lastMessageIndex] = {
+            type: 'apiMessage',
+            message: newMessages[lastMessageIndex].message + data.toString(),
+            sourceDocs: [],
+          };
+        }
+      }
+
+      return {
+        ...state,
+        messages: newMessages,
+      };
+    });
+  }
+
+  function handleInfos(infos: Answer, question: string) {
+    setMessageState((state) => {
+      const messages = [...state.messages];
+      const lastMessageIndex = messages.length - 1;
+
+      if (lastMessageIndex >= 0) {
+        messages[lastMessageIndex] = {
+          ...messages[lastMessageIndex],
+          sourceDocs: infos?.ressources || [],
+        };
+      }
+
+      return {
+        ...state,
+        messages,
+        history: [...state.history, [question, infos.result]],
+      };
+    });
   }
 
   //prevent empty submissions
@@ -185,18 +224,15 @@ export default function Home() {
                             className="flex-col"
                           >
                             {message.sourceDocs.map((doc, index) => (
-                              <div key={`messageSourceDocs-${index}`}>
+                              <div key={`messageSourceDocs-${doc.id}`}>
                                 <AccordionItem value={`item-${index}`}>
                                   <AccordionTrigger>
                                     <h3>Source {index + 1}</h3>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ReactMarkdown linkTarget="_blank">
-                                      {doc.pageContent}
+                                      {doc.content}
                                     </ReactMarkdown>
-                                    <p className="mt-2">
-                                      <b>Source:</b> {doc.metadata.source}
-                                    </p>
                                   </AccordionContent>
                                 </AccordionItem>
                               </div>
