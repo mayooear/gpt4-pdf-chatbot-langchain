@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
-import { Answer, Message, MessageType, Ressource } from '@/types/chat';
+import { Message, MessageType } from '@/types/chat';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import LoadingDots from '@/components/ui/LoadingDots';
@@ -13,8 +13,14 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
-import { Chat } from 'polyfact';
-import { QA_PROMPT } from '@/utils/makechain';
+import { Answer, Chat, Ressource } from 'polyfact';
+
+export const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
+If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
+If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context.
+{context}
+Question: {question}
+Helpful answer in markdown:`;
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -35,51 +41,42 @@ export default function Home() {
 
   const { messages, history } = messageState;
 
+  const messageStateRef = useRef(messageState);
+
+  useEffect(() => {
+    messageStateRef.current = messageState;
+    messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
+  }, [messageState]);
+
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const chat = useRef<Chat>(
-    new Chat(
-      { autoMemory: true, systemPrompt: QA_PROMPT },
-      {
-        token: '<Get one at app.polyfact.com>',
-      },
-    ),
+    new Chat({ systemPrompt: QA_PROMPT }, { token: '<Your token>' }),
   );
 
   useEffect(() => {
     textAreaRef.current?.focus();
   }, []);
 
-  //handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setError(null);
+    if (!query) return alert('Please input a question');
 
-    if (!query) {
-      alert('Please input a question');
-      return;
-    }
-
-    const question = query.trim();
-
-    addMessage('userMessage', question);
-
+    addMessage('userMessage', query.trim());
     setLoading(true);
     setQuery('');
 
     try {
-      const answer = chat.current.sendMessageStreamWithInfos(question);
-
-      answer.on('data', (data) => handleData(data));
-      answer.on('infos', (infos) => handleInfos(infos, question));
+      const answer = chat.current.sendMessageStreamWithInfos(query.trim(), {
+        memoryId: '<your memory id>',
+      });
+      answer.on('data', handleData);
+      answer.on('infos', (infos) => handleInfos(infos, query.trim()));
       answer.on('end', () => setLoading(false));
-
-      //scroll to bottom
-      messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
     } catch (error) {
       setLoading(false);
-      setError('An error occurred while fetching the data. Please try again.');
+      setError('An error occurred. Please try again.');
       console.log('error', error);
     }
   }
@@ -91,66 +88,41 @@ export default function Home() {
   ) {
     setMessageState((state) => ({
       ...state,
-      messages: [
-        ...state.messages,
-        {
-          type,
-          message,
-          sourceDocs,
-        },
-      ],
+      messages: [...state.messages, { type, message, sourceDocs }],
     }));
   }
 
   function handleData(data: any) {
-    setMessageState((state) => {
-      const newMessages = [...state.messages];
-      const lastMessageIndex = newMessages.length - 1;
+    const currentMessages = [...messageStateRef.current.messages];
+    const lastMsg = currentMessages[currentMessages.length - 1];
 
-      if (lastMessageIndex >= 0) {
-        if (newMessages[lastMessageIndex].type === 'userMessage') {
-          newMessages.push({
-            type: 'apiMessage',
-            message: data.toString(),
-            sourceDocs: [],
-          });
-        } else if (newMessages[lastMessageIndex].type === 'apiMessage') {
-          newMessages[lastMessageIndex] = {
-            type: 'apiMessage',
-            message: newMessages[lastMessageIndex].message + data.toString(),
-            sourceDocs: [],
-          };
-        }
-      }
+    if (lastMsg?.type === 'userMessage') {
+      currentMessages.push({
+        type: 'apiMessage',
+        message: data.toString(),
+        sourceDocs: [],
+      });
+    } else if (lastMsg?.type === 'apiMessage') {
+      lastMsg.message += data.toString();
+    }
 
-      return {
-        ...state,
-        messages: newMessages,
-      };
-    });
+    setMessageState({ ...messageStateRef.current, messages: currentMessages });
   }
 
   function handleInfos(infos: Answer, question: string) {
     setMessageState((state) => {
       const messages = [...state.messages];
-      const lastMessageIndex = messages.length - 1;
-
-      if (lastMessageIndex >= 0) {
-        messages[lastMessageIndex] = {
-          ...messages[lastMessageIndex],
-          sourceDocs: infos?.ressources || [],
-        };
-      }
-
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg) lastMsg.sourceDocs = infos?.ressources || [];
       return {
         ...state,
         messages,
         history: [...state.history, [question, infos.result]],
       };
     });
+    messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
   }
 
-  //prevent empty submissions
   const handleEnter = (e: any) => {
     if (e.key === 'Enter' && query) {
       handleSubmit(e);
@@ -223,20 +195,26 @@ export default function Home() {
                             collapsible
                             className="flex-col"
                           >
-                            {message.sourceDocs.map((doc, index) => (
-                              <div key={`messageSourceDocs-${doc.id}`}>
-                                <AccordionItem value={`item-${index}`}>
-                                  <AccordionTrigger>
-                                    <h3>Source {index + 1}</h3>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ReactMarkdown linkTarget="_blank">
-                                      {doc.content}
-                                    </ReactMarkdown>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              </div>
-                            ))}
+                            {message.sourceDocs.map((doc, index) => {
+                              const parsed = JSON.parse(doc.content);
+                              return (
+                                <div key={`messageSourceDocs-${doc.id}`}>
+                                  <AccordionItem value={`item-${index}`}>
+                                    <AccordionTrigger>
+                                      <h4>
+                                        <b>Source:</b> {parsed.filename} / page{' '}
+                                        {parsed.page}
+                                      </h4>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <ReactMarkdown linkTarget="_blank">
+                                        {parsed.content}
+                                      </ReactMarkdown>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </div>
+                              );
+                            })}
                           </Accordion>
                         </div>
                       )}
