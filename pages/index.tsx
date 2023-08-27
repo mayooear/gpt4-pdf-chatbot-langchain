@@ -25,7 +25,7 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about Music Cognition and its application to Piano Teaching?',
+        message: 'Hi, what would you like to learn about labour party policy?',
         type: 'apiMessage',
       },
     ],
@@ -224,7 +224,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'Ask about musical skills, teaching strategies, and the neurobiology of music!'
+                        : 'Ask about growth strategy, jobs, public services, families and communities, and trade'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
