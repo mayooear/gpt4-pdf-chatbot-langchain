@@ -1,0 +1,36 @@
+.pop_cat_article{
+    background-color: rgb(240, 240, 240);
+    height: 150px;
+    border-radius: 8px;
+    overflow-y: scroll;
+    width: 200px;
+
+}
+.popular_categories {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+
+}
+.popular_categories li {
+    margin: 2px;
+    background-color: rgb(0, 0, 0);
+    color: #FFF;
+    padding: 2px 5px;
+    border-radius: 5px;
+}
+
+.popular_categories li:hover {
+    background-color: #ffffff;
+    cursor: pointer;
+    color: #000;
+}
+
+.faq{
+    background-color: #000;
+    color: #FFF;
+    margin-top: 5px;
+    border-radius: 8px;
+    padding: 10px;
+    flex-grow: 1;
+}

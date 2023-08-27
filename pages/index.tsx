@@ -12,6 +12,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import PopularCategories from '@/components/PopularCategories';
+import FAQ from '@/components/FAQ';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -36,10 +38,15 @@ export default function Home() {
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     textAreaRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+      if(query) submitBtnRef.current?.click();
+  }, [query]);
 
   //handle form submission
   async function handleSubmit(e: any) {
@@ -120,14 +127,24 @@ export default function Home() {
     }
   };
 
+  const handleClickOnCategory = (category = '') => {
+    console.log({category});
+    setQuery(`Tell me about ${category}`);
+  }
+
   return (
     <>
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With The Latest Music Cognition Research
+            Chat with Labour Party Policy.
           </h1>
           <main className={styles.main}>
+          <div className={styles.topsection}>
+            <div className={styles.leftContainer}>
+                <PopularCategories onClick={handleClickOnCategory} />
+                <FAQ />
+              </div>
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
                 {messages.map((message, index) => {
@@ -137,7 +154,7 @@ export default function Home() {
                     icon = (
                       <Image
                         key={index}
-                        src="/hallucipianist.jpeg"
+                        src="/bot_pic.png"
                         alt="AI"
                         width="40"
                         height="40"
@@ -150,7 +167,7 @@ export default function Home() {
                     icon = (
                       <Image
                         key={index}
-                        src="/AI_piano_keys.png"
+                        src="/user_avtar.png"
                         alt="Me"
                         width="30"
                         height="30"
@@ -209,6 +226,7 @@ export default function Home() {
                 })}
               </div>
             </div>
+            </div>
             <div className={styles.center}>
               <div className={styles.cloudform}>
                 <form onSubmit={handleSubmit}>
@@ -234,6 +252,7 @@ export default function Home() {
                     type="submit"
                     disabled={loading}
                     className={styles.generatebutton}
+                    ref={submitBtnRef}
                   >
                     {loading ? (
                       <div className={styles.loadingwheel}>

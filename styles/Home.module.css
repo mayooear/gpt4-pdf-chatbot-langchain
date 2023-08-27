@@ -4,6 +4,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
+  .topsection {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+  }
 }
 
 .header {
@@ -98,6 +103,7 @@
   background: #ffffff;
   padding: 1.5rem;
   color: #000;
+  align-items: center;
 }
 
 .usermessagewaiting {
@@ -125,6 +131,7 @@
   padding: 1.5rem;
   color: #000;
   animation: fadein 0.5s;
+  align-items: center ;
 }
 
 @keyframes fadein {
@@ -189,7 +196,7 @@
 }
 
 .cloud {
-  width: 75vw;
+  /* width: 75vw; */
   height: 65vh;
   background: #ffffff;
   border-radius: 0.5rem;
@@ -259,4 +266,9 @@
     width: 100%;
     text-align: center;
   }
+}
+
+.leftContainer{
+  display: flex;
+  flex-direction: column;
 }
