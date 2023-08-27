@@ -44,22 +44,19 @@ export default function Home() {
     textAreaRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-      if(query) submitBtnRef.current?.click();
-  }, [query]);
 
   //handle form submission
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: any, text = '') {
     e.preventDefault();
 
     setError(null);
 
-    if (!query) {
+    if (!query && !text) {
       alert('Please input a question');
       return;
     }
 
-    const question = query.trim();
+    const question = text ? text.trim() : query.trim();
 
     setMessageState((state) => ({
       ...state,
@@ -130,6 +127,9 @@ export default function Home() {
   const handleClickOnCategory = (category = '') => {
     console.log({category});
     setQuery(`Tell me about ${category}`);
+    const ev = new Event('submit');
+    handleSubmit(ev, `Tell me about ${category}`);
+    
   }
 
   return (
