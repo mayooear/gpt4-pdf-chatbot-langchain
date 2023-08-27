@@ -33,4 +33,16 @@
     border-radius: 8px;
     padding: 10px;
     flex-grow: 1;
+    width: 200px;
+    overflow-y: scroll;
+    max-height: 300px;
+}
+
+.faq p {
+    padding: 5px 0;
+}
+
+.faq p:hover {
+    text-decoration: underline;
+    cursor: pointer;
 }

@@ -124,12 +124,26 @@ export default function Home() {
     }
   };
 
-  const handleClickOnCategory = (category = '') => {
-    console.log({category});
-    setQuery(`Tell me about ${category}`);
+  const handleClickOnCategory = (category = '', hasPrefix=true) => {
+    if(hasPrefix)
+      setQuery(`Tell me about ${category}`);
+    else
+      setQuery(category);
     const ev = new Event('submit');
-    handleSubmit(ev, `Tell me about ${category}`);
+    handleSubmit(ev, hasPrefix ? `Tell me about ${category}` : category);
     
+  }
+
+  const clearHistory = () => {
+    setMessageState({
+      messages: [
+        {
+          message: 'Hi, what would you like to learn about labour party policy?',
+          type: 'apiMessage',
+        },
+      ],
+      history: [],
+    });
   }
 
   return (
@@ -143,7 +157,7 @@ export default function Home() {
           <div className={styles.topsection}>
             <div className={styles.leftContainer}>
                 <PopularCategories onClick={handleClickOnCategory} />
-                <FAQ />
+                <FAQ onClick={(question) => handleClickOnCategory(question, false)} />
               </div>
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
@@ -270,6 +284,7 @@ export default function Home() {
                     )}
                   </button>
                 </form>
+                {messageState.history.length ? <button onClick={clearHistory}>CLEAR</button>: null}
               </div>
             </div>
             {error && (
