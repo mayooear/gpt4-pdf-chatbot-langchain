@@ -1,5 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# ananda specific
+/docs/
+/docs-anandaLib/
+/docs-jram/
+
+# IDE
+/.idea/
+
 # dependencies
 /node_modules
 /.pnp

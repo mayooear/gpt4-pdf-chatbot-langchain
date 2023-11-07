@@ -1,4 +1,4 @@
-# GPT-4 & LangChain - Create a ChatGPT Chatbot for Your PDF Files
+# GPT-4 & LangChain for Ananda Library - Create a ChatGPT Chatbot for Your PDF Files
 
 Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.
 
@@ -6,13 +6,18 @@ Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. L
 
 [Tutorial video](https://www.youtube.com/watch?v=ih9PBGVVOO4)
 
-[Join the discord if you have questions](https://discord.gg/E4Mc77qwjm)
-
 The visual guide of this repo and tutorial is in the `visual guide` folder.
 
 **If you run into errors, please review the troubleshooting section further down this page.**
 
 Prelude: Please make sure you have already downloaded node on your system and the version is 18 or greater.
+
+## Ananda Version
+
+This is a fork of gpt4-pdf-chatbot-langchain. This version Looks for a specified source in the first
+Line of the PDF file, and uses that as the source instead of the PDF file name. For example:
+
+     SOURCE: https://www.bozo.com/clown37.php
 
 ## Development
 
