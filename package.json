@@ -6,7 +6,7 @@
   "author": "Mayooear<twitter:@mayowaoshin>",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --noEmit",
