@@ -174,7 +174,7 @@ export default function Home() {
                           </ReactMarkdown>
                         </div>
                       </div>
-                      {message.sourceDocs && (
+                      {/* {message.sourceDocs && (
                         <div
                           className="p-5"
                           key={`sourceDocsAccordion-${index}`}
@@ -203,7 +203,7 @@ export default function Home() {
                             ))}
                           </Accordion>
                         </div>
-                      )}
+                      )} */}
                     </>
                   );
                 })}
@@ -224,7 +224,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : 'What is this budget about?'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
