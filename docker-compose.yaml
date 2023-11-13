@@ -1,0 +1,25 @@
+services:
+  web:
+    container_name: gpt4pdf_web
+    build: 
+      context: ./
+      dockerfile: dockerfile-web
+    working_dir: /app
+    restart: unless-stopped    
+    volumes:
+      - .:/app
+      - ./docs:/app
+    ports:
+      - "3000:3000"
+  train:
+    container_name: gpt4pdf_train
+    build: 
+      context: ./
+      dockerfile: dockerfile-train
+    working_dir: /app
+    restart: unless-stopped    
+    volumes:
+      - .:/app
+      - ./docs:/app
+    ports:
+      - "3001:3001"  
