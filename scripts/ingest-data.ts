@@ -3,7 +3,8 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { pinecone } from '@/utils/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
-import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { PINECONE_INDEX_NAME } from '@/config/pinecone';
+import { embeddingBaseCfg, extraCfg } from '@/config/openai';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 
 /* Name of directory to retrieve your files from 
@@ -32,13 +33,13 @@ export const run = async () => {
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
-    const embeddings = new OpenAIEmbeddings();
+    const embeddings = new OpenAIEmbeddings(embeddingBaseCfg, extraCfg);
     const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
 
     //embed the PDF documents
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex: index,
-      namespace: PINECONE_NAME_SPACE,
+      // namespace: PINECONE_NAME_SPACE,
       textKey: 'text',
     });
   } catch (error) {

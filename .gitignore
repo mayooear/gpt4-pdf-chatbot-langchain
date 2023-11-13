@@ -40,3 +40,6 @@ next-env.d.ts
 /Notion_DB
 
 .yarn/
+.vscode
+docs/
+demos

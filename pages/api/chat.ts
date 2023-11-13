@@ -4,7 +4,8 @@ import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { AIMessage, HumanMessage } from 'langchain/schema';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
-import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { PINECONE_INDEX_NAME } from '@/config/pinecone';
+import { embeddingBaseCfg, extraCfg } from '@/config/openai';
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,11 +33,11 @@ export default async function handler(
 
     /* create vectorstore*/
     const vectorStore = await PineconeStore.fromExistingIndex(
-      new OpenAIEmbeddings({}),
+      new OpenAIEmbeddings(embeddingBaseCfg, extraCfg),
       {
         pineconeIndex: index,
         textKey: 'text',
-        namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+        // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
       },
     );
 
