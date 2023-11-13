@@ -24,7 +24,7 @@ export const run = async () => {
 
     // rawDocs = rawDocs.slice(0, 20);
 
-    let lastSourceURL = null;
+    let lastSourceURL: string | null = null;
 
     // Add source to metadata for each document
     for (const rawDoc of rawDocs) {
@@ -44,7 +44,7 @@ export const run = async () => {
 
         // Extract the URL, which will be captured in the first group of the regex match.
         // If not, assume this is a continuation of the last source URL seen.
-        const sourceURL = sourceMatch ? sourceMatch[1] : lastSourceURL;
+        const sourceURL: string | null = sourceMatch ? sourceMatch[1] : lastSourceURL;
         lastSourceURL = sourceURL;
 
         console.log('Extracted source URL:', sourceURL);
