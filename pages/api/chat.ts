@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
-import { AIMessage, HumanMessage } from 'langchain/schema';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
@@ -40,25 +40,41 @@ export default async function handler(
       },
     );
 
-    //create chain
-    const chain = makeChain(vectorStore);
-
-    const pastMessages = history.map((message: string, i: number) => {
-      if (i % 2 === 0) {
-        return new HumanMessage(message);
-      } else {
-        return new AIMessage(message);
-      }
+    // Use a callback to get intermediate sources from the middle of the chain
+    let resolveWithDocuments: (value: Document[]) => void;
+    const documentPromise = new Promise<Document[]>((resolve) => {
+      resolveWithDocuments = resolve;
     });
+    const retriever = vectorStore.asRetriever({
+      callbacks: [
+        {
+          handleRetrieverEnd(documents) {
+            resolveWithDocuments(documents);
+          },
+        },
+      ],
+    });
+
+    //create chain
+    const chain = makeChain(retriever);
+
+    const pastMessages = history
+      .map((message: [string, string]) => {
+        return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
+      })
+      .join('\n');
+    console.log(pastMessages);
 
     //Ask a question using chat history
-    const response = await chain.call({
+    const response = await chain.invoke({
       question: sanitizedQuestion,
-      chat_history: pastMessages
+      chat_history: pastMessages,
     });
 
+    const sourceDocuments = await documentPromise;
+
     console.log('response', response);
-    res.status(200).json(response);
+    res.status(200).json({ text: response, sourceDocuments });
   } catch (error: any) {
     console.log('error', error);
     res.status(500).json({ error: error.message || 'Something went wrong' });
