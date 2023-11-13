@@ -33,6 +33,7 @@ Question: {question}
 Helpful answer in markdown:`;
 
 
+
 const combineDocumentsFn = (docs: Document[], separator = '\n\n') => {
   const serializedDocs = docs.map((doc) => doc.pageContent);
   return serializedDocs.join(separator);
