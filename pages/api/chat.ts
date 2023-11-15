@@ -4,7 +4,8 @@ import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { AIMessage, HumanMessage } from 'langchain/schema';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
-import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+// import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 
 export default async function handler(
   req: NextApiRequest,
@@ -36,7 +37,7 @@ export default async function handler(
       {
         pineconeIndex: index,
         textKey: 'text',
-        namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+        // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
       },
     );
 
