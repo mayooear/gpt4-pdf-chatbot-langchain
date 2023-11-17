@@ -1,0 +1,8 @@
+{
+    "functions": {
+      "api/chat.tsx": {
+        "maxDuration": 60
+      }
+    }
+  }
+  
