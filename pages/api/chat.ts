@@ -7,6 +7,8 @@ import { pinecone } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 
+export const maxDuration = 60; // This function can run for a maximum of 60 seconds
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
