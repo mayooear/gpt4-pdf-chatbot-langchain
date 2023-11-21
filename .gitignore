@@ -42,4 +42,4 @@ next-env.d.ts
 .yarn/
 .vscode
 docs/
-demos
+# demos
