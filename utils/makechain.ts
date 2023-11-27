@@ -1,4 +1,4 @@
-import { ChatOpenAI } from 'langchain/chat_models/openai';
+import {AzureChatOpenAI, ChatOpenAI } from 'langchain/chat_models/openai';
 import { ChatPromptTemplate } from 'langchain/prompts';
 import { RunnableSequence } from 'langchain/schema/runnable';
 import { StringOutputParser } from 'langchain/schema/output_parser';
@@ -14,9 +14,11 @@ const CONDENSE_TEMPLATE = `Given the following conversation and a follow up ques
 Follow Up Input: {question}
 Standalone question:`;
 
-const QA_TEMPLATE = `You are an expert researcher. Use the following pieces of context to answer the question at the end.
+const QA_TEMPLATE = `You are human resources expert. Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
 If the question is not related to the context or chat history, politely respond that you are tuned to only answer questions that are related to the context.
+
+Please do not respond with markdown.
 
 <context>
   {context}
@@ -41,8 +43,20 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
 
   const model = new ChatOpenAI({
     temperature: 0, // increase temperature to get more creative answers
-    modelName: 'gpt-3.5-turbo', //change this to gpt-4 if you have access
+    //modelName: 'gpt-3.5-turbo', //change this to gpt-4 if you have access
+    //modelName: 'gpt-4-1106-preview',
+    modelName: 'gpt-4',
   });
+
+  // const model = new AzureChatOpenAI({
+  //   temperature: 0, // increase temperature to get more creative answers
+  //   azureOpenAIApiVersion: process.env['AZURE_OPENAI_API_VERSION'],
+  //   //azureOpenAIApiInstanceName: process.env['OPENAI_API_INSTANCENAME'],
+  //   azureOpenAIApiDeploymentName:
+  //     process.env['AZURE_OPENAI_API_DEPLOYMENT_NAME'],
+  //   azureOpenAIApiKey: process.env['AZURE_OPENAI_API_KEY'],
+  //   azureOpenAIBasePath: process.env['AZURE_OPENAI_BASE_PATH'],
+  // });
 
   // Rephrase the initial question into a dereferenced standalone question based on
   // the chat history to allow effective vectorstore querying.
