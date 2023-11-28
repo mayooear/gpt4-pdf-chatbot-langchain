@@ -125,7 +125,7 @@ export default function Home() {
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your People and Culture
+            {process.env.NEXT_PUBLIC_APP_NAME}
           </h1>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -224,7 +224,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What would you like to as People and Culture?'
+                        : process.env.NEXT_PUBLIC_CHAT_PROMPT
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}

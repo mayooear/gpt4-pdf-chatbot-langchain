@@ -18,8 +18,6 @@ const QA_TEMPLATE = `You are human resources expert. Use the following pieces of
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
 If the question is not related to the context or chat history, politely respond that you are tuned to only answer questions that are related to the context.
 
-Please do not respond with markdown.
-
 <context>
   {context}
 </context>
@@ -40,7 +38,8 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
   const answerPrompt = ChatPromptTemplate.fromTemplate(QA_TEMPLATE);
-
+console.log('condenseQuestionPrompt:' ,JSON.stringify(condenseQuestionPrompt));
+console.log('answerPrompt:',JSON.stringify(answerPrompt));
   const model = new ChatOpenAI({
     temperature: 0, // increase temperature to get more creative answers
     //modelName: 'gpt-3.5-turbo', //change this to gpt-4 if you have access
