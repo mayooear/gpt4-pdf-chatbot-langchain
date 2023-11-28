@@ -29,7 +29,7 @@ export default async function handler(
 
   try {
     const index = pinecone.Index(PINECONE_INDEX_NAME);
-
+console.log('index:', JSON.stringify(index));
     /* create vectorstore*/
     const vectorStore = await PineconeStore.fromExistingIndex(
       new OpenAIEmbeddings({}),
