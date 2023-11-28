@@ -48,16 +48,6 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
     modelName: 'gpt-4',
   });
 
-  // const model = new AzureChatOpenAI({
-  //   temperature: 0, // increase temperature to get more creative answers
-  //   azureOpenAIApiVersion: process.env['AZURE_OPENAI_API_VERSION'],
-  //   //azureOpenAIApiInstanceName: process.env['OPENAI_API_INSTANCENAME'],
-  //   azureOpenAIApiDeploymentName:
-  //     process.env['AZURE_OPENAI_API_DEPLOYMENT_NAME'],
-  //   azureOpenAIApiKey: process.env['AZURE_OPENAI_API_KEY'],
-  //   azureOpenAIBasePath: process.env['AZURE_OPENAI_BASE_PATH'],
-  // });
-
   // Rephrase the initial question into a dereferenced standalone question based on
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([

@@ -36,7 +36,7 @@ export default async function handler(
       {
         pineconeIndex: index,
         textKey: 'text',
-        namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+        // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
       },
     );
 
