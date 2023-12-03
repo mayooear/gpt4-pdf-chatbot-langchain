@@ -69,6 +69,9 @@ PINECONE_INDEX_NAME=
 
 2. Run the script `npm run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
+You can add arguments like this: 
+npm run ingest -- --dryrun
+
 3. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the app
