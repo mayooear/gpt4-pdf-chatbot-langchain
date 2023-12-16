@@ -127,7 +127,7 @@ while attempt < max_retries:
         # Create PDF for each post
         n = 0
         skipped = 0
-        progress_bar = tqdm(cursor, total=total_posts)
+        progress_bar = tqdm(total=total_posts)
         for (id, content, post_name, post_title) in cursor:
             # Sanitize post_name to ensure it is safe for use as a filename
             safe_post_name = "".join([c for c in post_name if c.isalpha() or c.isdigit() or c == ' ']).rstrip()
@@ -136,8 +136,9 @@ while attempt < max_retries:
 
             # Check if the PDF already exists and is not zero bytes
             if os.path.isfile(file_name) and os.path.getsize(file_name) > 0:
-                progress_bar.set_description(f"Skipped {skipped} - {safe_post_name}")
                 skipped += 1
+                progress_bar.set_description(f"Skipped {skipped} - {safe_post_name}")
+                progress_bar.update(1)
                 continue
 
             # get permalink and author from WP
@@ -155,6 +156,10 @@ while attempt < max_retries:
             pdf.set_title(post_title)
             pdf.set_subject(permalink)
 
+            # Write post title and author name at the top of the PDF file
+            pdf.set_font('TimesNewRoman', '', 7)
+            pdf.multi_cell(0, 10, f"BY: {author_name}\nSOURCE: {permalink}\n\n")
+
             # Reset to larger font size for the title and content
             pdf.set_font('TimesNewRoman', '', 14)
             post_title = replace_smart_quotes(post_title)
@@ -167,13 +172,15 @@ while attempt < max_retries:
                 pdf.output(file_name, 'F')
             except IndexError:
                 print(f"Failed to generate PDF for '{safe_post_name}': Character not supported")
+                progress_bar.update(1)
             except Exception as e:  # Catching a broader exception for better fault tolerance
                 print(f"Failed to generate PDF for '{safe_post_name}': {e}")
                 raise
                 # progress_bar.write(f"Failed to generate PDF for '{safe_post_name}': {e}")
             else:
-                progress_bar.set_description(f"Processed {n} - {safe_post_name}")
                 n += 1
+                progress_bar.set_description(f"Processed {n} - {safe_post_name}")
+                progress_bar.update(1)
 
         # Close the progress bar
         progress_bar.close()
@@ -188,7 +195,7 @@ while attempt < max_retries:
     except mysql.connector.errors.OperationalError as e:
         print(f"Error: {e}. Retrying...")
         attempt += 1
-        time.sleep(2 ** attempt)  # Exponential backoff
+        time.sleep(2 ** attempt) 
 
         # Properly close the current connection and cursor before retrying
         if cursor is not None and not cursor.closed:
