@@ -40,7 +40,7 @@ export const run = async () => {
         }
 
         // Use a regex to match "SOURCE:" followed by any non-whitespace characters
-        const sourceMatch = rawDoc.pageContent.match(/^SOURCE: (\S+)/);
+        const sourceMatch = rawDoc.pageContent.match(/^SOURCE: (\S+)/m);
 
         // Extract the URL, which will be captured in the first group of the regex match.
         // If not, assume this is a continuation of the last source URL seen.
@@ -64,7 +64,7 @@ export const run = async () => {
     });
 
     const docs = await textSplitter.splitDocuments(rawDocs);
-    console.log('split docs', docs);
+    // console.log('split docs', docs);
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
