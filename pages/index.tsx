@@ -25,7 +25,7 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about from the Ananda Library?',
+        message: 'Hi GuruBuddy! What would you like to learn about from the Ananda Library?',
         type: 'apiMessage',
       },
     ],
