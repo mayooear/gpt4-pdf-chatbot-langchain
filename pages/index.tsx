@@ -97,9 +97,9 @@ export default function Home() {
           ],
           history: [...state.history, [question, data.text]],
         }));
-        // Ensure the latest message is visible
+        // Scroll to the top of the latest message
         setTimeout(() => {
-          messageListRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+          messageListRef.current?.lastElementChild?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }, 0);
       }
       console.log('messageState', messageState);
@@ -131,20 +131,26 @@ export default function Home() {
           <div className="flex flex-col items-center">
             <button
               className="text-blue-500 hover:underline mb-2"
-              onClick={() => setQuery("What did Master say about meditation and lakes?")}
-            >
-              What did Master say about meditation and lakes?
+              onClick={() => {
+                setQuery("Give me three tips on improving meditation habits");
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+              }}            >
+              Give me three tips on improving meditation habits
             </button>
             <button
               className="text-blue-500 hover:underline mb-2"
-              onClick={() => setQuery("How does Swami say to prepare for hard times?")}
-            >
+              onClick={() => {
+                setQuery("How does Swami say to prepare for hard times?");
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+              }}            >
               How does Swami say to prepare for hard times?
             </button>
             <button
               className="text-blue-500 hover:underline mb-2"
-              onClick={() => setQuery("Write an article on how to handle tough karma, mentioning things from Swamiji and Master")}
-            >
+              onClick={() => {
+                setQuery("Write an article on tough karma, mentioning things from Swamiji and Master");
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+              }}            >
               Write an article on tough karma, mentioning things from Swamiji and Master
             </button>
           </div>
@@ -288,7 +294,9 @@ export default function Home() {
           </main>
         </div>
         <footer className="m-auto p-4">
-          Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
+          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a>
+          | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info on the Ananda Wiki</a>
+          | Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
         </footer>
       </Layout>
     </>
