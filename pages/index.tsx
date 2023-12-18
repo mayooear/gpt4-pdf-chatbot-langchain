@@ -133,7 +133,7 @@ export default function Home() {
               className="text-blue-500 hover:underline mb-2"
               onClick={() => setQuery("What did Master say about meditation and lakes?")}
             >
-              What does Master say about meditation and lakes?
+              What did Master say about meditation and lakes?
             </button>
             <button
               className="text-blue-500 hover:underline mb-2"
@@ -145,7 +145,7 @@ export default function Home() {
               className="text-blue-500 hover:underline mb-2"
               onClick={() => setQuery("Write an article on how to handle tough karma, mentioning things from Swamiji and Master")}
             >
-              Help me create an outline for an article on tough karma, mentioning things from Swamiji and Master
+              Write an article on tough karma, mentioning things from Swamiji and Master
             </button>
           </div>
           <main className={styles.main}>
