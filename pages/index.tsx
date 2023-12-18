@@ -127,6 +127,26 @@ export default function Home() {
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
             Chat With the Ananda Librarian!
           </h1>
+          <div className="text-center">
+            <button
+              className="text-blue-500 hover:underline"
+              onClick={() => setQuery("What did Master say about meditation and lakes?")}
+            >
+              What does Master say about meditation and lakes?
+            </button>
+            <button
+              className="ml-4 text-blue-500 hover:underline"
+              onClick={() => setQuery("How does Swami say to prepare for hard times?")}
+            >
+              How does Swami say to prepare for hard times?
+            </button>
+            <button
+              className="ml-4 text-blue-500 hover:underline"
+              onClick={() => setQuery("Help me create an outline for an article on tough karma, mentioning things from Swamiji and Master")}
+            >
+              Help me create an outline for an article on tough karma, mentioning things from Swamiji and Master
+            </button>
+          </div>
           <main className={styles.main}>
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
