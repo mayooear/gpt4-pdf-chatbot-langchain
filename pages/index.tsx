@@ -151,7 +151,7 @@ export default function Home() {
                 className="text-blue-500 hover:underline mb-2"
                 onClick={() => {
                   setQuery(query);
-                  setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 0);
+                  setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 100);
                 }}
               >
                 {query}
