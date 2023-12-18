@@ -97,13 +97,14 @@ export default function Home() {
           ],
           history: [...state.history, [question, data.text]],
         }));
+        // Ensure the latest message is visible
+        setTimeout(() => {
+          messageListRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+        }, 0);
       }
       console.log('messageState', messageState);
 
       setLoading(false);
-
-      //scroll to bottom
-      messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
     } catch (error) {
       setLoading(false);
       setError('An error occurred while fetching the data. Please try again.');
@@ -127,22 +128,22 @@ export default function Home() {
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
             Chat With the Ananda Librarian!
           </h1>
-          <div className="text-center">
+          <div className="flex flex-col items-center">
             <button
-              className="text-blue-500 hover:underline"
+              className="text-blue-500 hover:underline mb-2"
               onClick={() => setQuery("What did Master say about meditation and lakes?")}
             >
               What does Master say about meditation and lakes?
             </button>
             <button
-              className="ml-4 text-blue-500 hover:underline"
+              className="text-blue-500 hover:underline mb-2"
               onClick={() => setQuery("How does Swami say to prepare for hard times?")}
             >
               How does Swami say to prepare for hard times?
             </button>
             <button
-              className="ml-4 text-blue-500 hover:underline"
-              onClick={() => setQuery("Help me create an outline for an article on tough karma, mentioning things from Swamiji and Master")}
+              className="text-blue-500 hover:underline mb-2"
+              onClick={() => setQuery("Write an article on how to handle tough karma, mentioning things from Swamiji and Master")}
             >
               Help me create an outline for an article on tough karma, mentioning things from Swamiji and Master
             </button>
