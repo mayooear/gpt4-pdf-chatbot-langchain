@@ -37,6 +37,22 @@ export default function Home() {
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
+  const queries = [
+    "Give me three tips on improving meditation habits",
+    "How does Swami say to prepare for hard times?",
+    "Write an article on tough karma, mentioning things from Swamiji and Master",
+    "3",
+    "4",
+    "5"
+  ];
+
+  const getRandomQueries = () => {
+    const shuffled = queries.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+  };
+
+  const [randomQueries, setRandomQueries] = useState(getRandomQueries());
+
   useEffect(() => {
     textAreaRef.current?.focus();
   }, []);
@@ -129,30 +145,18 @@ export default function Home() {
             Chat With the Ananda Librarian!
           </h1>
           <div className="flex flex-col items-center">
-            <button
-              className="text-blue-500 hover:underline mb-2"
-              onClick={() => {
-                setQuery("Give me three tips on improving meditation habits");
-                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-              }}            >
-              Give me three tips on improving meditation habits
-            </button>
-            <button
-              className="text-blue-500 hover:underline mb-2"
-              onClick={() => {
-                setQuery("How does Swami say to prepare for hard times?");
-                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-              }}            >
-              How does Swami say to prepare for hard times?
-            </button>
-            <button
-              className="text-blue-500 hover:underline mb-2"
-              onClick={() => {
-                setQuery("Write an article on tough karma, mentioning things from Swamiji and Master");
-                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-              }}            >
-              Write an article on tough karma, mentioning things from Swamiji and Master
-            </button>
+            {randomQueries.map((query, index) => (
+              <button
+                key={index}
+                className="text-blue-500 hover:underline mb-2"
+                onClick={() => {
+                  setQuery(query);
+                  setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 0);
+                }}
+              >
+                {query}
+              </button>
+            ))}
           </div>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -294,8 +298,8 @@ export default function Home() {
           </main>
         </div>
         <footer className="m-auto p-4">
-          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a>
-          | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info on the Ananda Wiki</a>
+          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a> 
+          | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info on the Ananda Wiki</a> 
           | Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
         </footer>
       </Layout>
