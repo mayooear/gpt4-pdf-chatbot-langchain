@@ -42,8 +42,8 @@ export default function Home() {
     "How does Swami say to prepare for hard times?",
     "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
     "What did Yogananda say about the influence of television?",
-    "Tell me in detail about the quote “And what do you think made me a master?",
-    "What are some key lessons from essence of the Bhagavad gita?",
+    "Tell me in detail about the quote 'And what do you think made me a master?'",
+    "What are some key lessons from essence of the Bhagavad Gita?",
     "Can you tell me something about sanatan dharma?",
     "Outline of how the chakras are part of meditation",
     "How do i grow my connection to god?",
@@ -296,7 +296,6 @@ export default function Home() {
                         ? 'Waiting for response...'
                         : 'How do I remember God more frequently?'
                     }
-                    defaultValue={query}
                     className={styles.textarea}
                   />
                   <button
