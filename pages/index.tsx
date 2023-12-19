@@ -40,7 +40,16 @@ export default function Home() {
   const queries = [
     "Give me three tips on improving meditation habits",
     "How does Swami say to prepare for hard times?",
-    "Write an article on tough karma, mentioning things from Swamiji and Master"
+    "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
+    "What did Yogananda say about the influence of television?",
+    "Tell me in detail about the quote “And what do you think made me a master?",
+    "What are some key lessons from essence of the Bhagavad gita?",
+    "Can you tell me something about sanatan dharma?",
+    "Outline of how the chakras are part of meditation",
+    "How do i grow my connection to god?",
+    "tips on dealing with a challenging coworker?",
+    "write an article about compassion towards family at holiday events",
+    "Is there a painless way to transcend ego, and if so, what is that way?"
   ];
 
   const getRandomQueries = () => {
@@ -50,6 +59,8 @@ export default function Home() {
 
   // Initialize randomQueries with an empty array
   const [randomQueries, setRandomQueries] = useState<string[]>([]);
+
+  const queryRef = useRef<string>('');
 
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
@@ -64,19 +75,22 @@ export default function Home() {
     textAreaRef.current?.focus();
   }, []);
 
-  //handle form submission
-  async function handleSubmit(e: any) {
+  useEffect(() => {
+    console.log("after update: loading = " + loading);
+  }, [loading]);
+  
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
+  
     setError(null);
-
-    if (!query) {
+  
+    const question = queryRef.current.trim();
+  
+    if (!question) {
       alert('Please input a question');
       return;
     }
-
-    const question = query.trim();
-
+  
     setMessageState((state) => ({
       ...state,
       messages: [
@@ -89,8 +103,6 @@ export default function Home() {
     }));
 
     setLoading(true);
-    setQuery('');
-
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -125,6 +137,9 @@ export default function Home() {
           messageListRef.current?.lastElementChild?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }, 0);
       }
+      if (textAreaRef.current) {
+        textAreaRef.current.value = '';  // Clear the textarea
+      }  
       console.log('messageState', messageState);
 
       setLoading(false);
@@ -135,12 +150,25 @@ export default function Home() {
     }
   }
 
+  const handleClick = (query: string) => {
+    queryRef.current = query;
+    if (textAreaRef.current) {
+      textAreaRef.current.value = query;
+    }
+  
+    // Introduce a slight delay
+    setTimeout(() => {
+      handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
+    }, 0);
+  };
+    
   //prevent empty submissions
-  const handleEnter = (e: any) => {
-    if (e.key === 'Enter' && query) {
-      handleSubmit(e);
-    } else if (e.key == 'Enter') {
+  const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
       e.preventDefault();
+      if (queryRef.current.trim()) {
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+      }
     }
   };
 
@@ -156,9 +184,7 @@ export default function Home() {
               <button
                 key={index}
                 className="text-blue-500 hover:underline mb-2"
-                onClick={() => {
-                  setQuery(query);
-                }}
+                onClick={() => handleClick(query)}
               >
                 {query}
               </button>
@@ -258,6 +284,7 @@ export default function Home() {
                   <textarea
                     disabled={loading}
                     onKeyDown={handleEnter}
+                    onChange={(e) => queryRef.current = e.target.value}
                     ref={textAreaRef}
                     autoFocus={false}
                     rows={1}
@@ -269,8 +296,7 @@ export default function Home() {
                         ? 'Waiting for response...'
                         : 'How do I remember God more frequently?'
                     }
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    defaultValue={query}
                     className={styles.textarea}
                   />
                   <button
@@ -304,9 +330,8 @@ export default function Home() {
           </main>
         </div>
         <footer className="m-auto p-4">
-          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a> 
-          | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info on the Ananda Wiki</a> 
-          | Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
+          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a> | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info (Ananda Wiki)</a> 
+          <br></br>Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
         </footer>
       </Layout>
     </>
