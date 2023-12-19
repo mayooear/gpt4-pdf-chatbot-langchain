@@ -180,10 +180,11 @@ export default function Home() {
             Chat With the Ananda Librarian!
           </h1>
           <div className="flex flex-col items-center">
+            <p className="mb-2">Enter your query below or click one of these to try it:</p>
             {randomQueries.map((query, index) => (
               <button
                 key={index}
-                className="text-blue-500 hover:underline mb-2"
+                className="text-blue-500 hover:underline mb-0"
                 onClick={() => handleClick(query)}
               >
                 {query}
