@@ -40,10 +40,7 @@ export default function Home() {
   const queries = [
     "Give me three tips on improving meditation habits",
     "How does Swami say to prepare for hard times?",
-    "Write an article on tough karma, mentioning things from Swamiji and Master",
-    "3",
-    "4",
-    "5"
+    "Write an article on tough karma, mentioning things from Swamiji and Master"
   ];
 
   const getRandomQueries = () => {
@@ -51,7 +48,17 @@ export default function Home() {
     return shuffled.slice(0, 3);
   };
 
-  const [randomQueries, setRandomQueries] = useState(getRandomQueries());
+  // Initialize randomQueries with an empty array
+  const [randomQueries, setRandomQueries] = useState<string[]>([]);
+
+  // This effect will only run on the client after the component has mounted
+  useEffect(() => {
+    // Now setting the random queries in the useEffect to ensure it's only done client-side
+    setRandomQueries(getRandomQueries());
+
+    // Focus the text area only on the client side after the component has mounted
+    textAreaRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     textAreaRef.current?.focus();
@@ -151,7 +158,6 @@ export default function Home() {
                 className="text-blue-500 hover:underline mb-2"
                 onClick={() => {
                   setQuery(query);
-                  setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 500);
                 }}
               >
                 {query}
