@@ -49,7 +49,9 @@ export default function Home() {
     "How do i grow my connection to god?",
     "tips on dealing with a challenging coworker?",
     "write an article about compassion towards family at holiday events",
-    "Is there a painless way to transcend ego, and if so, what is that way?"
+    "Is there a painless way to transcend ego, and if so, what is that way?",
+    "how do karma and sadhana relate to each other?",
+    "If God is doing everything through us, how does free will fit in?"
   ];
 
   const getRandomQueries = () => {
