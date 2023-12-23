@@ -77,10 +77,6 @@ export default function Home() {
     textAreaRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    console.log("after update: loading = " + loading);
-  }, [loading]);
-  
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
   
@@ -93,6 +89,8 @@ export default function Home() {
       return;
     }
   
+    console.log("Query: " + question)
+    
     setMessageState((state) => ({
       ...state,
       messages: [
