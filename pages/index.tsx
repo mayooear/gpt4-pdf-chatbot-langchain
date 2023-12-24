@@ -240,40 +240,33 @@ export default function Home() {
                         </div>
                       </div>
                       {message.sourceDocs && (
-                        <div
-                          className="p-5"
-                          key={`sourceDocsAccordion-${index}`}
-                        >
-                          <Accordion
-                            type="single"
-                            collapsible
-                            className="flex-col"
-                          >
-                            {message.sourceDocs.map((doc, index) => (
-                              <div key={`messageSourceDocs-${index}`}>
-                                <AccordionItem value={`item-${index}`}>
-                                  <AccordionTrigger>
-                                    <h3>Source {index + 1}</h3>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ReactMarkdown linkTarget="_blank">
-                                      {doc.pageContent}
-                                    </ReactMarkdown>
-                                    <p className="mt-2">
-                                      <b>Source:</b> {doc.metadata.source.startsWith('http') ? (
-                                        <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer">
-                                          {doc.metadata.source}
-                                        </a>
-                                    ) : (
-                                        doc.metadata.source
-                                    )}
-                                    </p>
-                                  </AccordionContent>
-                                </AccordionItem>
+                        <details className={styles.sourceDocsContainer}>
+                          <summary className={styles.sourceDocsSummary}>
+                            View Sources
+                            <br /> 
+                          </summary>
+                          {message.sourceDocs.map((doc, docIndex) => (
+                            <>
+                              {docIndex > 0 && <br />}
+                              <div key={`messageSourceDocs-${docIndex}`} className={styles.sourceDoc}>
+                                <p>
+                                  <b>#{docIndex + 1}:</b> {doc.metadata.source.startsWith('http') ? (
+                                    <b><a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
+                                      {doc.metadata['pdf.info.Title']}
+                                    </a></b>
+                                  ) : (
+                                    doc.metadata.source
+                                  )}
+                                </p>
+                                <div className={styles.sourceDocContent}>
+                                  <ReactMarkdown linkTarget="_blank">
+                                    {doc.pageContent}
+                                  </ReactMarkdown>
+                                </div>
                               </div>
-                            ))}
-                          </Accordion>
-                        </div>
+                            </>
+                          ))}
+                        </details>
                       )}
                     </>
                   );
