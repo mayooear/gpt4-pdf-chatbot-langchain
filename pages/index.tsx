@@ -115,11 +115,12 @@ export default function Home() {
         }),
       });
       const data = await response.json();
-      console.log('data', data);
 
       if (data.error) {
         setError(data.error);
+        console.log('ERROR: data error: ' + data.error);
       } else {
+        console.log('Answer: ', data.text);
         setMessageState((state) => ({
           ...state,
           messages: [
