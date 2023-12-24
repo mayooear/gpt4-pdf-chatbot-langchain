@@ -178,7 +178,7 @@ export default function Home() {
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With the Ananda Librarian!
+            Chat With the Ananda AI Librarian!
           </h1>
           <div className="flex flex-col items-center">
             <p className="mb-2">Enter your query below or click one of these to try it:</p>
