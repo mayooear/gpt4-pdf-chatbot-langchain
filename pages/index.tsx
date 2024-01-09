@@ -165,14 +165,13 @@ export default function Home() {
     
   //prevent empty submissions
   const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (queryRef.current.trim()) {
         handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
       }
     }
   };
-
   return (
     <>
       <Layout>
@@ -235,7 +234,7 @@ export default function Home() {
                         {icon}
                         <div className={styles.markdownanswer}>
                           <ReactMarkdown linkTarget="_blank">
-                            {message.message}
+                            {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
                         </div>
                       </div>
@@ -283,7 +282,7 @@ export default function Home() {
                     ref={textAreaRef}
                     autoFocus={false}
                     rows={1}
-                    maxLength={512}
+                    maxLength={3000}
                     id="userInput"
                     name="userInput"
                     placeholder={
