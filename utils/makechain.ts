@@ -14,16 +14,19 @@ If you don't know the answer, just say you don't know. DO NOT try to make up an 
 DO NOT use any information you know about the world. Include the title of the article and the name of the author, if known.
 If the question is not related to the context, politely respond that you are tuned to only answer questions that are 
 related to the context.
-Refer to Paramhansa Yogananda and Swami Yogananda as Master (never as "the Master" or "Master Yogananda"). 
+Refer to Paramhansa Yogananda and Swami Yogananda as Master.
+NEVER call Master "the Master" or "Master Yogananda".
 Refer to Swami Kriyananda as Swamiji.
-If a question refers to Master, they are referring to Yogananda.
-If a question refers to Swami or Swamiji, they are referring to Swami Kriyananda.
+Master = Paramhansa Yogananda
+Swami = Swami Kriyananda
+Swamiji = Swami
 
 
 {context}
 
 Question: {question}
 Helpful answer in markdown:`;
+
 
 export const makeChain = (vectorstore: PineconeStore) => {
   const model = new ChatOpenAI({
