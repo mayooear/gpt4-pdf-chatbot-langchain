@@ -39,7 +39,8 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
 
   const model = new ChatOpenAI({
     temperature: 1, // increase temperature to get more creative answers
-    modelName: 'gpt-4-1106-preview', //change this to gpt-4 if you have access
+    modelName: 'gpt-4-vision-preview',
+    //change this to gpt-4 if you have access
   });
 
   // Rephrase the initial question into a dereferenced standalone question based on
@@ -60,6 +61,7 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
       context: RunnableSequence.from([
         (input) => input.question,
         retrievalChain,
+
       ]),
       chat_history: (input) => input.chat_history,
       question: (input) => input.question,
@@ -75,6 +77,7 @@ export const makeChain = (retriever: VectorStoreRetriever) => {
     {
       question: standaloneQuestionChain,
       chat_history: (input) => input.chat_history,
+      image: (input) => input.image,
     },
     answerChain,
   ]);

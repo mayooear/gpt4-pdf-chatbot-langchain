@@ -20,6 +20,7 @@
     "@radix-ui/react-accordion": "^1.1.1",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
+    "formidable": "^3.5.1",
     "langchain": "^0.0.186",
     "lucide-react": "^0.125.0",
     "next": "13.2.3",
@@ -30,6 +31,7 @@
     "tailwind-merge": "^1.10.0"
   },
   "devDependencies": {
+    "@types/formidable": "^3.4.5",
     "@types/node": "^18.14.6",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
