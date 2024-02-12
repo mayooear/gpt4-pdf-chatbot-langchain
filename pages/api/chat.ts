@@ -15,8 +15,7 @@ export default async function handler(
 ) {
   const { question, history } = req.body;
 
-  console.log('question', question);
-  console.log('history', history);
+  console.log('\nQuestion:', question);
 
   //only accept post requests
   if (req.method !== 'POST') {
@@ -60,8 +59,17 @@ export default async function handler(
       chat_history: pastMessages
     });
 
-    console.log('response', response);
+    console.log('Answer: ', response.text);
+    if (response.sourceDocuments) {
+      const sourceTitles = response.sourceDocuments.map((doc, index) => {
+        return `${doc.metadata['pdf.info.Title']}`;
+      });
+      console.log('\nSources: ', sourceTitles.join('; '));
+    }
+    console.log('\nHistory:', history);
+
     res.status(200).json(response);
+
   } catch (error: any) {
     console.log('error', error);
     res.status(500).json({ error: error.message || 'Something went wrong' });

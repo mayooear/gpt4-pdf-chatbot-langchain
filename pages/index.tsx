@@ -51,7 +51,8 @@ export default function Home() {
     "write an article about compassion towards family at holiday events",
     "Is there a painless way to transcend ego, and if so, what is that way?",
     "how do karma and sadhana relate to each other?",
-    "If God is doing everything through us, how does free will fit in?"
+    "If God is doing everything through us, how does free will fit in?",
+    "What are some tips for dealing with insomnia?"
   ];
 
   const getRandomQueries = () => {
@@ -89,8 +90,6 @@ export default function Home() {
       return;
     }
   
-    console.log("Query: " + question)
-    
     setMessageState((state) => ({
       ...state,
       messages: [
@@ -120,7 +119,6 @@ export default function Home() {
         setError(data.error);
         console.log('ERROR: data error: ' + data.error);
       } else {
-        console.log('Answer: ', data.text);
         setMessageState((state) => ({
           ...state,
           messages: [
@@ -141,7 +139,6 @@ export default function Home() {
       if (textAreaRef.current) {
         textAreaRef.current.value = '';  // Clear the textarea
       }  
-      console.log('messageState', messageState);
 
       setLoading(false);
     } catch (error) {
