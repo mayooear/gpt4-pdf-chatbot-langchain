@@ -18,6 +18,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@pinecone-database/pinecone": "0.0.14",
     "@radix-ui/react-accordion": "^1.1.1",
+    "aws-sdk": "^2.1545.0",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
     "langchain": "^0.0.125",
