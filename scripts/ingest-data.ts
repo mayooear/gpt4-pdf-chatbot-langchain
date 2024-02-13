@@ -68,6 +68,8 @@ export const run = async () => {
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
+    /* possible way to specify model: 
+       const embeddings = new OpenAIEmbeddings({ modelName: 'text-similarity-babbage-001' }); */
     const embeddings = new OpenAIEmbeddings();
     const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
 
