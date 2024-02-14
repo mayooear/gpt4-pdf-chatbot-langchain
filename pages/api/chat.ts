@@ -61,7 +61,7 @@ export default async function handler(
 
     console.log('Answer: ', response.text);
     if (response.sourceDocuments) {
-      const sourceTitles = response.sourceDocuments.map((doc, index) => {
+      const sourceTitles = response.sourceDocuments.map((doc: any, index: number) => {
         return `${doc.metadata['pdf.info.Title']}`;
       });
       console.log('\nSources: ', sourceTitles.join('; '));

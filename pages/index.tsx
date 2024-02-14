@@ -3,6 +3,7 @@ import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';
 import Image from 'next/image';
+import { Fragment } from 'react';
 import ReactMarkdown from 'react-markdown';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
@@ -226,7 +227,7 @@ export default function Home() {
                         : styles.usermessage;
                   }
                   return (
-                    <>
+                    <Fragment key={`message-${index}`}>
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
@@ -236,7 +237,7 @@ export default function Home() {
                         </div>
                       </div>
                       {message.sourceDocs && (
-                        <details className={styles.sourceDocsContainer}>
+                        <details className={styles.sourceDocsContainer} key={`sourceDocs-${index}`}>
                           <summary className={styles.sourceDocsSummary}>
                             View Sources
                             <br /> 
@@ -264,7 +265,7 @@ export default function Home() {
                           ))}
                         </details>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </div>
