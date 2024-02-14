@@ -64,7 +64,7 @@ export default async function handler(
       const sourceTitles = response.sourceDocuments.map((doc: any, index: number) => {
         return `${doc.metadata['pdf.info.Title']}`;
       });
-      console.log('\nSources: ', sourceTitles.join('; '));
+      console.log('\nSources:\n*', sourceTitles.join('\n* '));
     }
     console.log('\nHistory:', history);
 
