@@ -171,6 +171,10 @@
   margin-left: 2rem;
 }
 
+.markdownanswer ol {
+  list-style-type: decimal;
+}
+
 .boticon,
 .usericon {
   margin-right: 1rem;
