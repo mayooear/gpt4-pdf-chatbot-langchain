@@ -237,7 +237,7 @@ export default function Home() {
                           {message.sourceDocs && message.sourceDocs.map((doc, docIndex) => (
                             <Fragment key={`sourceDocs-${docIndex}`}>
                               <details className={styles.sourceDocsContainer}>
-                                <summary>
+                                <summary title="Click the triangle to see details or title to go to library source">
                                   {doc.metadata.source.startsWith('http') ? (
                                     <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
                                       {doc.metadata['pdf.info.Title']}
@@ -317,8 +317,8 @@ export default function Home() {
           </main>
         </div>
         <footer className="m-auto p-4">
-          <a href="mailto:mowliv@gmail.com" target="_blank" rel="noopener noreferrer">Send feedback</a> | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer">Project info (Ananda Wiki)</a> 
-          <br></br>Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
+          Queries are logged | <a href="mailto:ananda-library-chatbot@ananda.org" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Send feedback</a> | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Project info (Ananda Wiki)</a> 
+          <br />Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
         </footer>
       </Layout>
     </>
