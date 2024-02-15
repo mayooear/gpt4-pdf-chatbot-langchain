@@ -59,7 +59,8 @@ export default async function handler(
       chat_history: pastMessages
     });
 
-    console.log('Answer: ', response.text);
+    console.log('Answer:');
+    console.log(response.text);
     if (response.sourceDocuments) {
       const sourceTitles = response.sourceDocuments.map((doc: any, index: number) => {
         return `${doc.metadata['pdf.info.Title']}`;
