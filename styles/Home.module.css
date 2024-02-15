@@ -153,11 +153,11 @@
 
 .markdownanswer a:hover {
   opacity: 0.8;
+  text-decoration: underline;
 }
 
 .markdownanswer a {
   color: #b13a3a;
-  font-weight: 500;
 }
 
 .markdownanswer code {
