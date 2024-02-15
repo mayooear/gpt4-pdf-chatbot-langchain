@@ -143,7 +143,12 @@
 }
 
 .markdownanswer {
-  line-height: 1.75;
+  line-height: 1.35;
+}
+
+.markdownanswer p {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
 }
 
 .markdownanswer a:hover {
@@ -163,7 +168,7 @@
 
 .markdownanswer ol,
 .markdownanswer ul {
-  margin: 1rem;
+  margin-left: 2rem;
 }
 
 .boticon,
@@ -173,12 +178,29 @@
   height: 100%;
 }
 
-.markdownanswer h1,
-.markdownanswer h2,
-.markdownanswer h3 {
-  font-size: inherit;
+.markdownanswer h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  margin-top: 1rem;
 }
 
+.markdownanswer h2 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-top: 0.75rem;
+}
+
+.markdownanswer h3 {
+  font-size: 1.1rem;
+  font-weight: 200;
+  margin-top: 0.5rem;
+}
+
+.markdownanswer h4 {
+  font-size: 1.05rem;
+  font-weight: 150;
+  margin-top: 0.25rem;
+}
 .center {
   display: flex;
   justify-content: center;

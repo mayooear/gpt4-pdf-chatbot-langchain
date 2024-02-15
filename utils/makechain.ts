@@ -21,12 +21,12 @@ Refer to Swami Kriyananda as Swamiji.
 Master = Paramhansa Yogananda
 Swami = Swami Kriyananda
 Swamiji = Swami
-
+ALWAYS answer in markdown format but do not enclose in a code block.
 
 {context}
 
 Question: {question}
-Helpful answer in markdown:`;
+Helpful answer:`;
 
 
 export const makeChain = (vectorstore: PineconeStore) => {
