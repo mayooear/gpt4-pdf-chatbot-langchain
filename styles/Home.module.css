@@ -175,6 +175,10 @@
   list-style-type: decimal;
 }
 
+.markdownanswer ul {
+  list-style-type: disc;
+}
+
 .boticon,
 .usericon {
   margin-right: 1rem;
