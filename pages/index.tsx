@@ -250,7 +250,7 @@ export default function Home() {
                                   <ReactMarkdown linkTarget="_blank">
                                     {doc.pageContent}
                                   </ReactMarkdown>
-                                  {docIndex < message.sourceDocs.length - 1 && <br />}
+                                  {message.sourceDocs && docIndex < message.sourceDocs.length - 1 && <br />}
                                 </div>
                               </details>
                             </Fragment>
