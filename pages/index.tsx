@@ -228,6 +228,30 @@ export default function Home() {
                   }
                   return (
                     <Fragment key={`message-${index}`}>
+                      {message.sourceDocs && message.sourceDocs.length > 0 && (
+                        <h3 className={styles.sourceDocsHeading}>Library Sources</h3>
+                      )}
+                      {message.sourceDocs && message.sourceDocs.map((doc, docIndex) => (
+                        <Fragment key={`sourceDocs-${docIndex}`}>
+                          <details className={styles.sourceDocsContainer}>
+                            <summary>
+                              <b>#{docIndex + 1}:</b> {doc.metadata.source.startsWith('http') ? (
+                                <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
+                                  {doc.metadata['pdf.info.Title']}
+                                </a>
+                              ) : (
+                                doc.metadata.source
+                              )}
+                            </summary>
+                            <div className={styles.sourceDocContent}>
+                              <ReactMarkdown linkTarget="_blank">
+                                {doc.pageContent}
+                              </ReactMarkdown>
+                              {docIndex < message.sourceDocs.length - 1 && <br />}
+                            </div>
+                          </details>
+                        </Fragment>
+                      ))}
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
@@ -236,35 +260,6 @@ export default function Home() {
                           </ReactMarkdown>
                         </div>
                       </div>
-                      {message.sourceDocs && (
-                        <details className={styles.sourceDocsContainer} key={`sourceDocs-${index}`}>
-                          <summary className={styles.sourceDocsSummary}>
-                            View Sources
-                            <br /> 
-                          </summary>
-                          {message.sourceDocs.map((doc, docIndex) => (
-                            <>
-                              {docIndex > 0 && <br />}
-                              <div key={`messageSourceDocs-${docIndex}`} className={styles.sourceDoc}>
-                                <p>
-                                  <b>#{docIndex + 1}:</b> {doc.metadata.source.startsWith('http') ? (
-                                    <b><a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
-                                      {doc.metadata['pdf.info.Title']}
-                                    </a></b>
-                                  ) : (
-                                    doc.metadata.source
-                                  )}
-                                </p>
-                                <div className={styles.sourceDocContent}>
-                                  <ReactMarkdown linkTarget="_blank">
-                                    {doc.pageContent}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            </>
-                          ))}
-                        </details>
-                      )}
                     </Fragment>
                   );
                 })}
