@@ -5,6 +5,7 @@ import { Message } from '@/types/chat';
 import Image from 'next/image';
 import { Fragment } from 'react';
 import ReactMarkdown from 'react-markdown';
+import gfm from 'remark-gfm';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
 import {
@@ -247,7 +248,7 @@ export default function Home() {
                                   )}
                                 </summary>
                                 <div className={styles.sourceDocContent}>
-                                  <ReactMarkdown linkTarget="_blank">
+                                  <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                                     {doc.pageContent}
                                   </ReactMarkdown>
                                   {message.sourceDocs && docIndex < message.sourceDocs.length - 1 && <br />}
@@ -256,7 +257,7 @@ export default function Home() {
                             </Fragment>
                           ))}
                           {(message.type === 'apiMessage') && <br />}
-                          <ReactMarkdown linkTarget="_blank">
+                          <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
                         </div>

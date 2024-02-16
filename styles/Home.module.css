@@ -209,6 +209,34 @@
   font-weight: 150;
   margin-top: 0.25rem;
 }
+
+.markdownanswer table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.markdownanswer th,
+.markdownanswer td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+}
+.markdownanswer th {
+  background-color: #f8f8f8;
+}
+
+.markdownanswer blockquote {
+  padding-left: 1rem;
+  border-left: 4px solid #ddd;
+  margin: 1rem 0;
+  color: #666;
+}
+
+.markdownanswer hr {
+  border: 0;
+  height: 1px;
+  background: #ccc;
+  margin: 1rem 0;
+}
+
 .center {
   display: flex;
   justify-content: center;

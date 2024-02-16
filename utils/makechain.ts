@@ -32,6 +32,7 @@ A reference to Swami is always to Swami Kriyananda.
 
 # Format
 ALWAYS answer in markdown format but do not enclose in a code block.
+DO NOT start your output with \`\`\`markdown.
 
 # Context
 {context}
