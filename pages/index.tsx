@@ -282,14 +282,15 @@ export default function Home() {
                                 </summary>
                                 <div className={styles.sourceDocContent}>
                                   <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                                    {doc.pageContent}
+                                    {`*${doc.pageContent}*`}
                                   </ReactMarkdown>
                                   {message.sourceDocs && docIndex < message.sourceDocs.length - 1 && <br />}
                                 </div>
                               </details>
                             </Fragment>
                           ))}
-                          {(message.type === 'apiMessage') && <br />}
+                          <hr />
+                          {(message.type === 'apiMessage')}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
