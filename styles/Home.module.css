@@ -287,7 +287,9 @@
 @media (max-width: 600px) {
   .main {
     padding: 1rem;
-    max-height: 90vh;
+    /* Adjust 80px to the sum of estimated header and footer heights */
+    max-height: calc(100vh - 80px); 
+    overflow-y: auto;
   }
 
   .cloud {
