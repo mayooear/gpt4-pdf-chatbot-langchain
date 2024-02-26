@@ -288,7 +288,7 @@
   .main {
     padding: 1rem;
     /* Adjust 80px to the sum of estimated header and footer heights */
-    max-height: calc(100vh - 160px); 
+    max-height: calc(100vh - 320px); 
     overflow-y: auto;
   }
 
