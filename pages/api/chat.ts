@@ -17,8 +17,9 @@ export default async function handler(
 
   const clientIP = req.socket.remoteAddress || 'NoIP';
   console.log('\nClient IP:', clientIP);
-  console.log('Question:', question);
-
+  console.log('QUESTION:', question);
+  console.log('');
+  
   //only accept post requests
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -77,8 +78,8 @@ export default async function handler(
 
     const sourceDocuments = await documentPromise;
 
-    console.log('Answer:');
-    console.log(response.text);
+    console.log('\nANSWER:\n');
+    console.log(response);
     if (response.sourceDocuments) {
       const sourceTitles = response.sourceDocuments.map((doc: any, index: number) => {
         return `${doc.metadata['pdf.info.Title']}`;
