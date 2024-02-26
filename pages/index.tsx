@@ -289,8 +289,7 @@ export default function Home() {
                               </details>
                             </Fragment>
                           ))}
-                          <hr />
-                          {(message.type === 'apiMessage')}
+                          {message.type === 'apiMessage' && <hr />}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
