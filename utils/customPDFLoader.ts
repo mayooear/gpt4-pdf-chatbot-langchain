@@ -1,6 +1,6 @@
 import { Document } from 'langchain/document';
 import { readFile } from 'fs/promises';
-import { BaseDocumentLoader } from 'langchain/document_loaders';
+import { BaseDocumentLoader } from 'langchain/document_loaders/base';
 
 export abstract class BufferLoader extends BaseDocumentLoader {
   constructor(public filePathOrBlob: string | Blob) {
