@@ -82,7 +82,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    textAreaRef.current?.focus();
+    // Focus the text area only on the client side after the component has mounted.
+    // Check if the device is not mobile (e.g., width greater than 768px for iPad)
+    if (window.innerWidth > 768) {
+      textAreaRef.current?.focus();
+    }
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -141,7 +145,10 @@ export default function Home() {
         // Scroll to the top of the latest message
         setTimeout(() => {
           // Focus the text area after the message has been updated.
-          textAreaRef.current?.focus();
+          // Check if the device is not mobile (e.g., width greater than 768px for iPad)
+          if (window.innerWidth > 768) {
+            textAreaRef.current?.focus();
+          }
   
           // Set a slight delay to ensure focus change has completed
           setTimeout(() => {
@@ -245,7 +252,21 @@ export default function Home() {
                         {icon}
                         <div className={styles.markdownanswer}>
                           {message.sourceDocs && message.sourceDocs.length > 0 && (
-                            <h3 className={styles.sourceDocsHeading}>Sources</h3>
+                            <h3 className={styles.sourceDocsHeading}>
+                              Sources <a href="#" onClick={(e) => {
+                                  e.preventDefault();
+                                  const detailsElements = document.querySelectorAll('details');
+                                  const areAllExpanded = Array.from(detailsElements).every(detail => detail.open);
+                                  detailsElements.forEach(detail => { detail.open = !areAllExpanded; });
+                                  // Update the text of the link based on the new state of "details" elements
+                                  if (e.target instanceof HTMLElement) {
+                                    e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
+                                  }
+                                }}
+                                className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
+                                {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
+                              </a>
+                            </h3>
                           )}
                           {message.sourceDocs && message.sourceDocs.map((doc, docIndex) => (
                             <Fragment key={`sourceDocs-${docIndex}`}>
