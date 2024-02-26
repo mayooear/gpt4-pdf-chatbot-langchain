@@ -54,7 +54,9 @@ export default function Home() {
     "Is there a painless way to transcend ego, and if so, what is that way?",
     "how do karma and sadhana relate to each other?",
     "If God is doing everything through us, how does free will fit in?",
-    "What are some tips for dealing with insomnia?"
+    "What are some tips for dealing with insomnia?",
+    "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
+    "Give 10 attitudes essential for discipleship",
   ];
 
   const getRandomQueries = () => {

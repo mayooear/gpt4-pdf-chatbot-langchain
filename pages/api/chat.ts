@@ -15,7 +15,9 @@ export default async function handler(
 ) {
   const { question, history } = req.body;
 
-  console.log('\nQuestion:', question);
+  const clientIP = req.socket.remoteAddress || 'NoIP';
+  console.log('\nClient IP:', clientIP);
+  console.log('Question:', question);
 
   //only accept post requests
   if (req.method !== 'POST') {
