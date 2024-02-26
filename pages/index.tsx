@@ -74,8 +74,11 @@ export default function Home() {
     // Now setting the random queries in the useEffect to ensure it's only done client-side
     setRandomQueries(getRandomQueries());
 
-    // Focus the text area only on the client side after the component has mounted
-    textAreaRef.current?.focus();
+    // Focus the text area only on the client side after the component has mounted.
+    // Check if the device is not mobile (e.g., width greater than 768px for iPad)
+    if (window.innerWidth > 768) {
+      textAreaRef.current?.focus();
+    }
   }, []);
 
   useEffect(() => {
