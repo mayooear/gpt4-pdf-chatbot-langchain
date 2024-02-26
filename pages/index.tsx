@@ -137,8 +137,15 @@ export default function Home() {
         }));
         // Scroll to the top of the latest message
         setTimeout(() => {
-          messageListRef.current?.lastElementChild?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        }, 0);
+          // Focus the text area after the message has been updated.
+          textAreaRef.current?.focus();
+  
+          // Set a slight delay to ensure focus change has completed
+          setTimeout(() => {
+            // Scroll to the latest message
+            messageListRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 10);
+        });
       }
       if (textAreaRef.current) {
         textAreaRef.current.value = '';  // Clear the textarea
