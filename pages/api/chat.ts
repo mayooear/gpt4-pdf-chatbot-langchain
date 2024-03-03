@@ -15,7 +15,8 @@ export default async function handler(
 ) {
   const { question, history } = req.body;
 
-  const clientIP = req.socket.remoteAddress || 'NoIP';
+  const forwarded = req.headers['x-forwarded-for'];
+  const clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress;
   console.log('\nClient IP:', clientIP);
   console.log('QUESTION:', question);
   console.log('');
@@ -68,9 +69,8 @@ export default async function handler(
         return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
       })
       .join('\n');
-    console.log(pastMessages);
 
-    //Ask a question using chat history
+    // Ask a question using chat history
     const response = await chain.invoke({
       question: sanitizedQuestion,
       chat_history: pastMessages,
