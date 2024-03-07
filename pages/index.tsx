@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import Cookies from 'js-cookie'; 
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';
@@ -8,12 +9,6 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -38,6 +33,26 @@ export default function Home() {
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Popup message
+  const currentMessageVersion = '1.0';
+  const [showPopup, setShowPopup] = useState(false);
+  useEffect(() => {
+    const seenMessageVersion = Cookies.get('seenMessageVersion');
+    if (seenMessageVersion !== currentMessageVersion) {
+      setShowPopup(true);
+    }
+  }, [currentMessageVersion]);
+
+  const handleClosePopup = () => {
+    // Update the cookie with the current message version
+    Cookies.set('seenMessageVersion', currentMessageVersion, {
+      expires: 365,
+      sameSite: 'Lax',
+      secure: true
+    });
+    setShowPopup(false);
+  };
 
   const queries = [
     "Give me three tips on improving meditation habits",
@@ -192,6 +207,19 @@ export default function Home() {
   };
   return (
     <>
+      {showPopup && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popupContainer}>
+            <div className={styles.popupMessage}>
+              <p><strong>Welcome, Gurubhai!</strong></p>
+              <br />
+              <p>We log questions and answers to improve the service. By using the chatbot, 
+                you agree to this.</p>
+              <button onClick={handleClosePopup} className={styles.closeButton}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">

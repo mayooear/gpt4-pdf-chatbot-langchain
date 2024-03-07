@@ -320,3 +320,49 @@
     text-align: center;
   }
 }
+
+/* Add to your Home.module.css or equivalent stylesheet */
+
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's above everything else */
+}
+
+.popupContainer {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Drop shadow */
+  z-index: 1001; /* Above the overlay */
+  max-width: 500px; /* Or any other max-width */
+  margin: auto; /* Center the container */
+  position: relative; /* Relative to the overlay */
+  width: 90%; /* Responsive width */
+}
+
+.popupMessage {
+  text-align: center;
+}
+
+.closeButton {
+  background-color: #007bff; /* Bootstrap primary blue */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin-top: 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.closeButton:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}

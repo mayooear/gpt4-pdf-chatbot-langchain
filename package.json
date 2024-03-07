@@ -21,6 +21,7 @@
     "aws-sdk": "^2.1545.0",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
+    "js-cookie": "^3.0.5",
     "langchain": "^0.0.186",
     "lucide-react": "^0.125.0",
     "next": "13.2.3",
@@ -32,6 +33,7 @@
     "tailwind-merge": "^1.10.0"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^18.14.6",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
