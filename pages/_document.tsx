@@ -8,7 +8,7 @@ export default function Document() {
         {/* Global Site Tag (gtag.js) - Google Analytics */}
         <Script
           strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=G-0DGBYKZ9LS`}
+          src={`https://www.googletagmanager.com/gtag/js?id=G-9551DZXPEZ`}
         />
         <Script
           id="google-analytics-script"
@@ -18,7 +18,7 @@ export default function Document() {
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'G-0DGBYKZ9LS');
+              gtag('config', 'G-9551DZXPEZ');
             `,
           }}
         />

@@ -21,6 +21,7 @@
     "aws-sdk": "^2.1545.0",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
+    "firebase-admin": "^11.11.1",
     "js-cookie": "^3.0.5",
     "langchain": "^0.0.186",
     "lucide-react": "^0.125.0",
