@@ -6,8 +6,23 @@ import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
+import * as fbadmin from 'firebase-admin';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
+
+if (!fbadmin.apps.length) {
+  const serviceAccountJson = process.env.FIREBASE_ADMINSDK_JSON;
+  if (typeof serviceAccountJson !== 'string') {
+    throw new Error('The FIREBASE_ADMINSDK_JSON environment variable is not set or not a string.');
+  }
+  const serviceAccount = JSON.parse(serviceAccountJson);
+
+  fbadmin.initializeApp({
+    credential: fbadmin.credential.cert(serviceAccount),
+  });
+}
+
+export const db = fbadmin.firestore();
 
 export default async function handler(
   req: NextApiRequest,
@@ -77,15 +92,30 @@ export default async function handler(
     });
 
     const sourceDocuments = await documentPromise;
+    let sourceTitlesString = '';
+    if (sourceDocuments && sourceDocuments.length > 0) {
+      const sourceTitles = sourceDocuments.map((doc: any) => doc.metadata['pdf.info.Title']);
+      sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
+    }
 
+    // Log the question and answer in Firestore
+    const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
+    const transformedHistory = history.map((messagePair: [string, string]) => ({
+      question: messagePair[0],
+      answer: messagePair[1],
+    }));
+    await chatLogRef.add({
+      question: sanitizedQuestion,
+      answer: response,
+      sources: sourceTitlesString,
+      history: transformedHistory,
+      ip: clientIP,
+      timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+    });
+    
     console.log('\nANSWER:\n');
     console.log(response);
-    if (sourceDocuments) {
-      const sourceTitles = sourceDocuments.map((doc: any, index: number) => {
-        return `${doc.metadata['pdf.info.Title']}`;
-      });
-      console.log('\nSources:\n*', sourceTitles.join('\n* '));
-    }
+    console.log(sourceTitlesString);
     console.log('\nHistory:', history);
 
     res.status(200).json({ text: response, sourceDocuments });
