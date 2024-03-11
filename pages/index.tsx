@@ -35,7 +35,7 @@ export default function Home() {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // Popup message
-  const currentMessageVersion = '1.0';
+  const currentMessageVersion = '1.01';
   const [showPopup, setShowPopup] = useState(false);
   useEffect(() => {
     const seenMessageVersion = Cookies.get('seenMessageVersion');
@@ -223,8 +223,9 @@ export default function Home() {
             <div className={styles.popupMessage}>
               <p><strong>Welcome, Gurubhai!</strong></p>
               <br />
-              <p>We log questions and answers to improve the service. By using the chatbot, 
-                you agree to this.</p>
+              <p>We log questions and answers to improve the service.</p>
+              <br />
+              <p>Please use the private query checkbox if you would prefer we not log your query.</p>
               <button onClick={handleClosePopup} className={styles.closeButton}>OK</button>
             </div>
           </div>
