@@ -84,6 +84,14 @@ export default function Home() {
 
   const queryRef = useRef<string>('');
 
+  // Modify the checkbox onChange handler to update the state and the cookie
+  const [privateSession, setPrivateSession] = useState<boolean>(Cookies.get('privateSession') === 'true');
+  const handlePrivateSessionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    setPrivateSession(isChecked); // Update state
+    Cookies.set('privateSession', String(isChecked), { expires: 365 }); // Update cookie
+  };
+  
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
     // Now setting the random queries in the useEffect to ensure it's only done client-side
@@ -110,7 +118,8 @@ export default function Home() {
     setError(null);
   
     const question = queryRef.current.trim();
-  
+    const privateSession = document.getElementById('privateSession') as HTMLInputElement;
+
     if (!question) {
       alert('Please input a question');
       return;
@@ -137,6 +146,7 @@ export default function Home() {
         body: JSON.stringify({
           question,
           history,
+          privateSession: privateSession.checked,
         }),
       });
       const data = await response.json();
@@ -348,6 +358,19 @@ export default function Home() {
                     }
                     className={styles.textarea}
                   />
+                  <div className={styles.checkboxContainer} style={{ textAlign: 'right' }}>
+                    <input
+                      type="checkbox"
+                      id="privateSession"
+                      name="privateSession"
+                      className={styles.checkbox}
+                      checked={privateSession} // Use the state here
+                      onChange={handlePrivateSessionChange} // Use the new handler here
+                    />
+                    <label htmlFor="privateSession" className={styles.checkboxLabel}>
+                      &nbsp;Private query
+                    </label>
+                  </div>
                   <button
                     type="submit"
                     disabled={loading}

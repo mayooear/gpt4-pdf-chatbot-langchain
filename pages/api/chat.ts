@@ -28,13 +28,18 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { question, history } = req.body;
+  const { question, history, privateSession } = req.body;
 
-  const forwarded = req.headers['x-forwarded-for'];
-  const clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress;
-  console.log('\nClient IP:', clientIP);
-  console.log('QUESTION:', question);
-  console.log('');
+  let clientIP = '';
+  if (privateSession) {
+    console.log("\nPRIVATE question asked");
+  } else {
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress;
+    console.log('\nClient IP:', clientIP);
+    console.log('QUESTION:', question);
+    console.log('');
+  }
   
   //only accept post requests
   if (req.method !== 'POST') {
@@ -90,6 +95,7 @@ export default async function handler(
       question: sanitizedQuestion,
       chat_history: pastMessages,
     });
+    const answerWordCount = response.split(/\s+/).length;
 
     const sourceDocuments = await documentPromise;
     let sourceTitlesString = '';
@@ -98,25 +104,37 @@ export default async function handler(
       sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
     }
 
-    // Log the question and answer in Firestore
+    // Log the question and answer in Firestore, anonymize if private session
     const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
-    const transformedHistory = history.map((messagePair: [string, string]) => ({
-      question: messagePair[0],
-      answer: messagePair[1],
-    }));
-    await chatLogRef.add({
+    const logEntry = privateSession ? {
+      question: 'private',
+      answer: '(' + answerWordCount + " words)",
+      sources: '',
+      history: [],
+      ip: '',
+      timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+    } : {
       question: sanitizedQuestion,
       answer: response,
       sources: sourceTitlesString,
-      history: transformedHistory,
+      history: history.map((messagePair: [string, string]) => ({
+        question: messagePair[0],
+        answer: messagePair[1],
+      })),
       ip: clientIP,
       timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-    });
-    
-    console.log('\nANSWER:\n');
-    console.log(response);
-    console.log(sourceTitlesString);
-    console.log('\nHistory:', history);
+    };
+    await chatLogRef.add(logEntry);
+
+    if (privateSession)
+    {
+      console.log(`Word count of answer: ${answerWordCount}`);
+    } else {
+      console.log('\nANSWER:\n');
+      console.log(response);
+      console.log(sourceTitlesString);
+      console.log('\nHistory:', history);
+    }
 
     res.status(200).json({ text: response, sourceDocuments });
 
