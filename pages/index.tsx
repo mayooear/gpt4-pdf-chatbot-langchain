@@ -378,10 +378,9 @@ export default function Home() {
             )}
           </main>
         </div>
-        <footer className="m-auto p-4">
-          Queries are logged | <a href="mailto:ananda-library-chatbot@ananda.org" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Send feedback</a> | <a href="https://www.notion.so/anandafamily/AI-Chatbot-for-Ananda-Library-2854018444104a4cad80bf05eb4f23cb?pvs=4" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Project info (Ananda Wiki)</a> 
-          <br />Powered by LangChainAI and gpt4-pdf-chatbot-langchain open source projects.
-        </footer>
+        {/* <footer className="m-auto p-4">
+          Queries are logged
+        </footer> */}
       </Layout>
     </>
   );
