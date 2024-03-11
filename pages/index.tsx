@@ -84,14 +84,19 @@ export default function Home() {
 
   const queryRef = useRef<string>('');
 
-  // Modify the checkbox onChange handler to update the state and the cookie
-  const [privateSession, setPrivateSession] = useState<boolean>(Cookies.get('privateSession') === 'true');
-  const handlePrivateSessionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isChecked = e.target.checked;
-    setPrivateSession(isChecked); // Update state
-    Cookies.set('privateSession', String(isChecked), { expires: 365 }); // Update cookie
+  // private session stuff
+  const [privateSession, setPrivateSession] = useState<boolean>(false);
+  const handlePrivateSessionChange = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (privateSession) {
+      // If already in a private session, reload the page
+      window.location.reload();
+    } else {
+      // Start a private session
+      setPrivateSession(true);
+    }
   };
-  
+    
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
     // Now setting the random queries in the useEffect to ensure it's only done client-side
@@ -118,7 +123,6 @@ export default function Home() {
     setError(null);
   
     const question = queryRef.current.trim();
-    const privateSession = document.getElementById('privateSession') as HTMLInputElement;
 
     if (!question) {
       alert('Please input a question');
@@ -146,7 +150,7 @@ export default function Home() {
         body: JSON.stringify({
           question,
           history,
-          privateSession: privateSession.checked,
+          privateSession: privateSession,
         }),
       });
       const data = await response.json();
@@ -225,7 +229,7 @@ export default function Home() {
               <br />
               <p>We log questions and answers to improve the service.</p>
               <br />
-              <p>Please use the private query checkbox if you would prefer we not log your query.</p>
+              <p>Please use the Start Private Session button if you would prefer we not log your session.</p>
               <button onClick={handleClosePopup} className={styles.closeButton}>OK</button>
             </div>
           </div>
@@ -360,17 +364,13 @@ export default function Home() {
                     className={styles.textarea}
                   />
                   <div className={styles.checkboxContainer} style={{ textAlign: 'right' }}>
-                    <input
-                      type="checkbox"
-                      id="privateSession"
-                      name="privateSession"
-                      className={styles.checkbox}
-                      checked={privateSession} // Use the state here
-                      onChange={handlePrivateSessionChange} // Use the new handler here
-                    />
-                    <label htmlFor="privateSession" className={styles.checkboxLabel}>
-                      &nbsp;Private query
-                    </label>
+                    <button
+                      type="button" 
+                      onClick={handlePrivateSessionChange}
+                      className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
+                    >
+                      {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                    </button>
                   </div>
                   <button
                     type="submit"

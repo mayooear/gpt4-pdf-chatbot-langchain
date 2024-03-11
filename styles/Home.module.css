@@ -248,7 +248,7 @@
 
 .cloud {
   width: 75vw;
-  height: 58vh;
+  height: 56vh;
   background: #ffffff;
   border-radius: 0.5rem;
   border: 1px solid #d9d9e3;
@@ -365,4 +365,21 @@
 
 .closeButton:hover {
   background-color: #0056b3; /* Darker blue on hover */
+}
+
+.privateButton {
+  color: #007bff; /* Bootstrap primary blue */
+  border: none;
+  padding: 0;
+  margin-top: 0;
+  border-radius: 0;
+  cursor: pointer;
+  outline: none;
+  text-decoration: underline;
+  background-color: transparent;
+}
+
+.privateButton:hover {
+  color: #0056b3; /* Darker blue on hover */
+  background-color: transparent;
 }
