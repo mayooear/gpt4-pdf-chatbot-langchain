@@ -321,8 +321,6 @@
   }
 }
 
-/* Add to your Home.module.css or equivalent stylesheet */
-
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -382,4 +380,31 @@
 .privateButton:hover {
   color: #0056b3; /* Darker blue on hover */
   background-color: transparent;
+}
+
+.voteButtonsContainer {
+  display: flex;
+  justify-content: flex-end;
+  background-color: #f9fafb; 
+  padding-right: 5rem;
+}
+
+.voteButton {
+  /* Shared button styles */
+  cursor: pointer;
+  border: none;
+  background: none;
+  margin-right: 10px;
+}
+
+.voteButtonActive {
+  color: #4CAF50; /* Green color for thumbs up */
+}
+
+.voteButtonDownActive {
+  color: #F44336; /* Red color for thumbs down */
+}
+
+.voteButtonInactive {
+  color: #ccc; /* Gray color */
 }

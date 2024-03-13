@@ -96,6 +96,46 @@ export default function Home() {
       setPrivateSession(true);
     }
   };
+  const [votes, setVotes] = useState<Record<string, number>>({});
+  const handleVote = async (docId: string, isUpvote: boolean) => {
+    if (!docId) {
+      console.error('Vote error: Missing document ID');
+      return;
+    }
+    
+    const currentVote = votes[docId] || 0;
+    let vote: number;
+  
+    if ((isUpvote && currentVote === 1) || (!isUpvote && currentVote === -1)) {
+      // If the current vote is the same as the new vote, it's a reversal
+      vote = 0;
+    } else {
+      // Set the new vote
+      vote = isUpvote ? 1 : -1;
+    }
+  
+    // Update the local state to reflect the new vote
+    setVotes((prevVotes) => {
+      const updatedVotes = { ...prevVotes, [docId]: vote };
+      return updatedVotes;
+    });
+
+    try {
+      const response = await fetch('/api/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ docId, vote }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Vote error:', error);
+    }
+  };
     
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
@@ -167,6 +207,7 @@ export default function Home() {
               type: 'apiMessage',
               message: data.text,
               sourceDocs: data.sourceDocuments,
+              docId: data.docId,
             },
           ],
           history: [...state.history, [question, data.text]],
@@ -333,10 +374,32 @@ export default function Home() {
                             </Fragment>
                           ))}
                           {message.type === 'apiMessage' && index > 1 && <hr />}
-                          <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                          <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
                         </div>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                      {message.docId && (
+                        <div className={styles.voteButtonsContainer}>
+                          <button
+                            onClick={() => handleVote(message.docId as string, true)}
+                            className={`${styles.voteButton} ${votes[message.docId] === 1 ? styles.voteButtonActive : ''}`}
+                          >
+                            <span className="material-icons">
+                              {votes[message.docId] === 1 ? 'thumb_up' : 'thumb_up_off_alt'}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleVote(message.docId as string, false)}
+                            className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''}`}
+                          >
+                            <span className="material-icons">
+                              {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                       </div>
                     </Fragment>
                   );

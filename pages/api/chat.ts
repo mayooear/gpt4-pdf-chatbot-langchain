@@ -124,8 +124,8 @@ export default async function handler(
       ip: clientIP,
       timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
     };
-    console.log("db logEntry:", JSON.stringify(logEntry, null, 2));
-    await chatLogRef.add(logEntry);
+    const docRef = await chatLogRef.add(logEntry);
+    const docId = docRef.id;
 
     if (privateSession)
     {
@@ -137,7 +137,7 @@ export default async function handler(
       console.log('\nHistory:', history);
     }
 
-    res.status(200).json({ text: response, sourceDocuments });
+    res.status(200).json({ text: response, sourceDocuments, docId });
 
   } catch (error: any) {
     console.log('error', error);
