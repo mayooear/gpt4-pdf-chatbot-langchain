@@ -35,7 +35,7 @@ export default async function handler(
     console.log("\nPRIVATE question asked");
   } else {
     const forwarded = req.headers['x-forwarded-for'];
-    const clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress;
+    clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : (req.socket.remoteAddress || '');
     console.log('\nClient IP:', clientIP);
     console.log('QUESTION:', question);
     console.log('');
@@ -124,13 +124,14 @@ export default async function handler(
       ip: clientIP,
       timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
     };
+    console.log("db logEntry:", JSON.stringify(logEntry, null, 2));
     await chatLogRef.add(logEntry);
 
     if (privateSession)
     {
       console.log(`Word count of answer: ${answerWordCount}`);
     } else {
-      console.log('\nANSWER:\n');
+      console.log('ANSWER:\n');
       console.log(response);
       console.log(sourceTitlesString);
       console.log('\nHistory:', history);
