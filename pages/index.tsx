@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
+import Popup from '@/components/popup'; 
+import usePopup from '@/hooks/usePopup';
 import Cookies from 'js-cookie'; 
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
@@ -34,25 +36,12 @@ export default function Home() {
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Popup message
-  const currentMessageVersion = '1.01';
-  const [showPopup, setShowPopup] = useState(false);
-  useEffect(() => {
-    const seenMessageVersion = Cookies.get('seenMessageVersion');
-    if (seenMessageVersion !== currentMessageVersion) {
-      setShowPopup(true);
-    }
-  }, [currentMessageVersion]);
-
-  const handleClosePopup = () => {
-    // Update the cookie with the current message version
-    Cookies.set('seenMessageVersion', currentMessageVersion, {
-      expires: 365,
-      sameSite: 'Lax',
-      secure: true
-    });
-    setShowPopup(false);
-  };
+  // popup message for new users
+  const { showPopup, closePopup, popupMessage } = 
+    usePopup('1.01', 
+    "We log questions and answers to improve the service. " + 
+     "Please click Start Private Session below the text entry box if you would prefer we not log your session."
+    );
 
   const queries = [
     "Give me three tips on improving meditation habits",
@@ -262,20 +251,7 @@ export default function Home() {
   };
   return (
     <>
-      {showPopup && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popupContainer}>
-            <div className={styles.popupMessage}>
-              <p><strong>Welcome, Gurubhai!</strong></p>
-              <br />
-              <p>We log questions and answers to improve the service.</p>
-              <br />
-              <p>Please use the Start Private Session button if you would prefer we not log your session.</p>
-              <button onClick={handleClosePopup} className={styles.closeButton}>OK</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
