@@ -30,6 +30,7 @@
     "pdf-parse": "1.1.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-intersection-observer": "^9.8.1",
     "react-markdown": "^8.0.5",
     "remark-gfm": "3.0.1",
     "tailwind-merge": "^1.10.0"

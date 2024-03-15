@@ -395,12 +395,14 @@ export default function Home() {
                               {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
                             </span>
                           </button>
-                          <button
-                            onClick={() => handleShareClick(message.message, message.docId as string)}
-                            className="shareButton"
-                          >
-                            <span className="material-icons"> share </span>
-                          </button>
+                          {!privateSession && (
+                            <button
+                              onClick={() => handleShareClick(message.message, message.docId as string)}
+                              className="shareButton"
+                            >
+                              <span className="material-icons"> share </span>
+                            </button>
+                          )}
                           {shareSuccess[message.docId] && (
                             <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
                               <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>

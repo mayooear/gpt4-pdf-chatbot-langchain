@@ -7,9 +7,11 @@ import { pinecone } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
+import firebase from 'firebase-admin';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 
+// set up firestore DB access
 if (!fbadmin.apps.length) {
   const serviceAccountJson = process.env.FIREBASE_ADMINSDK_JSON;
   if (typeof serviceAccountJson !== 'string') {
@@ -21,8 +23,28 @@ if (!fbadmin.apps.length) {
     credential: fbadmin.credential.cert(serviceAccount),
   });
 }
-
 export const db = fbadmin.firestore();
+
+
+async function getAnswersByIds(ids: string[]): Promise<any[]> {
+  const answers: any[] = [];
+
+  // Firestore 'whereIn' queries are limited to 10 items per query.
+  // If we get more than 10 IDs, we'll need to split them into chunks.
+  const chunkSize = 10;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const snapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
+                             .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
+                             .get();
+    snapshot.forEach(doc => {
+      answers.push({ id: doc.id, ...doc.data() });
+    });
+  }
+
+  console.log(`Total answers retrieved: ${answers.length}`);
+  return answers;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -42,25 +64,19 @@ export default async function handler(
   }
   
   if (req.method === 'GET') {
-    const { answerId } = req.query;
-
-    if (!answerId || typeof answerId !== 'string') {
-      return res.status(400).json({ message: 'Invalid or missing answerId' });
-    }
-
     try {
-      const docRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
-      const doc = await docRef.get();
-
-      if (!doc.exists) {
-        return res.status(404).json({ message: 'Answer not found' });
+      const { answerIds } = req.query;
+      if (!answerIds || typeof answerIds !== 'string') {
+        return res.status(400).json({ message: 'answerIds parameter is required and must be a comma-separated string.' });
       }
 
-      const answer = doc.data();
-      res.status(200).json(answer);
+      const idsArray = answerIds.split(',');
+      const answers = await getAnswersByIds(idsArray);
+      res.status(200).json(answers);
+
     } catch (error) {
-      console.error('Error fetching answer: ', error);
-      res.status(500).json({ message: 'Error fetching answer', error });
+      console.error('Error fetching answers: ', error);
+      res.status(500).json({ message: 'Error fetching answers', error });
     }
   }
   else if (req.method == 'POST') {

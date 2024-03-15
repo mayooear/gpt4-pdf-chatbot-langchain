@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
+import Cookies from 'js-cookie';
 import styles from '@/styles/Home.module.css';
 
 interface ShareDialogProps {
@@ -16,6 +17,14 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
   const [comments, setComments] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Prefill the first and last name from cookies when the component mounts
+    const savedFirstName = Cookies.get('firstName');
+    const savedLastName = Cookies.get('lastName');
+    if (savedFirstName) setFirstName(savedFirstName);
+    if (savedLastName) setLastName(savedLastName);
+  }, []);
 
   const handleSubmit = async () => {
     if (!firstName || !lastName) {
@@ -44,6 +53,11 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
       // Handle success response
       onShareSuccess();
       onClose(); // Close the dialog
+
+      // Save the first and last name to cookies
+      Cookies.set('firstName', firstName, { expires: 365 });
+      Cookies.set('lastName', lastName, { expires: 365 });
+
     } catch (e) {
       setError('An error occurred while sharing the answer.');
     } finally {
@@ -90,7 +104,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
         />
         <div className="markdownanswer">
             <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
-                {markdownAnswer}
+              {`${markdownAnswer.split(" ").slice(0, 50).join(" ")}... **See more**`}
             </ReactMarkdown>
         </div>
         <button className={styles.shareButton} onClick={handleSubmit} disabled={isSubmitting}>
