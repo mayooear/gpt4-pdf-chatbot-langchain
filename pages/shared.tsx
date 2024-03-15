@@ -118,6 +118,7 @@ const SharedAnswers = () => {
 
   return (
     <Layout>
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div>
         {shares.map((share, index) => (
             <div key={index} className="bg-white p-2.5 m-2.5">
@@ -146,6 +147,7 @@ const SharedAnswers = () => {
         ))}
         {/* Intersection Observer Element */}
         {hasMore && <div ref={ref} style={{ height: 1 }} />}
+        </div>
       </div>
     </Layout>
   );
