@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
-import Cookies from 'js-cookie'; 
+import Link from 'next/link';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';
@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
+import ShareDialog from '@/components/ShareDialog';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -30,6 +31,7 @@ export default function Home() {
     ],
     history: [],
   });
+  const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
 
   const { messages, history } = messageState;
 
@@ -126,6 +128,25 @@ export default function Home() {
     }
   };
     
+  // Share dialog
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [currentMarkdownAnswer, setCurrentMarkdownAnswer] = useState('');
+  const [currentAnswerId, setCurrentAnswerId] = useState('');
+  const handleShareClick = (markdownAnswer: string, answerId: string) => {
+    setCurrentMarkdownAnswer(markdownAnswer);
+    setCurrentAnswerId(answerId);
+    setShowShareDialog(true);
+  };
+
+  const handleShareSuccess = (messageId: string) => {
+    setShareSuccess(prev => ({ ...prev, [messageId]: true }));
+    setShowShareDialog(false); 
+  };
+
+  const handleCloseSuccessMessage = (messageId: string) => {
+    setShareSuccess(prev => ({ ...prev, [messageId]: false }));
+  };
+  
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
     // Now setting the random queries in the useEffect to ensure it's only done client-side
@@ -310,7 +331,7 @@ export default function Home() {
                     <Fragment key={`message-${index}`}>
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
-                        <div className={styles.markdownanswer}>
+                        <div className="markdownanswer">
                           {message.sourceDocs && message.sourceDocs.length > 0 && (
                             <h3 className={styles.sourceDocsHeading}>
                               Sources <a href="#" onClick={(e) => {
@@ -374,6 +395,17 @@ export default function Home() {
                               {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
                             </span>
                           </button>
+                          <button
+                            onClick={() => handleShareClick(message.message, message.docId as string)}
+                            className="shareButton"
+                          >
+                            <span className="material-icons"> share </span>
+                          </button>
+                          {shareSuccess[message.docId] && (
+                            <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
+                              <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>
+                            </div>
+                          )}
                         </div>
                       )}
                       </div>
@@ -441,9 +473,16 @@ export default function Home() {
             )}
           </main>
         </div>
-        {/* <footer className="m-auto p-4">
-          Queries are logged
-        </footer> */}
+        {showShareDialog && (
+          <div className={styles.shareDialogBackdrop}>
+            <ShareDialog
+              markdownAnswer={currentMarkdownAnswer}
+              answerId={currentAnswerId}
+              onClose={() => setShowShareDialog(false)}
+              onShareSuccess={() => handleShareSuccess(currentAnswerId)}
+            />
+          </div>
+        )}
       </Layout>
     </>
   );

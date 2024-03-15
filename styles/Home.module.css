@@ -142,99 +142,11 @@
   display: flex;
 }
 
-.markdownanswer {
-  line-height: 1.35;
-}
-
-.markdownanswer p {
-  margin-top: 0.45rem;
-  margin-bottom: 0.45rem;
-}
-
-.markdownanswer a:hover {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
-.markdownanswer a {
-  color: #b13a3a;
-}
-
-.markdownanswer code {
-  color: #15cb19;
-  font-weight: 500;
-  white-space: pre-wrap !important;
-}
-
-.markdownanswer ol,
-.markdownanswer ul {
-  margin-left: 2rem;
-}
-
-.markdownanswer ol {
-  list-style-type: decimal;
-}
-
-.markdownanswer ul {
-  list-style-type: disc;
-}
-
 .boticon,
 .usericon {
   margin-right: 1rem;
   border-radius: 0.1rem;
   height: 100%;
-}
-
-.markdownanswer h1 {
-  font-size: 2rem;
-  font-weight: 400;
-  margin-top: 1rem;
-}
-
-.markdownanswer h2 {
-  font-size: 1.5rem;
-  font-weight: 300;
-  margin-top: 0.75rem;
-}
-
-.markdownanswer h3 {
-  font-size: 1.1rem;
-  font-weight: 200;
-  margin-top: 0.5rem;
-}
-
-.markdownanswer h4 {
-  font-size: 1.05rem;
-  font-weight: 150;
-  margin-top: 0.25rem;
-}
-
-.markdownanswer table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.markdownanswer th,
-.markdownanswer td {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-}
-.markdownanswer th {
-  background-color: #f8f8f8;
-}
-
-.markdownanswer blockquote {
-  padding-left: 1rem;
-  border-left: 4px solid #ddd;
-  margin: 1rem 0;
-  color: #666;
-}
-
-.markdownanswer hr {
-  border: 0;
-  height: 1px;
-  background: #ccc;
-  margin: 1rem 0;
 }
 
 .center {
@@ -407,4 +319,122 @@
 
 .voteButtonInactive {
   color: #ccc; /* Gray color */
+}
+
+/* Share Dialog Overlay */
+.shareDialogBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(50, 49, 49, 0.173);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; 
+}
+
+/* Share Dialog Box */
+.shareDialog {
+  background: white;
+  padding: 20px;
+  border-radius: 10px; 
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); 
+  width: auto; 
+  max-width: 500px; 
+  max-height: 85vh; /* Limit height to 70% of the screen height */
+  overflow-y: auto; /* Enable scrolling if content exceeds the max height */
+  z-index: 1001; 
+  position: relative; /* For positioning the close button */
+}
+
+.shareDialogTitle {
+  font-size: 1.4rem;
+  color: #333;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Close Button for Share Dialog */
+.shareDialog .closeButton {
+  position: absolute;
+  top: -0.75rem; 
+  right: 0px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #707070;
+}
+/* Style for the non-editable markdown content box with 20% smaller font size */
+.shareDialog .markdownAnswer {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  font-size: 80%; 
+}
+/* Share Answer Button */
+.shareDialog .shareButton {
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+  font-weight: bold; /* Make the text bold */
+}
+
+.shareDialog .shareButton:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+/* Input and Textarea Styles */
+.shareDialog input[type="text"],
+.shareDialog textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px; /* Rounded corners for input fields */
+  box-sizing: border-box; /* Box-sizing property */
+}
+
+/* Placeholder color */
+.shareDialog input::placeholder,
+.shareDialog textarea::placeholder {
+  color: #999;
+}
+
+/* Error Message Styles */
+.errorMessage {
+  color: #d9534f; /* Bootstrap danger color */
+  margin-bottom: 10px;
+}
+
+.successMessage {
+  background-color: #f0f0f0; /* Gray background */
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.successMessage p {
+  margin: 0;
+}
+
+.successMessage button {
+  border: none;
+  background: none;
+  cursor: pointer;
 }

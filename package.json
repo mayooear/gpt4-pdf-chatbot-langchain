@@ -20,6 +20,7 @@
     "@radix-ui/react-accordion": "^1.1.1",
     "aws-sdk": "^2.1545.0",
     "clsx": "^1.2.1",
+    "date-fns": "^3.4.0",
     "dotenv": "^16.0.3",
     "firebase-admin": "^11.11.1",
     "js-cookie": "^3.0.5",

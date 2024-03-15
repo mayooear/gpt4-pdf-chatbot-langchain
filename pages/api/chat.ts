@@ -41,106 +41,129 @@ export default async function handler(
     console.log('');
   }
   
-  //only accept post requests
-  if (req.method !== 'POST') {
+  if (req.method === 'GET') {
+    const { answerId } = req.query;
+
+    if (!answerId || typeof answerId !== 'string') {
+      return res.status(400).json({ message: 'Invalid or missing answerId' });
+    }
+
+    try {
+      const docRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        return res.status(404).json({ message: 'Answer not found' });
+      }
+
+      const answer = doc.data();
+      res.status(200).json(answer);
+    } catch (error) {
+      console.error('Error fetching answer: ', error);
+      res.status(500).json({ message: 'Error fetching answer', error });
+    }
+  }
+  else if (req.method == 'POST') {
+    if (!question) {
+      return res.status(400).json({ message: 'No question in the request' });
+    }
+    // OpenAI recommends replacing newlines with spaces for best results
+    const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
+
+    try {
+      const index = pinecone.Index(PINECONE_INDEX_NAME);
+
+      /* create vectorstore*/
+      const vectorStore = await PineconeStore.fromExistingIndex(
+        new OpenAIEmbeddings({}),
+        {
+          pineconeIndex: index,
+          textKey: 'text',
+          // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+        },
+      );
+
+      // Use a callback to get intermediate sources from the middle of the chain
+      let resolveWithDocuments: (value: Document[]) => void;
+      const documentPromise = new Promise<Document[]>((resolve) => {
+        resolveWithDocuments = resolve;
+      });
+      const retriever = vectorStore.asRetriever({
+        callbacks: [
+          {
+            handleRetrieverEnd(documents) {
+              resolveWithDocuments(documents);
+            },
+          },
+        ],
+      });
+
+      //create chain
+      const chain = makeChain(retriever);
+
+      const pastMessages = history
+        .map((message: [string, string]) => {
+          return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
+        })
+        .join('\n');
+
+      // Ask a question using chat history
+      const response = await chain.invoke({
+        question: sanitizedQuestion,
+        chat_history: pastMessages,
+      });
+      const answerWordCount = response.split(/\s+/).length;
+
+      const sourceDocuments = await documentPromise;
+      let sourceTitlesString = '';
+      if (sourceDocuments && sourceDocuments.length > 0) {
+        const sourceTitles = sourceDocuments.map((doc: any) => doc.metadata['pdf.info.Title']);
+        sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
+      }
+
+      // Log the question and answer in Firestore, anonymize if private session
+      const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
+      const logEntry = privateSession ? {
+        question: 'private',
+        answer: '(' + answerWordCount + " words)",
+        sources: '',
+        history: [],
+        ip: '',
+        timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+      } : {
+        question: sanitizedQuestion,
+        answer: response,
+        sources: sourceTitlesString,
+        history: history.map((messagePair: [string, string]) => ({
+          question: messagePair[0],
+          answer: messagePair[1],
+        })),
+        ip: clientIP,
+        timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+      };
+      const docRef = await chatLogRef.add(logEntry);
+      const docId = docRef.id;
+
+      if (privateSession)
+      {
+        console.log(`Word count of answer: ${answerWordCount}`);
+      } else {
+        console.log('ANSWER:\n');
+        console.log(response);
+        console.log(sourceTitlesString);
+        console.log('\nHistory:', history);
+      }
+
+      res.status(200).json({ text: response, sourceDocuments, docId });
+
+    } catch (error: any) {
+      console.log('error', error);
+      res.status(500).json({ error: error.message || 'Something went wrong' });
+    }
+  }
+  else
+  {    
     res.status(405).json({ error: 'Method not allowed' });
     return;
-  }
-
-  if (!question) {
-    return res.status(400).json({ message: 'No question in the request' });
-  }
-  // OpenAI recommends replacing newlines with spaces for best results
-  const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
-
-  try {
-    const index = pinecone.Index(PINECONE_INDEX_NAME);
-
-    /* create vectorstore*/
-    const vectorStore = await PineconeStore.fromExistingIndex(
-      new OpenAIEmbeddings({}),
-      {
-        pineconeIndex: index,
-        textKey: 'text',
-        // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
-      },
-    );
-
-    // Use a callback to get intermediate sources from the middle of the chain
-    let resolveWithDocuments: (value: Document[]) => void;
-    const documentPromise = new Promise<Document[]>((resolve) => {
-      resolveWithDocuments = resolve;
-    });
-    const retriever = vectorStore.asRetriever({
-      callbacks: [
-        {
-          handleRetrieverEnd(documents) {
-            resolveWithDocuments(documents);
-          },
-        },
-      ],
-    });
-
-    //create chain
-    const chain = makeChain(retriever);
-
-    const pastMessages = history
-      .map((message: [string, string]) => {
-        return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
-      })
-      .join('\n');
-
-    // Ask a question using chat history
-    const response = await chain.invoke({
-      question: sanitizedQuestion,
-      chat_history: pastMessages,
-    });
-    const answerWordCount = response.split(/\s+/).length;
-
-    const sourceDocuments = await documentPromise;
-    let sourceTitlesString = '';
-    if (sourceDocuments && sourceDocuments.length > 0) {
-      const sourceTitles = sourceDocuments.map((doc: any) => doc.metadata['pdf.info.Title']);
-      sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
-    }
-
-    // Log the question and answer in Firestore, anonymize if private session
-    const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
-    const logEntry = privateSession ? {
-      question: 'private',
-      answer: '(' + answerWordCount + " words)",
-      sources: '',
-      history: [],
-      ip: '',
-      timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-    } : {
-      question: sanitizedQuestion,
-      answer: response,
-      sources: sourceTitlesString,
-      history: history.map((messagePair: [string, string]) => ({
-        question: messagePair[0],
-        answer: messagePair[1],
-      })),
-      ip: clientIP,
-      timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-    };
-    const docRef = await chatLogRef.add(logEntry);
-    const docId = docRef.id;
-
-    if (privateSession)
-    {
-      console.log(`Word count of answer: ${answerWordCount}`);
-    } else {
-      console.log('ANSWER:\n');
-      console.log(response);
-      console.log(sourceTitlesString);
-      console.log('\nHistory:', history);
-    }
-
-    res.status(200).json({ text: response, sourceDocuments, docId });
-
-  } catch (error: any) {
-    console.log('error', error);
-    res.status(500).json({ error: error.message || 'Something went wrong' });
   }
 }
