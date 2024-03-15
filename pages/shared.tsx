@@ -145,11 +145,7 @@ const SharedAnswers = () => {
             </div>
         ))}
         {/* Intersection Observer Element */}
-        {hasMore ? (
-          <div ref={ref} style={{ height: 1 }} />
-        ) : (
-          <p>No more items to load.</p>
-        )}
+        {hasMore && <div ref={ref} style={{ height: 1 }} />}
       </div>
     </Layout>
   );
