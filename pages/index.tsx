@@ -12,6 +12,7 @@ import gfm from 'remark-gfm';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
 import ShareDialog from '@/components/ShareDialog';
+import CopyButton from '@/components/CopyButton';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -146,7 +147,7 @@ export default function Home() {
   const handleCloseSuccessMessage = (messageId: string) => {
     setShareSuccess(prev => ({ ...prev, [messageId]: false }));
   };
-  
+
   // This effect will only run on the client after the component has mounted
   useEffect(() => {
     // Now setting the random queries in the useEffect to ensure it's only done client-side
@@ -376,40 +377,46 @@ export default function Home() {
                           </ReactMarkdown>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'left' }}>
-                      {message.docId && (
-                        <div className={styles.voteButtonsContainer}>
-                          <button
-                            onClick={() => handleVote(message.docId as string, true)}
-                            className={`${styles.voteButton} ${votes[message.docId] === 1 ? styles.voteButtonActive : ''}`}
-                          >
-                            <span className="material-icons">
-                              {votes[message.docId] === 1 ? 'thumb_up' : 'thumb_up_off_alt'}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => handleVote(message.docId as string, false)}
-                            className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''}`}
-                          >
-                            <span className="material-icons">
-                              {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
-                            </span>
-                          </button>
-                          {!privateSession && (
-                            <button
-                              onClick={() => handleShareClick(message.message, message.docId as string)}
-                              className="shareButton"
-                            >
-                              <span className="material-icons"> share </span>
-                            </button>
-                          )}
-                          {shareSuccess[message.docId] && (
-                            <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
-                              <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>
+                      <div className="text-left" style={{ backgroundColor: '#f9fafb' }}>
+                          <div className="text-left ml-[75px]">
+                          {message.docId && (
+                            <div className="flex space-x-2">
+                              <CopyButton markdown={message.message} />
+                              <button
+                                onClick={() => handleVote(message.docId as string, true)}
+                                className={`${styles.voteButton} ${votes[message.docId] === 1 ? styles.voteButtonActive : ''} hover:bg-gray-200`}
+                                title="Upvote for system training"
+                              >
+                                <span className="material-icons">
+                                  {votes[message.docId] === 1 ? 'thumb_up' : 'thumb_up_off_alt'}
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => handleVote(message.docId as string, false)}
+                                className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
+                                title="Downvote for system training"
+                              >
+                                <span className="material-icons">
+                                  {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
+                                </span>
+                              </button>
+                              {!privateSession && (
+                                <button
+                                  onClick={() => handleShareClick(message.message, message.docId as string)}
+                                  className="shareButton hover:bg-gray-200"
+                                  title="Share"
+                                >
+                                  <span className="material-icons"> share </span>
+                                </button>
+                              )}
+                              {shareSuccess[message.docId] && (
+                                <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
+                                  <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
                       </div>
                     </Fragment>
                   );

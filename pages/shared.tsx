@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import { Share } from 'next/font/google';
+import CopyButton from '@/components/CopyButton';
 
 interface Share {
   id: string;
@@ -138,8 +139,11 @@ const SharedAnswers = () => {
                       <ReactMarkdown remarkPlugins={[gfm]}>
                         {answers[share.answerId].answer}
                       </ReactMarkdown>
+                      <div className="text-left ml-[0px]">
+                        <CopyButton markdown={answers[share.answerId].answer} />
+                      </div>
                     </div>
-                  ) : (
+                ) : (
                     <p>Loading answer...</p>
                   )}
                 </div>
