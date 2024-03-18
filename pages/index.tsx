@@ -443,7 +443,7 @@ export default function Home() {
                     }
                     className={styles.textarea}
                   />
-                  <div className={styles.checkboxContainer} style={{ textAlign: 'right' }}>
+                  <div className={styles.checkboxContainer} style={{ textAlign: 'right', paddingRight: '10px' }}>
                     <button
                       type="button" 
                       onClick={handlePrivateSessionChange}

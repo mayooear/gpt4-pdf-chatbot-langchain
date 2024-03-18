@@ -58,13 +58,9 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
         aria-label={isLiked ? 'Unlike this answer' : 'Like this answer'}
         title={isLiked ? 'Unlike this answer' : 'Like this answer'}
       >
-        {isLiked ? (
-          <span className="material-icons">favorite</span>
-        ) : (
-          <span className="material-icons">favorite_border</span>
-        )}
+        <span className="material-icons">{isLiked ? 'favorite' : 'favorite_border'}</span>
       </button>
-      {likes > 0 && <span className="like-count ml-2">{likes}</span>}
+      {likes > 0 && <span className="like-count flex items-center justify-center">{likes}</span>}
     </div>
   );
 };
