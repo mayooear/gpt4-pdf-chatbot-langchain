@@ -8,23 +8,9 @@ import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import firebase from 'firebase-admin';
+import { db } from '@/services/firebase'; 
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
-
-// set up firestore DB access
-if (!fbadmin.apps.length) {
-  const serviceAccountJson = process.env.FIREBASE_ADMINSDK_JSON;
-  if (typeof serviceAccountJson !== 'string') {
-    throw new Error('The FIREBASE_ADMINSDK_JSON environment variable is not set or not a string.');
-  }
-  const serviceAccount = JSON.parse(serviceAccountJson);
-
-  fbadmin.initializeApp({
-    credential: fbadmin.credential.cert(serviceAccount),
-  });
-}
-export const db = fbadmin.firestore();
-
 
 async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
@@ -34,15 +20,20 @@ async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const chunkSize = 10;
   for (let i = 0; i < ids.length; i += chunkSize) {
     const chunk = ids.slice(i, i + chunkSize);
+
+    const startTime = performance.now(); 
+
     const snapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
                              .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
                              .get();
     snapshot.forEach(doc => {
       answers.push({ id: doc.id, ...doc.data() });
     });
+  
+    const endTime = performance.now(); 
+    console.log(`Chat getAnswersByIds: call to Firestore took ${Math.round(endTime - startTime)} milliseconds.`);
   }
 
-  console.log(`Total answers retrieved: ${answers.length}`);
   return answers;
 }
 

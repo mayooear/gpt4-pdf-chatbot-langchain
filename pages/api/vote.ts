@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from './chat';
+import { db } from '@/services/firebase'; 
 
 export default async function handler(
   req: NextApiRequest,

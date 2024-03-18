@@ -87,3 +87,18 @@
     background: #ccc;
     margin: 1rem 0;
   }
+
+  .heart-button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  
+  .heart-button.liked {
+    color: red;
+  }
+ 
+  .heart-button:hover {
+    color: #ff8585; 
+  }

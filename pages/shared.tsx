@@ -6,6 +6,9 @@ import gfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import { Share } from 'next/font/google';
 import CopyButton from '@/components/CopyButton';
+import LikeButton from '@/components/LikeButton';
+import { checkUserLikes, getLikeCounts } from '@/services/likeService';
+import { getOrCreateUUID } from '@/utils/uuid';
 
 interface Share {
   id: string;
@@ -37,6 +40,8 @@ const SharedAnswers = () => {
   const [page, setPage] = useState(0);
   const { ref, inView } = useInView();
   const [isLoading, setIsLoading] = useState(false);
+  const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -52,8 +57,6 @@ const SharedAnswers = () => {
         method: 'GET',
       });
       const newShares = await sharesResponse.json();
-      console.log(`Number of new shares: ${newShares.length}`);
-      newShares.forEach((share: Share) => console.log(`createdAt: ${new Date((share.createdAt as any)._seconds * 1000)}, answerId: ${share.answerId}`));
       
       if (newShares.length === 0) {
         setHasMore(false);
@@ -65,12 +68,11 @@ const SharedAnswers = () => {
       const answerIds = newShares.map((share: Share) => share.answerId).join(',');
       let answersBatch: Answer[];
       try {
-        console.log("fetch answers for Ids:", answerIds);
         const answerResponse = await fetch(`/api/chat?answerIds=${answerIds}`);
         answersBatch = await answerResponse.json();
-        console.log(answersBatch);
       } catch (error) {
         console.error('Failed to parse answers batch:', error);
+        answersBatch = [];
       }
 
       // Update state with new shares and answers
@@ -93,6 +95,16 @@ const SharedAnswers = () => {
         return updatedAnswers;
       });
 
+      // fetch like counts for these answers
+      if (answersBatch && answersBatch.length > 0) {
+        const answerIds = answersBatch.map(answer => answer.id);
+        getLikeCounts(answerIds).then(counts => {
+          setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
+        }).catch(error => {
+          console.error('Error fetching like counts:', error);
+        });
+      }
+
       // Check if there are less than 10, which means we've reached the end
       if (newShares.length < 10) {
         setHasMore(false);
@@ -109,6 +121,20 @@ const SharedAnswers = () => {
     }
 
   }, [page, hasMore, isLoading]);
+
+  useEffect(() => {
+    const fetchLikeStatuses = async (answerIds: string[]) => {
+      // Call a service function that checks if the current user has liked these answers
+      // This function should be optimized to minimize DB reads, possibly by checking in batches
+      const uuid = getOrCreateUUID();
+      const statuses = await checkUserLikes(answerIds, uuid);
+      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+    };
+
+    if (Object.keys(answers).length > 0) {
+      fetchLikeStatuses(Object.keys(answers));
+    }
+  }, [answers]);
 
   // Intersection observer effect
   useEffect(() => {
@@ -139,15 +165,22 @@ const SharedAnswers = () => {
                       <ReactMarkdown remarkPlugins={[gfm]}>
                         {answers[share.answerId].answer}
                       </ReactMarkdown>
-                      <div className="text-left ml-[0px]">
+                      <div className="flex items-center">
                         <CopyButton markdown={answers[share.answerId].answer} />
+                        <div className="ml">
+                          <LikeButton
+                            answerId={share.answerId}
+                            initialLiked={likeStatuses[share.answerId] || false}
+                            likeCount={likeCounts[share.answerId] || 0} // Pass the like count to LikeButton
+                          />
+                        </div>
                       </div>
                     </div>
-                ) : (
+                  ) : (
                     <p>Loading answer...</p>
                   )}
                 </div>
-            </div>
+              </div>
         ))}
         {/* Intersection Observer Element */}
         {hasMore && <div ref={ref} style={{ height: 1 }} />}

@@ -1,25 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from './chat'; // Import db from chat.ts
+import { db } from '@/services/firebase'; 
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
     if (req.method === 'GET') {
+      // Fetch shares with pagination and reverse chronological order
       const page = parseInt(req.query.page as string) || 0;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = page * limit;
 
       try {
-        // Fetch shares with pagination and reverse chronological order
+        const startTime = performance.now(); // Start timing before the query
+
         const sharesQuery = db.collection(`${process.env.ENVIRONMENT}_shares`)
           .orderBy('createdAt', 'desc')
           .offset(offset)
           .limit(limit);
 
         const sharesSnapshot = await sharesQuery.get();
-        // console.log("Returning shares:");
-        // sharesSnapshot.docs.forEach(doc => console.log(`Share ID: ${doc.id}`));
+
+        const endTime = performance.now(); // End timing after the query
+        const duration = Math.round(endTime - startTime);
+        console.log(`Share: call to Firestore took ${duration} milliseconds.`);
+
         const shares = sharesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -32,6 +37,7 @@ export default async function handler(
         res.status(500).json({ message: 'Error fetching shares', error });
       }
     } else if (req.method === 'POST') {
+      // add a new share
       const { firstName, lastName, comments, answerId } = req.body;
 
       // Validate the input
