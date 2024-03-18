@@ -1,4 +1,5 @@
 import * as fbadmin from 'firebase-admin';
+import { initializeFirestore } from 'firebase-admin/firestore';
 
 // Initialize the Firebase admin SDK
 if (!fbadmin.apps.length) {
@@ -8,9 +9,12 @@ if (!fbadmin.apps.length) {
   }
   const serviceAccount = JSON.parse(serviceAccountJson);
 
-  fbadmin.initializeApp({
+  const app = fbadmin.initializeApp({
     credential: fbadmin.credential.cert(serviceAccount),
   });
+
+  // Initialize Firestore with preferRest to improve cold start times
+  const db = initializeFirestore(app, { preferRest: true });
 }
 
 // Export the Firestore database
