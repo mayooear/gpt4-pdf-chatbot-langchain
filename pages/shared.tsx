@@ -5,10 +5,13 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import { Share } from 'next/font/google';
+import { Document } from 'langchain/document';
 import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
+import SourcesList from '@/components/SourcesList';
 import { checkUserLikes, getLikeCounts } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/uuid';
+import { toast } from 'react-toastify';
 
 interface Share {
   id: string;
@@ -23,7 +26,7 @@ interface Answer {
   id: string;
   question: string;
   answer: string;
-  sources: string;
+  sources: Document[];
   ip: string;
   history: any[]; // more specific here would be better
   timestamp: Timestamp; 
@@ -67,14 +70,19 @@ const SharedAnswers = () => {
       // Fetch related answers in a batch
       const answerIds = newShares.map((share: Share) => share.answerId).join(',');
       let answersBatch: Answer[];
-      try {
-        const answerResponse = await fetch(`/api/chat?answerIds=${answerIds}`);
-        answersBatch = await answerResponse.json();
-      } catch (error) {
-        console.error('Failed to parse answers batch:', error);
+      const answerResponse = await fetch(`/api/chat?answerIds=${answerIds}`);
+      if (!answerResponse.ok) {
         answersBatch = [];
+        toast.error(`Error fetching answers: ${answerResponse.statusText}`);
+      } else {
+        try {
+          answersBatch = await answerResponse.json();
+        } catch (error) {
+          answersBatch = [];
+          toast.error('Failed to parse answers. Please try again.');
+        }
       }
-
+      
       // Update state with new shares and answers
       setShares(prevShares => {
         const existingIds = new Set(prevShares.map(share => share.id));
@@ -90,6 +98,14 @@ const SharedAnswers = () => {
         // Create a new object combining previous answers and new ones
         const updatedAnswers = { ...prevAnswers };
         answersBatch.forEach((answer: Answer) => {
+          // if (typeof answer.sources === 'string' && answer.sources !== '') {
+          //   try {
+          //     JSON.parse(answer.sources);
+          //   } catch (error) {
+          //     // If sources is not valid JSON, clear it out
+          //     answer.sources = '';
+          //   }
+          // }
           updatedAnswers[answer.id] = answer;
         });
         return updatedAnswers;
@@ -165,6 +181,9 @@ const SharedAnswers = () => {
                       <ReactMarkdown remarkPlugins={[gfm]}>
                         {answers[share.answerId].answer}
                       </ReactMarkdown>
+                      {answers[share.answerId].sources && (
+                        <SourcesList sources={answers[share.answerId].sources} useAccordion={true} />
+                      )}
                       <div className="flex items-center">
                         <CopyButton markdown={answers[share.answerId].answer} />
                         <div className="ml">

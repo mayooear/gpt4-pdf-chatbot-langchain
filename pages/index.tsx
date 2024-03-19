@@ -13,6 +13,7 @@ import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
 import ShareDialog from '@/components/ShareDialog';
 import CopyButton from '@/components/CopyButton';
+import SourcesList from '@/components/SourcesList';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -333,44 +334,9 @@ export default function Home() {
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className="markdownanswer">
-                          {message.sourceDocs && message.sourceDocs.length > 0 && (
-                            <h3 className={styles.sourceDocsHeading}>
-                              Sources <a href="#" onClick={(e) => {
-                                  e.preventDefault();
-                                  const detailsElements = document.querySelectorAll('details');
-                                  const areAllExpanded = Array.from(detailsElements).every(detail => detail.open);
-                                  detailsElements.forEach(detail => { detail.open = !areAllExpanded; });
-                                  // Update the text of the link based on the new state of "details" elements
-                                  if (e.target instanceof HTMLElement) {
-                                    e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
-                                  }
-                                }}
-                                className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
-                                {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
-                              </a>
-                            </h3>
+                          {message.sourceDocs && (
+                            <SourcesList sources={message.sourceDocs} />
                           )}
-                          {message.sourceDocs && message.sourceDocs.map((doc, docIndex) => (
-                            <Fragment key={`sourceDocs-${docIndex}`}>
-                              <details className={styles.sourceDocsContainer}>
-                                <summary title="Click the triangle to see details or title to go to library source">
-                                  {doc.metadata.source.startsWith('http') ? (
-                                    <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
-                                      {doc.metadata['pdf.info.Title']}
-                                    </a>
-                                  ) : (
-                                    doc.metadata.source
-                                  )}
-                                </summary>
-                                <div className={styles.sourceDocContent}>
-                                  <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                                    {`*${doc.pageContent}*`}
-                                  </ReactMarkdown>
-                                  {message.sourceDocs && docIndex < message.sourceDocs.length - 1 && <br />}
-                                </div>
-                              </details>
-                            </Fragment>
-                          ))}
                           {message.type === 'apiMessage' && index > 1 && <hr />}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}

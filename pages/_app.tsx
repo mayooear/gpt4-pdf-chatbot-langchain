@@ -1,7 +1,9 @@
 import '@/styles/base.css';
 import '@/styles/globals.css';
+import 'react-toastify/dist/ReactToastify.css';
 import type { AppProps } from 'next/app';
 import { Inter } from 'next/font/google';
+import { ToastContainer } from 'react-toastify';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -14,6 +16,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       <main className={inter.variable}>
         <Component {...pageProps} />
       </main>
+      <ToastContainer />
     </>
   );
 }

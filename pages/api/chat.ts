@@ -27,7 +27,19 @@ async function getAnswersByIds(ids: string[]): Promise<any[]> {
                              .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
                              .get();
     snapshot.forEach(doc => {
-      answers.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      try {
+        if (typeof data.sources === 'string') {
+          // Sanitize the string by replacing invisible/control characters
+          const sanitizedSources = data.sources.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+          data.sources = JSON.parse(sanitizedSources);
+        } else {
+          data.sources =  [];
+        }
+      } catch (error) {
+        data.sources = []
+      }
+      answers.push({ id: doc.id, ...data });
     });
   
     const endTime = performance.now(); 
@@ -56,6 +68,7 @@ export default async function handler(
   
   if (req.method === 'GET') {
     try {
+      // get a list of answers
       const { answerIds } = req.query;
       if (!answerIds || typeof answerIds !== 'string') {
         return res.status(400).json({ message: 'answerIds parameter is required and must be a comma-separated string.' });
@@ -71,6 +84,7 @@ export default async function handler(
     }
   }
   else if (req.method == 'POST') {
+    // send question to chatbot 
     if (!question) {
       return res.status(400).json({ message: 'No question in the request' });
     }
@@ -140,7 +154,7 @@ export default async function handler(
       } : {
         question: sanitizedQuestion,
         answer: response,
-        sources: sourceTitlesString,
+        sources: JSON.stringify(sourceDocuments),
         history: history.map((messagePair: [string, string]) => ({
           question: messagePair[0],
           answer: messagePair[1],
