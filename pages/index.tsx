@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
 import Link from 'next/link';
@@ -47,7 +47,7 @@ export default function Home() {
      "Please click Start Private Session below the text entry box if you would prefer we not log your session."
     );
 
-  const queries = [
+  const queries = useMemo(() => [
     "Give me three tips on improving meditation habits",
     "How does Swami say to prepare for hard times?",
     "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
@@ -65,12 +65,12 @@ export default function Home() {
     "What are some tips for dealing with insomnia?",
     "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
     "Give 10 attitudes essential for discipleship",
-  ];
+  ], []);
 
-  const getRandomQueries = () => {
+  const getRandomQueries = useCallback(() => {
     const shuffled = queries.sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 3);
-  };
+  }, [queries]); 
 
   // Initialize randomQueries with an empty array
   const [randomQueries, setRandomQueries] = useState<string[]>([]);
@@ -159,7 +159,7 @@ export default function Home() {
     if (window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
-  }, []);
+  }, [getRandomQueries]);
 
   useEffect(() => {
     // Focus the text area only on the client side after the component has mounted.

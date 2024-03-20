@@ -94,7 +94,7 @@ export default async function handler(
     try {
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
-      /* create vectorstore*/
+      /* create vectorstore */
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({}),
         {
