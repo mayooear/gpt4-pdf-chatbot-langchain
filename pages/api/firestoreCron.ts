@@ -7,5 +7,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const snapshot = db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
                       .where(firebase.firestore.FieldPath.documentId(), 'in', ['000000'])
                       .get();
+    console.log("Firestore cron done");
     res.status(200).end('Done');
 }
