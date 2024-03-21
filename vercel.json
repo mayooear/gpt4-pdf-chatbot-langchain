@@ -1,8 +1,11 @@
 {
-    "functions": {
-      "pages/api/chat.ts": {
-        "maxDuration": 60
-      }
+  "functions": {
+    "pages/api/chat.ts": {
+      "maxDuration": 60
     }
-  }
-  
+  },
+  "crons": [{
+    "path": "/api/firestoreCron",
+    "schedule": "*/10 * * * *"
+  }]
+}  
