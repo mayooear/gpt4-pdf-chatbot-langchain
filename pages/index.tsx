@@ -349,15 +349,6 @@ export default function Home() {
                             <div className="flex space-x-2">
                               <CopyButton markdown={message.message} />
                               <button
-                                onClick={() => handleVote(message.docId as string, true)}
-                                className={`${styles.voteButton} ${votes[message.docId] === 1 ? styles.voteButtonActive : ''} hover:bg-gray-200`}
-                                title="Upvote for system training"
-                              >
-                                <span className="material-icons">
-                                  {votes[message.docId] === 1 ? 'thumb_up' : 'thumb_up_off_alt'}
-                                </span>
-                              </button>
-                              <button
                                 onClick={() => handleVote(message.docId as string, false)}
                                 className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
                                 title="Downvote for system training"
