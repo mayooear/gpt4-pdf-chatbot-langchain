@@ -1,6 +1,6 @@
 # Ask Ananda Library - A RAG ChatGPT Chatbot for Your PDF Files
 
-Build a chatGPT chatbot for multiple Large PDF files. Allow users to share the best answers they get with each other through a social, sharing interface.
+Build a chatGPT chatbot for multiple Large PDF files. Optionally generate the PDF fileset from a Wordpress database. Allow users to share the best answers they get with each other through a social, sharing interface.
 
 Tech stack used includes LangChain, Pinecone, Typescript, Openai, Next.js, Google Firestore, and Python. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
 
@@ -18,6 +18,12 @@ This is a fork of gpt4-pdf-chatbot-langchain. This version looks for a specified
 Line of the PDF file, and uses that as the source instead of the PDF file name. For example:
 
      SOURCE: https://www.bozo.com/clown37.php
+
+## Generate PDF's to use from Wordpress MySQL database
+
+For the Ananda Library, we have provided code that can take a wordpress MySQL database and generate PDF files for all of the published content. For us, that is about 7,000 documents.
+
+This is completely optional.
 
 ## Enhanced Frontend with Social Media Sharing
 
@@ -70,21 +76,29 @@ PINECONE_INDEX_NAME=
 
 5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAI` to `gpt-4`, if you have access to `gpt-4` api. Please verify outside this repo that you have access to `gpt-4` api, otherwise the application will not work.
 
+
+## Optional: generate PDF files from Wordpress Database
+
+First, you need to import a MySQL data dump from wordpress into local MySQL (or set up access to the DB).
+
+Second, you run *python db-to-pdfs.py* from the ananda-doc-gen/ directory to generate PDF files.
+
+Third, you optionally run *python filter-pdfs-to-new-dir.py* from same dir to get just a subset of the PDF’s, e.g., just swami and master.
+
+Fourth, put the file set you want in doc/ and make sure pinecone index is empty.
+
 ## Convert your PDF files to embeddings
 
 **This repo can load multiple PDF files**
 
 1. Inside `docs` folder, add your pdf files or folders that contain pdf files.
 
-2. (Optional) Filter resulting docs by author using script filter-pdfs-to-new-dir.py. This lets you select
-a subset of your docs to include. You then need to move the resulting folder to docs/ location.
-
-3. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
+2. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
 You can add arguments like this: 
-npm run ingest -- --dryrun
+yarn run ingest -- --dryrun
 
-4. Check Pinecone dashboard to verify your namespace and vectors have been added.
+3. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the app
 
