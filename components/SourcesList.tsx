@@ -11,6 +11,11 @@ interface SourcesListProps {
 }
 
 const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false }) => {
+  // double colon separates parent title from the (child) source title, 
+  // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
+  // replace double colon with single colon. In the future we could want to use this to
+  // differentiate in some way from a colon that shows up in the child source title. 
+  const formatTitle = (title: string) => title.replace(/::/g, ':');
   if (useAccordion) {
     return (
       <>
@@ -24,7 +29,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false
                   {sources.map((doc, index) => (
                     <li key={index}>
                       <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer">
-                        {doc.metadata['pdf.info.Title'] || doc.metadata.source}
+                        {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
                       </a>
                     </li>
                   ))}
@@ -61,7 +66,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false
           <summary title="Click the triangle to see details or title to go to library source">
             {doc.metadata.source.startsWith('http') ? (
               <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
-                {doc.metadata['pdf.info.Title']}
+                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
               </a>
             ) : (
               doc.metadata.source
