@@ -49,6 +49,12 @@ const SharedAnswers = () => {
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
 
+  // State to track if the data has been loaded at least once
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // State to control the delayed spinner visibility
+  const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
+
   useEffect(() => {
     const fetchSharesAndAnswers = async () => {
       // Prevent fetching if already loading
@@ -139,6 +145,25 @@ const SharedAnswers = () => {
   }, [page, hasMore, isLoading]);
 
   useEffect(() => {
+    // After the first successful data fetch, set initialLoadComplete to true
+    if (shares.length > 0 || Object.keys(answers).length > 0) {
+      setInitialLoadComplete(true);
+    }
+  }, [shares, answers]); 
+
+  useEffect(() => {
+    // Set a timeout to show the spinner after 1.5 seconds
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        setShowDelayedSpinner(true);
+      }
+    }, 1500);
+
+    // Clear the timeout if the component unmounts or isLoading changes to false
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       // Call a service function that checks if the current user has liked these answers
       // This function should be optimized to minimize DB reads, possibly by checking in batches
@@ -162,17 +187,23 @@ const SharedAnswers = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div>
-        {shares.map((share, index) => (
-            <div key={index} className="bg-white p-2.5 m-2.5">
+        {isLoading && !initialLoadComplete && showDelayedSpinner ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
+            <p className="text-lg text-gray-600 ml-4">Loading...</p>
+          </div>
+        ) : (
+          <div>
+            {shares.map((share, index) => (
+              <div key={index} className="bg-white p-2.5 m-2.5">
                 <div className="flex items-center">
-                    <span className="material-icons">person</span>
-                    <p className="ml-4">
-                        {`${share.firstName} ${share.lastName}`}
-                        <span className="ml-4">
-                            {formatDistanceToNow(new Date((share.createdAt as any)._seconds * 1000), { addSuffix: true })}
-                        </span>
-                    </p>
+                  <span className="material-icons">person</span>
+                  <p className="ml-4">
+                    {`${share.firstName} ${share.lastName}`}
+                    <span className="ml-4">
+                      {formatDistanceToNow(new Date((share.createdAt as any)._seconds * 1000), { addSuffix: true })}
+                    </span>
+                  </p>
                 </div>
                 {share.comments && <p className="mt-1 mb-2.5">{share.comments}</p>}
                 <div className="bg-gray-100 p-2.5 rounded">
@@ -200,10 +231,11 @@ const SharedAnswers = () => {
                   )}
                 </div>
               </div>
-        ))}
-        {/* Intersection Observer Element */}
-        {hasMore && <div ref={ref} style={{ height: 1 }} />}
-        </div>
+            ))}
+            {/* Intersection Observer Element */}
+            {hasMore && <div ref={ref} style={{ height: 1 }} />}
+          </div>
+        )}
       </div>
     </Layout>
   );
