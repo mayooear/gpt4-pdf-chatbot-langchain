@@ -1,10 +1,10 @@
-# GPT-4 & LangChain for Ananda Library - Create a ChatGPT Chatbot for Your PDF Files
+# Ask Ananda Library - A RAG ChatGPT Chatbot for Your PDF Files
 
-Use the new GPT-4 api to build a chatGPT chatbot for multiple Large PDF files.
+Build a chatGPT chatbot for multiple Large PDF files. Allow users to share the best answers they get with each other through a social, sharing interface.
 
-Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
+Tech stack used includes LangChain, Pinecone, Typescript, Openai, Next.js, Google Firestore, and Python. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
 
-[Tutorial video](https://www.youtube.com/watch?v=ih9PBGVVOO4)
+[Tutorial video from project we forked from](https://www.youtube.com/watch?v=ih9PBGVVOO4)
 
 The visual guide of this repo and tutorial is in the `visual guide` folder.
 
@@ -12,12 +12,21 @@ The visual guide of this repo and tutorial is in the `visual guide` folder.
 
 Prelude: Please make sure you have already downloaded node on your system and the version is 18 or greater.
 
-## Ananda Version
+## Forked Version
 
-This is a fork of gpt4-pdf-chatbot-langchain. This version Looks for a specified source in the first
+This is a fork of gpt4-pdf-chatbot-langchain. This version looks for a specified source in the first
 Line of the PDF file, and uses that as the source instead of the PDF file name. For example:
 
      SOURCE: https://www.bozo.com/clown37.php
+
+## Enhanced Frontend with Social Media Sharing
+
+The runtime website code is significantly extended from the forked project. We have added
+
+- Display of sources with links
+- Thumbs up, and thumbs down for system feedback
+- Copy button
+- Shared Answers page for social sharing, including heart button to indicate user likes
 
 ## Development
 
@@ -55,7 +64,7 @@ PINECONE_INDEX_NAME=
 ```
 
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key) to retrieve API keys and insert into your `.env` file.
-- Visit [pinecone](https://pinecone.io/) to create and retrieve your API keys, and also retrieve your environment and index name from the dashboard.
+- Visit [pinecone](https://pinecone.io/) to create and retrieve your API keys, and also retrieve your environment and index name from the dashboard. Be sure to use 1,536 as dimensions when setting up your pinecone index.
 
 4. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store your embeddings on Pinecone when you run `npm run ingest`. This namespace will later be used for queries and retrieval.
 
@@ -67,12 +76,15 @@ PINECONE_INDEX_NAME=
 
 1. Inside `docs` folder, add your pdf files or folders that contain pdf files.
 
-2. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
+2. (Optional) Filter resulting docs by author using script filter-pdfs-to-new-dir.py. This lets you select
+a subset of your docs to include. You then need to move the resulting folder to docs/ location.
+
+3. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
 You can add arguments like this: 
 npm run ingest -- --dryrun
 
-3. Check Pinecone dashboard to verify your namespace and vectors have been added.
+4. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the app
 
