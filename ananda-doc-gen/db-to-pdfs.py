@@ -114,8 +114,18 @@ cursor.execute(count_query)
 total_posts = cursor.fetchone()[0]
 
 # Query to select published posts
-query = """SELECT ID, post_content, post_name, post_title FROM wp_posts 
-            WHERE post_status='publish' AND post_type='content'"""
+query = """
+        SELECT 
+            child.ID, child.post_content, child.post_name,
+            parent.post_title AS PARENT_TITLE,
+            child.post_title AS CHILD_TITLE
+        FROM 
+            wp_posts AS child
+            LEFT JOIN wp_posts AS parent ON child.post_parent = parent.ID
+        WHERE 
+            child.post_status = 'publish' 
+            AND child.post_type = 'content';
+"""
 
 # TODO: ChatGPT suggested this database retry logic below. Should rework this, so that the retry
 # Happens just around the cursor iteration part. It would have to be restructured to not use a for loop.
@@ -128,7 +138,7 @@ while attempt < max_retries:
         n = 0
         skipped = 0
         progress_bar = tqdm(total=total_posts)
-        for (id, content, post_name, post_title) in cursor:
+        for (id, content, post_name, parent_post_title, child_post_title) in cursor:
             # Sanitize post_name to ensure it is safe for use as a filename
             safe_post_name = "".join([c for c in post_name if c.isalpha() or c.isdigit() or c == ' ']).rstrip()
 
@@ -148,6 +158,13 @@ while attempt < max_retries:
             pdf.add_page()
             pdf.add_font('TimesNewRoman', '', unicode_font_path_cache, uni=True)
 
+            if parent_post_title:
+                # We insert a double colon here to be able to distinguish in the front end from a single colon and a tail
+                # In case that is needed. We can remove the double colon in the front end display.
+                post_title = parent_post_title + ":: " + child_post_title
+            else:
+                post_title = child_post_title
+                
             # Set permalink and author as PDF metadata
             post_title = replace_smart_quotes(post_title)
             if author_name is not None:
