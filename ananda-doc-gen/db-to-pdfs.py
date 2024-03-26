@@ -117,14 +117,18 @@ total_posts = cursor.fetchone()[0]
 query = """
         SELECT 
             child.ID, child.post_content, child.post_name,
-            parent.post_title AS PARENT_TITLE,
+            parent3.post_title AS PARENT_TITLE_3,
+            CASE WHEN parent3.post_title IS NOT NULL THEN parent2.post_title END AS PARENT_TITLE_2,
+            CASE WHEN parent3.post_title IS NOT NULL OR parent2.post_title IS NOT NULL THEN parent.post_title END AS PARENT_TITLE_1,
             child.post_title AS CHILD_TITLE
         FROM 
             wp_posts AS child
             LEFT JOIN wp_posts AS parent ON child.post_parent = parent.ID
+            LEFT JOIN wp_posts AS parent2 ON parent.post_parent = parent2.ID
+            LEFT JOIN wp_posts AS parent3 ON parent2.post_parent = parent3.ID
         WHERE 
             child.post_status = 'publish' 
-            AND child.post_type = 'content';
+            AND child.post_type = 'content'
 """
 
 # TODO: ChatGPT suggested this database retry logic below. Should rework this, so that the retry
@@ -138,7 +142,7 @@ while attempt < max_retries:
         n = 0
         skipped = 0
         progress_bar = tqdm(total=total_posts)
-        for (id, content, post_name, parent_post_title, child_post_title) in cursor:
+        for (id, content, post_name, parent_title_3, parent_title_2, parent_title_1, child_post_title) in cursor:
             # Sanitize post_name to ensure it is safe for use as a filename
             safe_post_name = "".join([c for c in post_name if c.isalpha() or c.isdigit() or c == ' ']).rstrip()
 
@@ -151,6 +155,13 @@ while attempt < max_retries:
                 progress_bar.update(1)
                 continue
 
+            # Filter out None values and concatenate parent titles with '::'.
+            titles = [title for title in [parent_title_3, parent_title_2, parent_title_1, child_post_title] if title]
+
+            # We insert a double colon here to be able to distinguish in the front end from a single 
+            # colon and a tail. In case that is needed. We can remove the double colon in the front end display.
+            post_title = ":: ".join(titles)
+            
             # get permalink and author from WP
             permalink, author_name = get_data_from_wp(id)
 
@@ -158,13 +169,6 @@ while attempt < max_retries:
             pdf.add_page()
             pdf.add_font('TimesNewRoman', '', unicode_font_path_cache, uni=True)
 
-            if parent_post_title:
-                # We insert a double colon here to be able to distinguish in the front end from a single colon and a tail
-                # In case that is needed. We can remove the double colon in the front end display.
-                post_title = parent_post_title + ":: " + child_post_title
-            else:
-                post_title = child_post_title
-                
             # Set permalink and author as PDF metadata
             post_title = replace_smart_quotes(post_title)
             if author_name is not None:
