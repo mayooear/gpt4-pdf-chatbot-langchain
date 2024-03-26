@@ -13,9 +13,9 @@
   }
 
   .markdownanswer a {
-    color: #b13a3a;
+    color: black;
   }
-
+  
   .markdownanswer code {
     color: #15cb19;
     font-weight: 500;

@@ -23,12 +23,12 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false
         <div>
           <Accordion type="single" collapsible>
             <AccordionItem value="sources">
-              <AccordionTrigger className="text-sm font-semibold text-blue-500">Sources</AccordionTrigger>
+              <AccordionTrigger className="text-base font-semibold text-blue-500">Sources</AccordionTrigger>
               <AccordionContent>
-                <ul>
+                <ul className="text-base">
                   {sources.map((doc, index) => (
                     <li key={index}>
-                      <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer">
+                      <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" className="hover:underline">
                         {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
                       </a>
                     </li>

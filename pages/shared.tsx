@@ -12,6 +12,7 @@ import SourcesList from '@/components/SourcesList';
 import { checkUserLikes, getLikeCounts } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/uuid';
 import { toast } from 'react-toastify';
+import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 
 interface Share {
   id: string;
@@ -209,12 +210,13 @@ const SharedAnswers = () => {
                 <div className="bg-gray-100 p-2.5 rounded">
                   {answers[share.answerId] ? (
                     <div className="markdownanswer">
-                      <ReactMarkdown remarkPlugins={[gfm]}>
-                        {answers[share.answerId].answer}
-                      </ReactMarkdown>
+                      {/* Use the TruncatedMarkdown component for the answer content */}
+                      <TruncatedMarkdown markdown={answers[share.answerId].answer} maxCharacters={600} />
+                      {/* Render the sources list if available */}
                       {answers[share.answerId].sources && (
                         <SourcesList sources={answers[share.answerId].sources} useAccordion={true} />
                       )}
+                      {/* Render the interaction buttons */}
                       <div className="flex items-center">
                         <CopyButton markdown={answers[share.answerId].answer} />
                         <div className="ml">
