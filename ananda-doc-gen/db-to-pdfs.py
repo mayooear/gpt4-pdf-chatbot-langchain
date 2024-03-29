@@ -146,7 +146,7 @@ while attempt < max_retries:
         n = 0
         skipped = 0
         progress_bar = tqdm(total=total_posts)
-        for (id, content, post_name, parent_title_3, parent_title_2, parent_title_1, child_post_title) in cursor:
+        for (id, content, post_name, parent_title_1, parent_title_2, parent_title_3, child_post_title) in cursor:
             # Sanitize post_name to ensure it is safe for use as a filename
             safe_post_name = "".join([c for c in post_name if c.isalpha() or c.isdigit() or c == ' ']).rstrip()
 
