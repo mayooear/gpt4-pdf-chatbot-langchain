@@ -54,7 +54,14 @@ def replace_smart_quotes(text):
     return text
 
 
-def get_data_from_wp(post_id):
+def get_data_from_wp(post_id, db, cursor):
+    # Check if permalink and author_name are already in the database
+    cursor.execute("SELECT permalink, author_name FROM wp_posts WHERE ID = %s", (post_id,))
+    result = cursor.fetchone()
+    if result and result[0] and result[1]: 
+        return result[0], result[1]
+
+    # If not in DB, proceed with HTTP request
     api_url = f"https://staging2.anandalibrary.org/ananda-api/get-url/?post_id={post_id}"
     max_retries = 5
     retry_delay = 1  # start with 1 second delay
@@ -62,29 +69,29 @@ def get_data_from_wp(post_id):
     for attempt in range(max_retries):
         try:
             response = requests.get(api_url)
-
-            # Check if the request was successful
             if response.status_code == 200:
                 data = response.json()
-                # Replace 'staging2' with 'www' in the URL
                 permalink = data["url"].replace('staging2.', 'www.')
                 author_name = data["authors"][0] if data["authors"] else None
+
+                # Store permalink and author_name in the database for future use
+                cursor.execute("UPDATE wp_posts SET permalink = %s, author_name = %s WHERE ID = %s",
+                               (permalink, author_name, post_id))
+                db.commit()  # Assuming 'db' is your database connection variable
+
                 return permalink, author_name
             else:
-                print(
-                    f"Attempt {attempt + 1}: Error retrieving data for post_id {post_id}. Status code: {response.status_code}")
-                # If the response is a 504 Gateway Timeout, retry after a delay
+                print(f"Attempt {attempt + 1}: Error retrieving data for post_id {post_id}. Status code: {response.status_code}")
                 if response.status_code == 504:
                     time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay *= 2
                     continue
                 else:
-                    # For other errors, don't retry
                     break
         except RequestException as e:
             print(f"Attempt {attempt + 1}: Request failed: {e}")
             time.sleep(retry_delay)
-            retry_delay *= 2  # Exponential backoff
+            retry_delay *= 2
 
     print(f"Failed to retrieve data for post_id {post_id} after {max_retries} attempts.")
     return None, None
@@ -146,7 +153,13 @@ while attempt < max_retries:
         n = 0
         skipped = 0
         progress_bar = tqdm(total=total_posts)
-        for (id, content, post_name, parent_title_1, parent_title_2, parent_title_3, child_post_title) in cursor:
+        rows = cursor.fetchall()
+        for row in rows:
+            if row is None:
+                print("Skipping blank DB row")
+                continue
+ 
+            id, content, post_name, parent_title_1, parent_title_2, parent_title_3, child_post_title = row
             # Sanitize post_name to ensure it is safe for use as a filename
             safe_post_name = "".join([c for c in post_name if c.isalpha() or c.isdigit() or c == ' ']).rstrip()
 
@@ -155,7 +168,7 @@ while attempt < max_retries:
             # Check if the PDF already exists and is not zero bytes
             if os.path.isfile(file_name) and os.path.getsize(file_name) > 0:
                 skipped += 1
-                progress_bar.set_description(f"Skipped {skipped} - {safe_post_name}")
+                progress_bar.set_description(f"Skipped {skipped} - {child_post_title}")
                 progress_bar.update(1)
                 continue
 
@@ -166,10 +179,10 @@ while attempt < max_retries:
             # colon and a tail. In case that is needed. We can remove the double colon in the front end display.
             post_title = ":: ".join(titles)
 
-            print(f"{id}: {post_title}")
+            # print(f"{id}: {post_title}")
             
             # get permalink and author from WP
-            permalink, author_name = get_data_from_wp(id)
+            permalink, author_name = get_data_from_wp(id, db, cursor)
 
             pdf = FPDF()
             pdf.add_page()
@@ -206,7 +219,7 @@ while attempt < max_retries:
                 # progress_bar.write(f"Failed to generate PDF for '{safe_post_name}': {e}")
             else:
                 n += 1
-                progress_bar.set_description(f"Processed {n} - {safe_post_name}")
+                progress_bar.set_description(f"Processed {n} - {child_post_title}")
                 progress_bar.update(1)
 
         # Close the progress bar
