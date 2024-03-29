@@ -14,8 +14,14 @@ import { Document } from 'langchain/document';
 import ShareDialog from '@/components/ShareDialog';
 import CopyButton from '@/components/CopyButton';
 import SourcesList from '@/components/SourcesList';
+import CollectionSelector from '@/components/CollectionSelector';
+import { useRandomQueries } from '@/hooks/useRandomQueries';
+import RandomQueries from '@/components/RandomQueries';
+import Cookies from 'js-cookie';
 
 export default function Home() {
+  const [collection, setCollection] = useState<string | undefined>(undefined); 
+  const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +53,15 @@ export default function Home() {
      "Please click Start Private Session below the text entry box if you would prefer we not log your session."
     );
 
+    const handleCollectionChange = (newCollection: string) => {
+      if (newCollection !== collection) {
+        setCollectionChanged(true); 
+      }
+      setCollection(newCollection);
+      Cookies.set('selectedCollection', newCollection, { expires: 365 });
+    };
+    
+        
   const queries = useMemo(() => [
     "Give me three tips on improving meditation habits",
     "How does Swami say to prepare for hard times?",
@@ -67,13 +82,7 @@ export default function Home() {
     "Give 10 attitudes essential for discipleship",
   ], []);
 
-  const getRandomQueries = useCallback(() => {
-    const shuffled = queries.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
-  }, [queries]); 
-
-  // Initialize randomQueries with an empty array
-  const [randomQueries, setRandomQueries] = useState<string[]>([]);
+  const randomQueries = useRandomQueries(queries);
 
   const queryRef = useRef<string>('');
 
@@ -149,19 +158,11 @@ export default function Home() {
     setShareSuccess(prev => ({ ...prev, [messageId]: false }));
   };
 
-  // This effect will only run on the client after the component has mounted
   useEffect(() => {
-    // Now setting the random queries in the useEffect to ensure it's only done client-side
-    setRandomQueries(getRandomQueries());
+    // Retrieve and set the collection from the cookie
+    const savedCollection = Cookies.get('selectedCollection') || 'master_swami';
+    setCollection(savedCollection);
 
-    // Focus the text area only on the client side after the component has mounted.
-    // Check if the device is not mobile (e.g., width greater than 768px for iPad)
-    if (window.innerWidth > 768) {
-      textAreaRef.current?.focus();
-    }
-  }, [getRandomQueries]);
-
-  useEffect(() => {
     // Focus the text area only on the client side after the component has mounted.
     // Check if the device is not mobile (e.g., width greater than 768px for iPad)
     if (window.innerWidth > 768) {
@@ -200,6 +201,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          collection,
           question,
           history,
           privateSession: privateSession,
@@ -220,6 +222,7 @@ export default function Home() {
               message: data.text,
               sourceDocs: data.sourceDocuments,
               docId: data.docId,
+              collection: collection,
             },
           ],
           history: [...state.history, [question, data.text]],
@@ -256,11 +259,6 @@ export default function Home() {
     if (textAreaRef.current) {
       textAreaRef.current.value = query;
     }
-  
-    // Introduce a slight delay
-    setTimeout(() => {
-      handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
-    }, 0);
   };
     
   //prevent empty submissions
@@ -272,25 +270,22 @@ export default function Home() {
       }
     }
   };
+
+  // Render the component only after the collection has been determined
+  if (collection === undefined) {
+    return <LoadingDots color="#000" />; 
+  }  
+
   return (
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
-        <div className="mx-auto flex flex-col gap-4">
-          <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With the Ananda AI Librarian!
-          </h1>
-          <div className="flex flex-col items-center">
-            <p className="mb-2">Enter your query below or click one of these to try it:</p>
-            {randomQueries.map((query, index) => (
-              <button
-                key={index}
-                className="text-blue-500 hover:underline mb-0"
-                onClick={() => handleClick(query)}
-              >
-                {query}
-              </button>
-            ))}
+        <div className="mx-auto flex flex-col gap-4 pt-3.5">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter">
+              Ask the Ananda AI Librarian!
+            </h1>
+            <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
           </div>
           <main className={styles.main}>
             <div className={styles.cloud}>
@@ -331,13 +326,17 @@ export default function Home() {
                   }
                   return (
                     <Fragment key={`message-${index}`}>
+                      {message.type === 'apiMessage' && index > 0 && <hr />}
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className="markdownanswer">
                           {message.sourceDocs && (
-                            <SourcesList sources={message.sourceDocs} />
+                            <SourcesList 
+                              sources={message.sourceDocs} 
+                              useAccordion={false} 
+                              collectionName={collectionChanged ? message.collection : undefined}
+                            />
                           )}
-                          {message.type === 'apiMessage' && index > 1 && <hr />}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
                             {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
                           </ReactMarkdown>
@@ -400,14 +399,20 @@ export default function Home() {
                     }
                     className={styles.textarea}
                   />
-                  <div className={styles.checkboxContainer} style={{ textAlign: 'right', paddingRight: '10px' }}>
-                    <button
-                      type="button" 
-                      onClick={handlePrivateSessionChange}
-                      className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
-                    >
-                      {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                    </button>
+                  <div className="flex justify-between items-start mt-5">
+                    <div className="w-1/2">
+                      <p className="mb-2">Enter query above or try one of these:</p>              
+                      <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
+                    </div>
+                    <div className={`${styles.checkboxContainer} w-1/2`} style={{ textAlign: 'right', paddingRight: '10px' }}>
+                      <button
+                        type="button" 
+                        onClick={handlePrivateSessionChange}
+                        className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
+                      >
+                        {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="submit"

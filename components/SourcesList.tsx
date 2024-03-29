@@ -8,14 +8,16 @@ import styles from '@/styles/Home.module.css';
 interface SourcesListProps {
   sources: Document[];
   useAccordion?: boolean;
+  collectionName?: string; 
 }
 
-const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false }) => {
+const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
   // replace double colon with single colon. In the future we could want to use this to
   // differentiate in some way from a colon that shows up in the child source title. 
   const formatTitle = (title: string) => title.replace(/::/g, ':');
+
   if (useAccordion) {
     return (
       <>
@@ -46,20 +48,29 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion = false
   return (
     <>
       {sources.length > 0 && (
-        <h3 className={styles.sourceDocsHeading}>
-          Sources <a href="#" onClick={(e) => {
-              e.preventDefault();
-              const detailsElements = document.querySelectorAll('details');
-              const areAllExpanded = Array.from(detailsElements).every(detail => detail.open);
-              detailsElements.forEach(detail => { detail.open = !areAllExpanded; });
-              if (e.target instanceof HTMLElement) {
-                e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
-              }
-            }}
-            className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
-            {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
-          </a>
-        </h3>
+      <div className="flex justify-between items-start w-full"> 
+        <div className="flex-grow">
+          <h3 className={styles.sourceDocsHeading}>
+            Sources <a href="#" onClick={(e) => {
+                e.preventDefault();
+                const detailsElements = document.querySelectorAll('details');
+                const areAllExpanded = Array.from(detailsElements).every(detail => detail.open);
+                detailsElements.forEach(detail => { detail.open = !areAllExpanded; });
+                if (e.target instanceof HTMLElement) {
+                  e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
+                }
+              }}
+              className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
+              {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
+            </a>
+          </h3>
+        </div>
+        {collectionName && (
+          <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
+            {collectionName === 'master_swami' ? 'Master and Swami' : 'Whole Library'}
+          </span>
+        )}
+      </div>
       )}
       {sources.map((doc, index) => (
         <details key={index} className={styles.sourceDocsContainer}>

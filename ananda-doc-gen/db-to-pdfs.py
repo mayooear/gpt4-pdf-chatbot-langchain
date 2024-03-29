@@ -116,19 +116,23 @@ total_posts = cursor.fetchone()[0]
 # Query to select published posts
 query = """
         SELECT 
-            child.ID, child.post_content, child.post_name,
+            child.ID, 
+            child.post_content, 
+            child.post_name,
+            parent.post_title AS PARENT_TITLE_1,
+            parent2.post_title AS PARENT_TITLE_2,
             parent3.post_title AS PARENT_TITLE_3,
-            CASE WHEN parent3.post_title IS NOT NULL THEN parent2.post_title END AS PARENT_TITLE_2,
-            CASE WHEN parent3.post_title IS NOT NULL OR parent2.post_title IS NOT NULL THEN parent.post_title END AS PARENT_TITLE_1,
             child.post_title AS CHILD_TITLE
         FROM 
             wp_posts AS child
-            LEFT JOIN wp_posts AS parent ON child.post_parent = parent.ID
-            LEFT JOIN wp_posts AS parent2 ON parent.post_parent = parent2.ID
-            LEFT JOIN wp_posts AS parent3 ON parent2.post_parent = parent3.ID
+            LEFT JOIN wp_posts AS parent ON child.post_parent = parent.ID AND parent.post_type = 'content'
+            LEFT JOIN wp_posts AS parent2 ON parent.post_parent = parent2.ID AND parent2.post_type = 'content'
+            LEFT JOIN wp_posts AS parent3 ON parent2.post_parent = parent3.ID AND parent3.post_type = 'content'
         WHERE 
             child.post_status = 'publish' 
             AND child.post_type = 'content'
+        ORDER BY 
+            child.ID;
 """
 
 # TODO: ChatGPT suggested this database retry logic below. Should rework this, so that the retry
@@ -161,6 +165,8 @@ while attempt < max_retries:
             # We insert a double colon here to be able to distinguish in the front end from a single 
             # colon and a tail. In case that is needed. We can remove the double colon in the front end display.
             post_title = ":: ".join(titles)
+
+            print(f"{id}: {post_title}")
             
             # get permalink and author from WP
             permalink, author_name = get_data_from_wp(id)

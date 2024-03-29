@@ -3,7 +3,7 @@ import type { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeChain } from '@/utils/makechain';
-import { pinecone } from '@/utils/pinecone-client';
+import { PineconeConfigKey, pineconeConfig, usePinecone } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
@@ -53,8 +53,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { question, history, privateSession } = req.body;
-
+  const { collection, question, history, privateSession } = req.body;
+  
   let clientIP = '';
   if (privateSession) {
     console.log("\nPRIVATE question asked");
@@ -84,6 +84,10 @@ export default async function handler(
     }
   }
   else if (req.method == 'POST') {
+    if (typeof collection !== 'string' || !(collection in pineconeConfig)) {
+      return res.status(400).json({ error: 'Invalid collection provided' });
+    }
+  
     // send question to chatbot 
     if (!question) {
       return res.status(400).json({ message: 'No question in the request' });
@@ -91,7 +95,9 @@ export default async function handler(
     // OpenAI recommends replacing newlines with spaces for best results
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
-    try {
+    try {  
+      const pinecone = await usePinecone(collection as PineconeConfigKey);
+      console.log("Pinecone collection:", collection);
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
       /* create vectorstore */
@@ -120,7 +126,7 @@ export default async function handler(
       });
 
       //create chain
-      const chain = makeChain(retriever);
+      const chain = makeChain(retriever, collection as PineconeConfigKey);
 
       const pastMessages = history
         .map((message: [string, string]) => {

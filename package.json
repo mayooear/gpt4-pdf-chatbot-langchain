@@ -12,7 +12,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
-    "ingest": "tsx -r dotenv/config scripts/ingest-data.ts"
+    "ingest": "NODE_OPTIONS='--max-old-space-size=4096' tsx -r dotenv/config scripts/ingest-data.ts"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",

@@ -16,14 +16,17 @@ The process is:
 4. take the appropriate subfolder and move it to /docs at top of tree
 
 5. To process the embeddings and put this into production, you need to clear out the pinecone embeddings of a
-   pinecone env not in production. We currently have two pinecone accounts for the two corpuses. 
-   You can check vercel or your local .env file if that's up to date. Then
-   select the other pinecone corpus/env login and delete the dataset. Create fresh one with same name and 
-   1536 for size. Change your .env file to point to its API key. Then run:
+   pinecone env not in production. We currently have separate pinecone accounts for each context, one for
+   Swami and Master, and another that includes all docs. Check your local .env file. Then
+   select a spare pinecone corpus/env login that's not in use and delete the dataset. 
+   Create fresh one with same name and 1536 for size. Change your .env file to point to its API key. 
+   Then run:
 
-   yarn run ingest
+      yarn run ingest someContext
+
+   someContext would be swami_master or whole_library or other options as shown in pinecone-client.ts
 
 6. Confirm that pinecone index was created
 
-7. Switch production env var for pinecone API to point to the new corpus/data.
-
+7. Switch production env var for appropriate pinecone API (e.g., for PINECONE_API_KEY_MASTER_SWAMI) 
+   to point to the new corpus/data.

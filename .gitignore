@@ -4,6 +4,7 @@
 /docs/
 /docs-anandaLib/
 /docs-jram/
+/docs-*/
 
 # IDE
 /.idea/
