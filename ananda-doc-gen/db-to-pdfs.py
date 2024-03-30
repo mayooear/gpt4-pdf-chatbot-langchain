@@ -156,7 +156,6 @@ while attempt < max_retries:
         rows = cursor.fetchall()
         for row in rows:
             if row is None:
-                print("Skipping blank DB row")
                 continue
  
             id, content, post_name, parent_title_1, parent_title_2, parent_title_3, child_post_title = row
