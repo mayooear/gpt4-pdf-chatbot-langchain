@@ -153,6 +153,7 @@ export default async function handler(
       const logEntry = privateSession ? {
         question: 'private',
         answer: '(' + answerWordCount + " words)",
+        collection: collection,
         sources: '',
         history: [],
         ip: '',
@@ -160,6 +161,7 @@ export default async function handler(
       } : {
         question: sanitizedQuestion,
         answer: response,
+        collection: collection,
         sources: JSON.stringify(sourceDocuments),
         history: history.map((messagePair: [string, string]) => ({
           question: messagePair[0],
