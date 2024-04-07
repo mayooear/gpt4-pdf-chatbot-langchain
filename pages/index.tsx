@@ -423,21 +423,21 @@ export default function Home() {
                     </div>
                   )}
                   <div className="flex justify-between items-start mt-1">
-<div className="flex justify-between items-start mt-1">
-  <div className="w-1/2">
-    <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
-  </div>
-  <div className="flex flex-col items-end w-1/2">
-    <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-    <button
-      type="button"
-      onClick={handlePrivateSessionChange}
-      className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
-    >
-      {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-    </button>
-  </div>
-</div>
+                    <div className="flex justify-between items-start mt-1">
+                      <div className="w-1/2">
+                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
+                      </div>
+                      <div className="flex flex-col items-end w-1/2">
+                        <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+                        <button
+                          type="button"
+                          onClick={handlePrivateSessionChange}
+                          className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
+                        >
+                          {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </form>
               </div>
