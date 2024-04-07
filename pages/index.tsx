@@ -280,11 +280,8 @@ export default function Home() {
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
-        <div className="w-3/4 mx-auto flex flex-col gap-4 pt-3.5">
-          <div className="w-full flex justify-between items-center">
-            <h1 className="text-left text-2xl font-bold leading-[1.1] tracking-tighter">
-              Ask the Ananda AI Librarian!
-            </h1>
+        <div className="w-3/4 mx-auto flex flex-col">
+          <div className="w-full flex justify-end items-center">
             <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
           </div>
           <main className="flex flex-col justify-between items-center p-4">
