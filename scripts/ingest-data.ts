@@ -1,11 +1,12 @@
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
-import { pineconeConfig, PineconeConfigKey, usePinecone } from '@/utils/pinecone-client';
+import { pineconeConfig, PineconeConfigKey, getPineconeClient } from '@/utils/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import ProgressBar from 'progress';
+import readline from 'readline';
 
 /* Name of directory to retrieve your files from 
    Make sure to add your PDF files inside the 'docs' folder
@@ -20,7 +21,7 @@ export const run = async (collection: PineconeConfigKey) => {
 
   let pinecone;
   try {
-    pinecone = await usePinecone(collection);
+    pinecone = await getPineconeClient(collection);
   } catch (error) {
     console.error('Failed to initialize Pinecone:', error);
     return;
@@ -30,8 +31,21 @@ export const run = async (collection: PineconeConfigKey) => {
   const stats = await pineconeIndex.describeIndexStats(); 
   const vectorCount = stats.totalRecordCount;
   if (vectorCount && vectorCount > 0) {
-    console.log(`The index contains ${vectorCount} vectors... deleting`);
-    await pineconeIndex.deleteAll();
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (Y/n) `, async (answer) => {
+      if (answer.toLowerCase().charAt(0) === 'y' || answer === '') {
+        await pineconeIndex.deleteAll();
+        console.log('All vectors deleted.');
+      } else {
+        console.log('Deletion aborted.');
+        process.exit(0);
+      }
+      rl.close();
+    });
   }
   
   let rawDocs;

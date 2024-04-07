@@ -27,7 +27,7 @@ async function initPinecone(apiKey: string) {
   }
 }
 
-export const usePinecone = async (context: PineconeConfigKey) => {
+export const getPineconeClient = async (context: PineconeConfigKey) => {
   const apiKey = pineconeConfig[context];
   if (!apiKey) {
     throw new Error('Invalid context provided: ' + context);

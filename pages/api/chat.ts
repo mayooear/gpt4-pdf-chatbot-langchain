@@ -3,7 +3,7 @@ import type { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore, PineconeStoreParams } from '@langchain/pinecone';
 import { makeChain } from '@/utils/makechain';
-import { PineconeConfigKey, pineconeConfig, usePinecone } from '@/utils/pinecone-client';
+import { PineconeConfigKey, pineconeConfig, getPineconeClient } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
@@ -96,7 +96,7 @@ export default async function handler(
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
     try {  
-      const pinecone = await usePinecone(collection as PineconeConfigKey);
+      const pinecone = await getPineconeClient(collection as PineconeConfigKey);
       console.log("Pinecone collection:", collection);
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 

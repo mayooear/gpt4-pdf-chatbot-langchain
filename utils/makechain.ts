@@ -103,7 +103,8 @@ const getQATemplate = (context: PineconeConfigKey) => {
   return template;
 };
 
-const combineDocumentsFn = (docs: Document[], separator = '\n\n') => {
+const combineDocumentsFn = (docs: Document[], options: Record<string, any> = {}) => {
+  const separator = typeof options.separator === 'string' ? options.separator : '\n\n';
   const serializedDocs = docs.map((doc) => doc.pageContent);
   return serializedDocs.join(separator);
 };
