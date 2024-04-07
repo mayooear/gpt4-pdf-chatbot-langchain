@@ -1,10 +1,11 @@
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { PineconeStore } from '@langchain/pinecone';
 import { pineconeConfig, PineconeConfigKey, usePinecone } from '@/utils/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+import ProgressBar from 'progress';
 
 /* Name of directory to retrieve your files from 
    Make sure to add your PDF files inside the 'docs' folder
@@ -23,6 +24,14 @@ export const run = async (collection: PineconeConfigKey) => {
   } catch (error) {
     console.error('Failed to initialize Pinecone:', error);
     return;
+  }
+
+  const pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
+  const stats = await pineconeIndex.describeIndexStats(); 
+  const vectorCount = stats.totalRecordCount;
+  if (vectorCount && vectorCount > 0) {
+    console.log(`The index contains ${vectorCount} vectors... deleting`);
+    await pineconeIndex.deleteAll();
   }
   
   let rawDocs;
@@ -98,17 +107,31 @@ export const run = async (collection: PineconeConfigKey) => {
     /* possible way to specify model: 
        const embeddings = new OpenAIEmbeddings({ modelName: 'text-similarity-babbage-001' }); */
     const embeddings = new OpenAIEmbeddings();
-    const index = pinecone.Index(PINECONE_INDEX_NAME);
-    await PineconeStore.fromDocuments(docs, embeddings, {
-      pineconeIndex: index,
-      // NOT SURE which of these to use. Original was text and chatGPT suggested pageContent
-      // after we got a runtime error: TypeError: Cannot read properties of undefined (reading 'text')
-      // textKey: 'pageContent',
-      textKey: 'text',
+    const progressBar = new ProgressBar('Embedding and storing documents [:bar] :percent :eta', {
+      total: rawDocs.length,
+      width: 40,
     });
-    console.log('Ingestion complete');
-  } catch (error) {
-    console.error('Failed to embed documents or store in Pinecone:', error);
+
+    // Process documents in batches instead of all at once so we can give progress bar
+    const chunk = 40;
+    for (let i = 0; i < rawDocs.length; i += chunk) {
+      const docsBatch = rawDocs.slice(i, i + chunk);
+      await PineconeStore.fromDocuments(docsBatch, embeddings, {
+        pineconeIndex: pineconeIndex as any,
+        textKey: 'text',
+      });
+      
+      progressBar.tick(chunk);
+    }
+    
+    console.log(`Ingestion complete. ${rawDocs.length} documents processed.`);
+
+  } catch (error: any) {
+    if (error.message && error.message.includes("Starter index record limit reached")) {
+      console.error('Error: Starter index record limit reached.');
+    } else {
+      console.error('Failed to embed documents or store in Pinecone:', error.message || error);
+    }
   }
 };
 

@@ -280,14 +280,14 @@ export default function Home() {
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
-        <div className="mx-auto flex flex-col gap-4 pt-3.5">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter">
+        <div className="w-3/4 mx-auto flex flex-col gap-4 pt-3.5">
+          <div className="w-full flex justify-between items-center">
+            <h1 className="text-left text-2xl font-bold leading-[1.1] tracking-tighter">
               Ask the Ananda AI Librarian!
             </h1>
             <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
           </div>
-          <main className={styles.main}>
+          <main className="flex flex-col justify-between items-center p-4">
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
                 {messages.map((message, index) => {
@@ -380,28 +380,50 @@ export default function Home() {
               </div>
             </div>
             <div className={styles.center}>
-              <div className={styles.cloudform}>
+              {/* <div className={styles.cloudform}> */}
+              <div className="flex flex-col md:flex-row items-stretch space-y-4 md:space-y-0 md:space-x-4">
                 <form onSubmit={handleSubmit}>
-                  <textarea
-                    disabled={loading}
-                    onKeyDown={handleEnter}
-                    onChange={(e) => queryRef.current = e.target.value}
-                    ref={textAreaRef}
-                    autoFocus={false}
-                    rows={1}
-                    maxLength={3000}
-                    id="userInput"
-                    name="userInput"
-                    placeholder={
-                      loading
-                        ? 'Waiting for response...'
-                        : 'How do I remember God more frequently?'
-                    }
-                    className={styles.textarea}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <textarea
+                      disabled={loading}
+                      onKeyDown={handleEnter}
+                      onChange={(e) => queryRef.current = e.target.value}
+                      ref={textAreaRef}
+                      autoFocus={false}
+                      rows={1}
+                      maxLength={3000}
+                      id="userInput"
+                      name="userInput"
+                      placeholder={
+                        loading
+                          ? 'Waiting for response...'
+                          : 'How can I think of God more?'
+                      }
+                      className={styles.textarea}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={styles.generatebutton}
+                    >
+                      {loading ? (
+                        <div className={styles.loadingwheel}>
+                          <LoadingDots color="#000" />
+                        </div>
+                      ) : (
+                        // Send icon SVG in input field
+                        <svg
+                          viewBox="0 0 20 20"
+                          className={styles.svgicon}
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
+                        </svg>
+                      )}
+                    </button>     
+                  </div>       
                   <div className="flex justify-between items-start mt-5">
                     <div className="w-1/2">
-                      <p className="mb-2">Enter query above or try one of these:</p>              
                       <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
                     </div>
                     <div className={`${styles.checkboxContainer} w-1/2`} style={{ textAlign: 'right', paddingRight: '10px' }}>
@@ -414,26 +436,6 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={styles.generatebutton}
-                  >
-                    {loading ? (
-                      <div className={styles.loadingwheel}>
-                        <LoadingDots color="#000" />
-                      </div>
-                    ) : (
-                      // Send icon SVG in input field
-                      <svg
-                        viewBox="0 0 20 20"
-                        className={styles.svgicon}
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
-                      </svg>
-                    )}
-                  </button>
                 </form>
               </div>
             </div>

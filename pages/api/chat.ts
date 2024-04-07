@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Document } from 'langchain/document';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { PineconeStore, PineconeStoreParams } from '@langchain/pinecone';
 import { makeChain } from '@/utils/makechain';
 import { PineconeConfigKey, pineconeConfig, usePinecone } from '@/utils/pinecone-client';
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
@@ -104,7 +104,7 @@ export default async function handler(
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({}),
         {
-          pineconeIndex: index,
+          pineconeIndex: index as any, // Work around temporary
           textKey: 'text',
           // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
         },

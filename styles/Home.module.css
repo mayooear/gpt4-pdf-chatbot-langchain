@@ -24,6 +24,9 @@
   font-size: 1.1rem;
   padding: 1rem 2rem 1rem 2rem;
   width: 75vw;
+  /* max-width: 75vw;
+  min-width: 400px;
+  margin: auto; */
   border-radius: 0.5rem;
   border: 1px solid #d9d9e3;
   background: #ffffff;
@@ -47,11 +50,10 @@
 
 .generatebutton {
   position: absolute;
-  top: 0.87rem;
   right: 1rem;
   color: rgb(165, 162, 162);
   background: none;
-  padding: 0.3rem;
+  padding: 1rem 2rem;
   border: none;
   display: flex;
 }

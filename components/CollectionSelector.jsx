@@ -1,7 +1,7 @@
 export default function CollectionSelector({ onCollectionChange, currentCollection }) {
   return (
-    <div className="flex items-center">
-      <label htmlFor="collection" className="text-lg font-bold text-gray-700 mr-3">Collection:</label>
+    <div className="flex flex-col sm:flex-row items-center">
+      <label htmlFor="collection" className="text-lg font-bold text-gray-700 mr-3 mb-1 sm:mb-0">Collection:</label>
       <select
         id="collection"
         value={currentCollection}

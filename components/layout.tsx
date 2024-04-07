@@ -16,7 +16,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="mx-auto flex flex-col min-h-screen">
       <header className="container mx-auto sticky top-0 z-40 bg-white">
         <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center">
-          <nav className="ml-4 pl-6">
+          <nav className="ml-2 pl-1">
             <div className="space-x-10">
               <a href="https://www.anandalibrary.org/" className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer">
                 ← Back to Ananda Library
