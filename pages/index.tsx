@@ -281,9 +281,6 @@ export default function Home() {
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
         <div className="w-3/4 mx-auto flex flex-col">
-          <div className="w-full flex justify-end items-center">
-            <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-          </div>
           <main className="flex flex-col justify-between items-center p-4">
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
@@ -425,19 +422,22 @@ export default function Home() {
                       <span className="block sm:inline">{error}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-start mt-5">
-                    <div className="w-1/2">
-                      <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
-                    </div>
-                    <div className={`${styles.checkboxContainer} w-1/2`} style={{ textAlign: 'right', paddingRight: '10px' }}>
-                      <button
-                        type="button" 
-                        onClick={handlePrivateSessionChange}
-                        className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
-                      >
-                        {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                      </button>
-                    </div>
+                  <div className="flex justify-between items-start mt-1">
+<div className="flex justify-between items-start mt-1">
+  <div className="w-1/2">
+    <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
+  </div>
+  <div className="flex flex-col items-end w-1/2">
+    <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+    <button
+      type="button"
+      onClick={handlePrivateSessionChange}
+      className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
+    >
+      {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+    </button>
+  </div>
+</div>
                   </div>
                 </form>
               </div>
