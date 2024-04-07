@@ -77,7 +77,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
           <summary title="Click the triangle to see details or title to go to library source">
             {doc.metadata.source.startsWith('http') ? (
               <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
-                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
+                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) : doc.metadata.source}
               </a>
             ) : (
               doc.metadata.source

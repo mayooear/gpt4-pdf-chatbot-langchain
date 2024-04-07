@@ -419,6 +419,12 @@ export default function Home() {
                       )}
                     </button>     
                   </div>       
+                  {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                      <strong className="font-bold">An error occurred: </strong>
+                      <span className="block sm:inline">{error}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mt-5">
                     <div className="w-1/2">
                       <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
@@ -436,11 +442,6 @@ export default function Home() {
                 </form>
               </div>
             </div>
-            {error && (
-              <div className="border border-red-400 rounded-md p-4">
-                <p className="text-red-500">{error}</p>
-              </div>
-            )}
           </main>
         </div>
         {showShareDialog && (
