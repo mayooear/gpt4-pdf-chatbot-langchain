@@ -6,9 +6,11 @@ interface RandomQueriesProps {
 }
 
 const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick }) => {
-  const [displayCount, setDisplayCount] = useState(window.innerWidth >= 768 ? 3 : 1);
+  const [displayCount, setDisplayCount] = useState(3);
 
   useEffect(() => {
+    setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
+
     const handleResize = () => {
       setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
     };

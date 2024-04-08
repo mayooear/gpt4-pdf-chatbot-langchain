@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
 import Link from 'next/link';
@@ -20,7 +20,7 @@ import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 
 export default function Home() {
-  const [collection, setCollection] = useState<string | undefined>(undefined); 
+  const [collection, setCollection] = useState<string | undefined>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -53,37 +53,43 @@ export default function Home() {
      "Please click Start Private Session below the text entry box if you would prefer we not log your session."
     );
 
-    const handleCollectionChange = (newCollection: string) => {
-      if (newCollection !== collection) {
-        setCollectionChanged(true); 
-      }
-      setCollection(newCollection);
-      Cookies.set('selectedCollection', newCollection, { expires: 365 });
-    };
-    
-        
-  const queries = useMemo(() => [
-    "Give me three tips on improving meditation habits",
-    "How does Swami say to prepare for hard times?",
-    "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
-    "What did Yogananda say about the influence of television?",
-    "Tell me in detail about the quote 'And what do you think made me a master?'",
-    "Find me a prayer for Radiant Health and Well Being?",
-    "Can you tell me something about sanatan dharma?",
-    "Was Moses a liberated master?",
-    "How do i grow my connection to god?",
-    "tips on dealing with a challenging coworker?",
-    "Inspiring Yogananda quotes",
-    "Give 10 attitudes essential for discipleship",
-    "Staying in the Spine: topic broken down into 4 parts",
-    "If God is doing everything through us, how does free will fit in?",
-    "What are some tips for dealing with insomnia?",
-    "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
-    "Give 10 attitudes essential for discipleship",
-    "Outline for a 1-day course on the purpose of life"
-  ], []);
+  const handleCollectionChange = (newCollection: string) => {
+    if (newCollection !== collection) {
+      setCollectionChanged(true); 
+    }
+    setCollection(newCollection);
+    Cookies.set('selectedCollection', newCollection, { expires: 365 });
+  };
+  
+  const collectionQueries = useMemo(() => ({
+    whole_library: [
+      "Give me three tips on improving meditation habits",
+      "Can you tell me something about sanatan dharma?",
+      "Was Moses a liberated master?",
+      "How do i grow my connection to god?",
+      "tips on dealing with a challenging coworker?",
+      "Give 10 attitudes essential for discipleship",
+      "Staying in the Spine: topic broken down into 4 parts",
+      "Outline for a 1-day course on the purpose of life"
+      ],
+    master_swami: [
+      "How does Swami say to prepare for hard times?",
+      "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
+      "What did Yogananda say about the influence of television?",
+      "Tell me in detail about the quote 'And what do you think made me a master?'",
+      "Find me a prayer for Radiant Health and Well Being?",
+      "Inspiring Yogananda quotes",
+      "What are some tips for dealing with insomnia?",
+      "If God is doing everything through us, how does free will fit in?",
+      "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
+        ],
+  }), []);
 
-  const randomQueries = useRandomQueries(queries);
+  let randomQueries: string[] = [];
+  if (collection && Object.keys(collectionQueries).includes(collection)) {
+    const queriesForCollection = collectionQueries[collection as keyof typeof collectionQueries];
+    randomQueries = useRandomQueries(queriesForCollection || [], 3);
+  }
 
   const queryRef = useRef<string>('');
 
