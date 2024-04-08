@@ -16,7 +16,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
   // replace double colon with single colon. In the future we could want to use this to
   // differentiate in some way from a colon that shows up in the child source title. 
-  const formatTitle = (title: string) => title.replace(/::/g, ':');
+  const formatTitle = (title: string) => title.replace(/::/g, ' > ');
 
   if (useAccordion) {
     return (
