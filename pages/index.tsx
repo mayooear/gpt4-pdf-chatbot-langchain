@@ -68,18 +68,19 @@ export default function Home() {
     "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
     "What did Yogananda say about the influence of television?",
     "Tell me in detail about the quote 'And what do you think made me a master?'",
-    "What are some key lessons from essence of the Bhagavad Gita?",
+    "Find me a prayer for Radiant Health and Well Being?",
     "Can you tell me something about sanatan dharma?",
-    "Outline of how the chakras are part of meditation",
+    "Was Moses a liberated master?",
     "How do i grow my connection to god?",
     "tips on dealing with a challenging coworker?",
-    "write an article about compassion towards family at holiday events",
-    "Is there a painless way to transcend ego, and if so, what is that way?",
-    "how do karma and sadhana relate to each other?",
+    "Inspiring Yogananda quotes",
+    "Give 10 attitudes essential for discipleship",
+    "Staying in the Spine: topic broken down into 4 parts",
     "If God is doing everything through us, how does free will fit in?",
     "What are some tips for dealing with insomnia?",
     "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
     "Give 10 attitudes essential for discipleship",
+    "Outline for a 1-day course on the purpose of life"
   ], []);
 
   const randomQueries = useRandomQueries(queries);
