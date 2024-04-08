@@ -346,7 +346,7 @@ export default function Home() {
                                 className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
                                 title="Downvote for system training"
                               >
-                                <span className="material-icons">
+                                <span className="material-icons text-black">
                                   {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
                                 </span>
                               </button>
