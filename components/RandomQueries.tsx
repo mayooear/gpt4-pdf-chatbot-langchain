@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 interface RandomQueriesProps {
   queries: string[];
   onQueryClick: (query: string) => void;
+  isLoading: boolean;
 }
 
-const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick }) => {
+const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading }) => {
   const [displayCount, setDisplayCount] = useState(3);
   const [displayedQueries, setDisplayedQueries] = useState<string[]>([]);
 
@@ -45,17 +46,19 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick }) 
             className="inline-flex justify-center items-center transform transition-transform duration-500 hover:rotate-180"
             aria-label="Refresh queries"
             style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', transformOrigin: 'center center' }} // More specific inline styles
+            disabled={isLoading} 
           >
             <span className="material-icons text-blue-600 hover:text-blue-800" style={{ display: 'inline-block', transformOrigin: 'center' }}>autorenew</span>
           </button>
         </div>
         <ul className="list-none">
           {displayedQueries.map((query, index) => (
-            <li key={index} className="mb-2">
+            <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
               <button
-                className="text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline w-full text-left"
-                onClick={() => onQueryClick(query)}
+                className={`focus:outline-none focus:underline w-full text-left ${isLoading ? 'cursor-not-allowed' : ''}`}
+                onClick={() => !isLoading && onQueryClick(query)}
                 aria-label={`Sample query: ${query}`}
+                disabled={isLoading} 
               >
                 {query}
               </button>

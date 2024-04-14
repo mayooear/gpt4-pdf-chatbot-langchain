@@ -77,7 +77,7 @@ export default function Home() {
       "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
       "What did Yogananda say about the influence of television?",
       "Tell me in detail about the quote 'And what do you think made me a master?'",
-      "Find me a prayer for Radiant Health and Well Being?",
+      "Find me a prayer for Radiant Health and Well Being",
       "Inspiring Yogananda quotes",
       "What are some tips for dealing with insomnia?",
       "If God is doing everything through us, how does free will fit in?",
@@ -432,7 +432,7 @@ export default function Home() {
                   <div className="flex justify-between items-start mt-1">
                     <div className="flex justify-between items-start mt-1">
                       <div className="w-1/2">
-                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} />
+                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} />
                       </div>
                       <div className="flex flex-col items-end w-1/2">
                         <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
