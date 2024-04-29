@@ -119,12 +119,13 @@ export default async function handler(
         callbacks: [
           {
             handleRetrieverEnd(documents) {
+              console.log("Retriever result:", documents);
               resolveWithDocuments(documents);
             },
           },
         ],
       });
-
+      
       //create chain
       const chain = makeChain(retriever, collection as PineconeConfigKey);
 
