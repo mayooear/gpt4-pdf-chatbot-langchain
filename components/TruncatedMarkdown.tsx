@@ -15,10 +15,12 @@ const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({ markdown, maxChar
     setIsTruncated(!isTruncated);
   };
 
+  const shouldTruncate = markdown.length >= maxCharacters * 1.1;
+
   const displayedMarkdown = useMemo(() => {
     const endOfTruncatedContent = markdown.slice(0, maxCharacters).lastIndexOf(" ");
-    return isTruncated ? markdown.slice(0, endOfTruncatedContent) : markdown;
-  }, [markdown, maxCharacters, isTruncated]);
+    return isTruncated && shouldTruncate ? markdown.slice(0, endOfTruncatedContent) : markdown;
+  }, [markdown, maxCharacters, isTruncated, shouldTruncate]);
 
   return (
     <div>
@@ -28,9 +30,9 @@ const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({ markdown, maxChar
       >
         {displayedMarkdown}
       </ReactMarkdown>
-      {isTruncated && (
+      {isTruncated && shouldTruncate && (
         <a href="#" onClick={toggleTruncated} className="inline">
-          ...**[See&nbsp;more](#)**
+          ...<b>See&nbsp;more</b>
         </a>
       )}
     </div>

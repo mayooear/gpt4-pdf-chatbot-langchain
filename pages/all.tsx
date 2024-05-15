@@ -1,5 +1,5 @@
 import Layout from '@/components/layout';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
 import { Document } from 'langchain/document';
@@ -40,42 +40,42 @@ const AllAnswers = () => {
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
 
+  const fetchAnswers = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    let newAnswers: Answer[] = [];
+    try {
+      const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
+        method: 'GET',
+      });
+      if (!answersResponse.ok) {
+        throw new Error(`HTTP error! status: ${answersResponse.status}`);
+      }
+      newAnswers = await answersResponse.json();
+    } catch (error) {
+      console.error("Failed to fetch answers:", error);
+    }
+    if (newAnswers.length === 0) {
+      setHasMore(false);
+    } else {
+      setAnswers(prevAnswers => {
+        const updatedAnswers = { ...prevAnswers };
+        newAnswers.forEach((answer: Answer) => {
+          updatedAnswers[answer.id] = answer;
+        });
+        return updatedAnswers;
+      });
+    }
+
+    setIsLoading(false);
+  }, [page, isLoading]);
+
   useEffect(() => {
-    const fetchAnswers = async () => {
-      if (isLoading) return;
-      setIsLoading(true);
-  
-      let newAnswers: Answer[] = [];
-      try {
-        const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
-          method: 'GET',
-        });
-        if (!answersResponse.ok) {
-          throw new Error(`HTTP error! status: ${answersResponse.status}`);
-        }
-        newAnswers = await answersResponse.json();
-      } catch (error) {
-        console.error("Failed to fetch answers:", error);
-      }
-      if (newAnswers.length === 0) {
-        setHasMore(false);
-      } else {
-        setAnswers(prevAnswers => {
-          const updatedAnswers = { ...prevAnswers };
-          newAnswers.forEach((answer: Answer) => {
-            updatedAnswers[answer.id] = answer;
-          });
-          return updatedAnswers;
-        });
-      }
-  
-      setIsLoading(false);
-    };
-  
     if (hasMore && !isLoading) {
       fetchAnswers();
     }
-  }, [page, hasMore, isLoading]);
+  }, [page, hasMore, isLoading, fetchAnswers]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
