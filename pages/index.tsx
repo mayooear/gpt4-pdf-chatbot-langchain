@@ -85,12 +85,12 @@ export default function Home() {
         ],
   }), []);
 
-  let randomQueries: string[] = [];
-  if (collection && Object.keys(collectionQueries).includes(collection)) {
-    const queriesForCollection = collectionQueries[collection as keyof typeof collectionQueries];
-    randomQueries = useRandomQueries(queriesForCollection || [], 3);
-  }
+  // Determine the queries for the current collection or use an empty array as a fallback
+  const queriesForCollection = collection ? collectionQueries[collection as keyof typeof collectionQueries] || [] : [];
 
+  // Always call useRandomQueries with the determined queries
+  const randomQueries = useRandomQueries(queriesForCollection, 3);
+  
   const queryRef = useRef<string>('');
 
   // private session stuff

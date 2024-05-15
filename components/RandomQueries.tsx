@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface RandomQueriesProps {
   queries: string[];
@@ -9,6 +9,11 @@ interface RandomQueriesProps {
 const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading }) => {
   const [displayCount, setDisplayCount] = useState(3);
   const [displayedQueries, setDisplayedQueries] = useState<string[]>([]);
+
+  const shuffleAndSetQueries = useCallback(() => {
+    const shuffled = [...queries].sort(() => 0.5 - Math.random());
+    setDisplayedQueries(shuffled.slice(0, displayCount));
+  }, [queries, displayCount]); // Dependencies for useCallback
 
   useEffect(() => {
     setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
@@ -22,16 +27,11 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
 
     // Cleanup function to remove the event listener
     return () => window.removeEventListener('resize', handleResize);
-  }, [queries]); 
+  }, [queries, shuffleAndSetQueries]); 
 
   useEffect(() => {
     shuffleAndSetQueries();
-  }, [displayCount]);
-
-  const shuffleAndSetQueries = () => {
-    const shuffled = [...queries].sort(() => 0.5 - Math.random());
-    setDisplayedQueries(shuffled.slice(0, displayCount));
-  };
+  }, [displayCount, shuffleAndSetQueries]); 
 
   return (
     <div className="text-left w-full px-0">
