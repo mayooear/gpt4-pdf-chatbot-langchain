@@ -1,8 +1,6 @@
 import Layout from '@/components/layout';
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import ReactMarkdown from 'react-markdown';
-import gfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import { Share } from 'next/font/google';
 import { Document } from 'langchain/document';
