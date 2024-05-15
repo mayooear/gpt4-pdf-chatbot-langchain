@@ -127,7 +127,7 @@ export const makeChain = (retriever: VectorStoreRetriever, context: PineconeConf
 
   const model = new ChatOpenAI({
     temperature: 0, // increase temperature to get more creative answers
-    modelName: 'gpt-4-turbo-preview',
+    modelName: 'gpt-4o',
   });
 
   // Rephrase the initial question into a dereferenced standalone question based on
