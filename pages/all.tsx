@@ -14,8 +14,9 @@ interface Answer {
   answer: string;
   sources: Document[];
   ip: string;
+  vote?: number; 
   history: any[]; // more specific here would be better
-  timestamp: Timestamp; 
+  timestamp: Timestamp;
 }
 
 interface Timestamp {
@@ -112,9 +113,14 @@ const AllAnswers = () => {
                 <div className="flex items-center">
                     <span className="material-icons">question_answer</span>
                     <p className="ml-4">
-                    Question: {answer.question}
+                    <b>Question:</b> {answer.question}
                     <span className="ml-4">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
+                        ({answer.ip}) {answer.vote === -1 && (
+                          <span className="items-center ml-2 text-red-600">
+                            <span className="material-icons">thumb_down</span>
+                          </span>
+                        )}
                     </span>
                     </p>
                 </div>
