@@ -21,6 +21,7 @@ export default async function handler(
 
     try {
       const answersQuery = db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
+        .where('question', '!=', 'private')
         .orderBy('timestamp', 'desc')
         .offset(page * limit)
         .limit(limit);
