@@ -6,18 +6,26 @@ import mysql.connector
 from bs4 import BeautifulSoup
 from mysql.connector import errors
 import time
-
+import sys
+from dotenv import load_dotenv
 from requests import RequestException
 from tqdm import tqdm
+import warnings
+
+# Suppress specific warning from fpdf
+warnings.filterwarnings("ignore", message="cmap value too big/small")
+
+# Load environment variables
+load_dotenv()
 
 # Database configuration
 db_config = {
-    'user': 'michael',
-    'password': 'ananda',
-    'host': 'localhost',
-    'database': 'anandalib',
-    'charset': 'utf8mb4',  # Use utf8mb4 for full UTF-8 compatibility
-    'collation': 'utf8mb4_unicode_ci',
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'host': os.getenv('DB_HOST'),
+    'database': os.getenv('DB_DATABASE'),
+    'charset': os.getenv('DB_CHARSET'),
+    'collation': os.getenv('DB_COLLATION'),
 }
 
 base_url = "https://www.anandalibrary.org/content/"
@@ -71,15 +79,20 @@ def get_data_from_wp(post_id, db, cursor):
             response = requests.get(api_url)
             if response.status_code == 200:
                 data = response.json()
-                permalink = data["url"].replace('staging2.', 'www.')
-                author_name = data["authors"][0] if data["authors"] else None
+                if "url" in data:
+                    permalink = data["url"].replace('staging2.', 'www.')
+                else:
+                    print(f"URL not found in response for post_id {post_id}")
+                    permalink = ''
+
+                author_name = data["authors"][0] if data.get("authors") else None
 
                 # Store permalink and author_name in the database for future use
                 cursor.execute("UPDATE wp_posts SET permalink = %s, author_name = %s WHERE ID = %s",
                                (permalink, author_name, post_id))
-                db.commit()  # Assuming 'db' is your database connection variable
-
+                db.commit()
                 return permalink, author_name
+
             else:
                 print(f"Attempt {attempt + 1}: Error retrieving data for post_id {post_id}. Status code: {response.status_code}")
                 if response.status_code == 504:
@@ -88,10 +101,14 @@ def get_data_from_wp(post_id, db, cursor):
                     continue
                 else:
                     break
+
         except RequestException as e:
             print(f"Attempt {attempt + 1}: Request failed: {e}")
             time.sleep(retry_delay)
             retry_delay *= 2
+        except mysql.connector.errors.DataError as e:
+            print(f"DataError encountered: {e}")
+            sys.exit(1)
 
     print(f"Failed to retrieve data for post_id {post_id} after {max_retries} attempts.")
     return None, None
@@ -173,6 +190,9 @@ while attempt < max_retries:
 
             # Filter out None values and concatenate parent titles with '::'.
             titles = [title for title in [parent_title_3, parent_title_2, parent_title_1, child_post_title] if title]
+
+            # Filter out the rare ones that say not to use them
+            titles = [title for title in titles if "DO NOT USE" not in title]
 
             # We insert a double colon here to be able to distinguish in the front end from a single 
             # colon and a tail. In case that is needed. We can remove the double colon in the front end display.

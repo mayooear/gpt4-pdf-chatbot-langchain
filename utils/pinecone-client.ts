@@ -3,6 +3,8 @@ import { Pinecone } from '@pinecone-database/pinecone';
 export const pineconeConfig = {
   'master_swami': process.env.PINECONE_API_KEY_MASTER_SWAMI,
   'whole_library': process.env.PINECONE_API_KEY_WHOLE_LIBRARY,
+  'master_swami_ingest': process.env.PINECONE_API_KEY_MASTER_SWAMI_INGEST,
+  'whole_library_ingest': process.env.PINECONE_API_KEY_WHOLE_LIBRARY_INGEST,
 };
 
 export type PineconeConfigKey = keyof typeof pineconeConfig;
@@ -27,10 +29,19 @@ async function initPinecone(apiKey: string) {
   }
 }
 
-export const getPineconeClient = async (context: PineconeConfigKey) => {
-  const apiKey = pineconeConfig[context];
+export const getPineconeClient = async (context: PineconeConfigKey, operation: 'ingest' | 'web' = 'web') => {
+  let apiKey;
+  if (operation === 'ingest') {
+    // Use ingest keys for ingestion operations
+    apiKey = context.endsWith('_ingest') ? pineconeConfig[context] : pineconeConfig[`${context}_ingest` as PineconeConfigKey];
+  } else {
+    // Use web keys for web operations
+    apiKey = pineconeConfig[context];
+  }
+  console.log("API key", apiKey);
+
   if (!apiKey) {
-    throw new Error('Invalid context provided: ' + context);
+    throw new Error('Invalid context or operation type provided: ' + context + ', ' + operation);
   }
   return await initPinecone(apiKey);
 };
