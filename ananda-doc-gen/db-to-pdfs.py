@@ -70,7 +70,7 @@ def get_data_from_wp(post_id, db, cursor):
         return result[0], result[1]
 
     # If not in DB, proceed with HTTP request
-    api_url = f"https://staging2.anandalibrary.org/ananda-api/get-url/?post_id={post_id}"
+    api_url = os.getenv('GET_URL_API') + str(post_id)
     max_retries = 5
     retry_delay = 1  # start with 1 second delay
 
@@ -80,7 +80,7 @@ def get_data_from_wp(post_id, db, cursor):
             if response.status_code == 200:
                 data = response.json()
                 if "url" in data:
-                    permalink = data["url"].replace('staging2.', 'www.')
+                    permalink = data["url"]
                 else:
                     print(f"URL not found in response for post_id {post_id}")
                     permalink = ''
