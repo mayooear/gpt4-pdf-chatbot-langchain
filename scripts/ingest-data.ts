@@ -7,6 +7,8 @@ import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import ProgressBar from 'progress';
 import readline from 'readline';
+import { collectionsConfig, CollectionKey } from '@/utils/collectionsConfig';
+import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 
 /* Name of directory to retrieve your files from 
    Make sure to add your PDF files inside the 'docs' folder
@@ -19,16 +21,52 @@ export const run = async (collection: PineconeConfigKey) => {
     process.exit(1); 
   }
 
+  console.log(`Processing collection: ${collectionsConfig[collection as CollectionKey]}`);
+
   let pinecone;
   try {
-    pinecone = await getPineconeClient(collection);
+    pinecone = await getPineconeClient(collection, 'ingest');
   } catch (error) {
     console.error('Failed to initialize Pinecone:', error);
     return;
   }
 
-  const pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
-  const stats = await pineconeIndex.describeIndexStats(); 
+  const confirmProceed = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  const answer = await new Promise<string>((resolve) => {
+    confirmProceed.question('Are you sure you want to proceed with data ingestion to that API key? (y/N) ', resolve);
+  });
+
+  if (answer.toLowerCase() === 'y') {
+    confirmProceed.close();
+  } else {
+    console.log('Data ingestion aborted.');
+    confirmProceed.close();
+    process.exit(0);
+  }
+
+  let pineconeIndex: Index<RecordMetadata>;
+  try {
+    pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
+  } catch (error) {
+    console.error('Error getting pinecone index:', error);
+    process.exit(1);
+  }
+
+  let stats;
+  try {
+    stats = await pineconeIndex.describeIndexStats();
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error('Error describing index stats:', error.message);
+    } else {
+      console.error('Unknown error describing index stats');
+    }
+    process.exit(1);
+  }
+
   const vectorCount = stats.totalRecordCount;
   if (vectorCount && vectorCount > 0) {
     const rl = readline.createInterface({
@@ -36,8 +74,8 @@ export const run = async (collection: PineconeConfigKey) => {
       output: process.stdout
     });
 
-    rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (Y/n) `, async (answer) => {
-      if (answer.toLowerCase().charAt(0) === 'y' || answer === '') {
+    rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (y/N) `, async (answer) => {
+      if (answer.toLowerCase().charAt(0) === 'y') {
         await pineconeIndex.deleteAll();
         console.log('All vectors deleted.');
       } else {
