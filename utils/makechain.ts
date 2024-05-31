@@ -110,7 +110,7 @@ const getQATemplate = (context: PineconeConfigKey) => {
       throw new Error('Invalid context provided for QA template: ' + context);
   }
 
-  console.log("Template: \n", template);
+  // console.log("Template: \n", template);
   return template;
 };
 

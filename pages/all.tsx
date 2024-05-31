@@ -7,22 +7,9 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
-
-interface Answer {
-  id: string;
-  question: string;
-  answer: string;
-  sources: Document[];
-  ip: string;
-  vote?: number; 
-  history: any[]; // more specific here would be better
-  timestamp: Timestamp;
-}
-
-interface Timestamp {
-  _seconds: number;
-  _nanoseconds: number;
-}
+import { Answer } from '@/types/answer';
+import { isSudo } from '@/utils/cookieUtils';
+import { collectionsConfig } from '@/utils/collectionsConfig';
 
 const AllAnswers = () => {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -31,6 +18,7 @@ const AllAnswers = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [isSudoUser, setIsSudoUser] = useState(false);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -44,7 +32,7 @@ const AllAnswers = () => {
   const fetchAnswers = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
-
+  
     let newAnswers: Answer[] = [];
     try {
       const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
@@ -56,7 +44,12 @@ const AllAnswers = () => {
       newAnswers = await answersResponse.json();
     } catch (error) {
       console.error("Failed to fetch answers:", error);
+    } finally {
+      setIsLoading(false);
+      // Set initialLoadComplete to true regardless of whether new answers were fetched
+      setInitialLoadComplete(true);
     }
+  
     if (newAnswers.length === 0) {
       setHasMore(false);
     } else {
@@ -68,8 +61,6 @@ const AllAnswers = () => {
         return updatedAnswers;
       });
     }
-
-    setIsLoading(false);
   }, [page, isLoading]);
 
   useEffect(() => {
@@ -97,64 +88,72 @@ const AllAnswers = () => {
     }
   }, [inView, hasMore, isLoading]);
 
+  useEffect(() => {
+    const checkSudoStatus = async () => {
+      const sudoStatus = await isSudo();
+      setIsSudoUser(sudoStatus);
+    };
+    checkSudoStatus();
+  }, []);
+
   return (
-    <Layout>
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        {isLoading && !initialLoadComplete && showDelayedSpinner ? (
-          <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
-            <p className="text-lg text-gray-600 ml-4">Loading...</p>
-          </div>
-        ) : (
+  <Layout>
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      {isLoading && !initialLoadComplete ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
+          <p className="text-lg text-gray-600 ml-4">Loading...</p>
+        </div>
+      ) : (
+        <div>
           <div>
-            <div>
             {Object.values(answers).map((answer, index) => (
-                <div key={answer.id} className="bg-white p-2.5 m-2.5">
+              <div key={answer.id} className="bg-white p-2.5 m-2.5">
                 <div className="flex items-center">
-                    <span className="material-icons">question_answer</span>
-                    <p className="ml-4">
+                  <span className="material-icons">question_answer</span>
+                  <p className="ml-4">
                     <b>Question:</b> {answer.question}
                     <span className="ml-4">
-                        {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
-                        ({answer.ip}) {answer.vote === -1 && (
-                          <span className="items-center ml-2 text-red-600">
-                            <span className="material-icons">thumb_down</span>
-                          </span>
-                        )}
+                      {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
+                      {answer.vote === -1 && (
+                        <span className="items-center ml-2 text-red-600">
+                          <span className="material-icons">thumb_down</span>
+                        </span>
+                      )}
+                      <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
+                        'Unknown\u00a0Collection'}
+                      </span>            
                     </span>
-                    </p>
+                  </p>
                 </div>
                 <div className="bg-gray-100 p-2.5 rounded">
-                    <div className="markdownanswer">
-                    {/* Use the TruncatedMarkdown component for the answer content */}
+                  <div className="markdownanswer">
                     <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
-                    {/* Render the sources list if available */}
                     {answer.sources && (
-                        <SourcesList sources={answer.sources} useAccordion={true} />
+                      <SourcesList sources={answer.sources} useAccordion={true} />
                     )}
-                    {/* Render the interaction buttons */}
                     <div className="flex items-center">
-                        <CopyButton markdown={answer.answer} />
-                        <div className="ml-4">
+                      <CopyButton markdown={answer.answer} />
+                      <div className="ml-4">
                         <LikeButton
-                            answerId={answer.id}
-                            initialLiked={likeStatuses[answer.id] || false}
-                            likeCount={likeCounts[answer.id] || 0} // Pass the like count to LikeButton
+                          answerId={answer.id}
+                          initialLiked={likeStatuses[answer.id] || false}
+                          likeCount={likeCounts[answer.id] || 0}
                         />
-                        </div>
+                      </div>
+                      {isSudoUser && <span className="ml-6">IP: ({answer.ip})</span>}
                     </div>
-                    </div>
+                  </div>
                 </div>
-            </div>
+              </div>
             ))}
-            {/* Intersection Observer Element */}
             {hasMore && <div ref={ref} style={{ height: 1 }} />}
-          </div>       
+          </div>
         </div>
-        )}
-      </div>
-    </Layout>
-  );
+      )}
+    </div>
+  </Layout>
+ );
 };
 
 export default AllAnswers;

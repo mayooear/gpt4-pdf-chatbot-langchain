@@ -21,7 +21,9 @@
     "@radix-ui/react-accordion": "^1.1.1",
     "aws-sdk": "^2.1545.0",
     "axios": "^1.6.8",
+    "bcrypt": "^5.1.1",
     "clsx": "^1.2.1",
+    "cookies": "^0.9.1",
     "date-fns": "^3.4.0",
     "dotenv": "^16.0.3",
     "firebase-admin": "^11.11.1",
@@ -43,6 +45,8 @@
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookies": "^0.9.0",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^18.14.6",
     "@types/progress": "^2.0.7",

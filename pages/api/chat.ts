@@ -7,47 +7,9 @@ import { PineconeConfigKey, pineconeConfig, getPineconeClient } from '@/utils/pi
 // import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
-import firebase from 'firebase-admin';
 import { db } from '@/services/firebase'; 
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
-
-async function getAnswersByIds(ids: string[]): Promise<any[]> {
-  const answers: any[] = [];
-
-  // Firestore 'whereIn' queries are limited to 10 items per query.
-  // If we get more than 10 IDs, we'll need to split them into chunks.
-  const chunkSize = 10;
-  for (let i = 0; i < ids.length; i += chunkSize) {
-    const chunk = ids.slice(i, i + chunkSize);
-
-    const startTime = performance.now(); 
-
-    const snapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
-                             .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
-                             .get();
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      try {
-        if (typeof data.sources === 'string') {
-          // Sanitize the string by replacing invisible/control characters
-          const sanitizedSources = data.sources.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
-          data.sources = JSON.parse(sanitizedSources);
-        } else {
-          data.sources =  [];
-        }
-      } catch (error) {
-        data.sources = []
-      }
-      answers.push({ id: doc.id, ...data });
-    });
-  
-    const endTime = performance.now(); 
-    console.log(`Chat getAnswersByIds: call to Firestore took ${Math.round(endTime - startTime)} milliseconds.`);
-  }
-
-  return answers;
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -55,35 +17,18 @@ export default async function handler(
 ) {
   const { collection, question, history, privateSession } = req.body;
   
-  let clientIP = '';
-  if (privateSession) {
-    console.log("\nPRIVATE question asked");
-  } else {
-    const forwarded = req.headers['x-forwarded-for'];
-    clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : (req.socket.remoteAddress || '');
-    console.log('\nClient IP:', clientIP);
-    console.log('QUESTION:', question);
-    console.log('');
-  }
-  
-  if (req.method === 'GET') {
-    try {
-      // get a list of answers
-      const { answerIds } = req.query;
-      if (!answerIds || typeof answerIds !== 'string') {
-        return res.status(400).json({ message: 'answerIds parameter is required and must be a comma-separated string.' });
-      }
-
-      const idsArray = answerIds.split(',');
-      const answers = await getAnswersByIds(idsArray);
-      res.status(200).json(answers);
-
-    } catch (error) {
-      console.error('Error fetching answers: ', error);
-      res.status(500).json({ message: 'Error fetching answers', error });
+  if (req.method == 'POST') {
+    let clientIP = '';
+    if (privateSession) {
+      console.log("\nPRIVATE question asked");
+    } else {
+      const forwarded = req.headers['x-forwarded-for'];
+      clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : (req.socket.remoteAddress || '');
+      console.log('\nClient IP:', clientIP);
+      console.log('QUESTION:', question);
+      console.log('');
     }
-  }
-  else if (req.method == 'POST') {
+
     if (typeof collection !== 'string' || !(collection in pineconeConfig)) {
       return res.status(400).json({ error: 'Invalid collection provided' });
     }
@@ -96,7 +41,7 @@ export default async function handler(
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
     try {  
-      const pinecone = await getPineconeClient(collection as PineconeConfigKey);
+      const pinecone = await getPineconeClient(collection as PineconeConfigKey, 'web');
       console.log("Pinecone collection:", collection);
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 

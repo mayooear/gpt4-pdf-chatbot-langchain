@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
 import { Share } from 'next/font/google';
-import { Document } from 'langchain/document';
 import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
@@ -11,6 +10,7 @@ import { checkUserLikes, getLikeCounts } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/uuid';
 import { toast } from 'react-toastify';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
+import { Answer } from '@/types/answer';
 
 interface Share {
   id: string;
@@ -19,21 +19,6 @@ interface Share {
   comments?: string;
   answerId: string;
   createdAt: number; // Unix timestamp format
-}
-
-interface Answer {
-  id: string;
-  question: string;
-  answer: string;
-  sources: Document[];
-  ip: string;
-  history: any[]; // more specific here would be better
-  timestamp: Timestamp; 
-}
-
-interface Timestamp {
-  _seconds: number;
-  _nanoseconds: number;
 }
 
 const SharedAnswers = () => {
@@ -75,7 +60,7 @@ const SharedAnswers = () => {
       // Fetch related answers in a batch
       const answerIds = newShares.map((share: Share) => share.answerId).join(',');
       let answersBatch: Answer[];
-      const answerResponse = await fetch(`/api/chat?answerIds=${answerIds}`);
+      const answerResponse = await fetch(`/api/getAnswers?answerIds=${answerIds}`);
       if (!answerResponse.ok) {
         answersBatch = [];
         toast.error(`Error fetching answers: ${answerResponse.statusText}`);

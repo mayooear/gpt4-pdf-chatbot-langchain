@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion';
 import styles from '@/styles/Home.module.css';
+import { collectionsConfig, CollectionKey } from '@/utils/collectionsConfig';
 
 interface SourcesListProps {
   sources: Document[];
@@ -16,6 +17,8 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
   // replace double colon with right arrow.
   const formatTitle = (title: string) => title.replace(/::/g, ' > ');
+
+  const displayCollectionName = collectionName ? collectionsConfig[collectionName as CollectionKey] : '';
 
   if (useAccordion) {
     return (
@@ -64,9 +67,9 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             </a>
           </h3>
         </div>
-        {collectionName && (
+        {displayCollectionName && (
           <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
-            {collectionName === 'master_swami' ? 'Master and Swami' : 'Whole Library'}
+            {displayCollectionName}
           </span>
         )}
       </div>

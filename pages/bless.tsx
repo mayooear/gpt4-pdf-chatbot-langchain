@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
-import { GetServerSideProps, GetServerSidePropsContext } from 'next';
+import { isSudo } from '../utils/cookieUtils';
 
 interface SudoPageProps {
   pageName: string;
@@ -33,28 +32,16 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
     const data = await response.json();
     setSudoStatus(data.message);
   };
-    
+
   useEffect(() => {
-    const getSudoCookie = async () => {
-      const response = await fetch('/api/sudoCookie', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
-      return data.sudoCookieValue;
+    const checkSudoStatus = async () => {
+      const isSudoUser = await isSudo();
+      setSudoStatus(isSudoUser ? 'You are Blessed!' : 'You are not blessed');
     };
-  
-    getSudoCookie().then(sudoCookie => {
-      if (!sudoCookie) {
-        setSudoStatus('You are not blessed');
-      } else {
-        setSudoStatus('You are Blessed!');
-      }
-    });
+
+    checkSudoStatus();
   }, []);
-  
+
   return (
     <div className="flex flex-col justify-center items-center h-screen">
       <p className="text-lg text-gray-600 mb-4">
