@@ -145,6 +145,8 @@ export default function Home() {
   };
     
   // Share dialog
+  // As of 5/30/24 this is disabled. The button has been removed, but all the code is still here in case we want to
+  // revive the share page later
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [currentMarkdownAnswer, setCurrentMarkdownAnswer] = useState('');
   const [currentAnswerId, setCurrentAnswerId] = useState('');
@@ -355,7 +357,7 @@ export default function Home() {
                                   {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
                                 </span>
                               </button>
-                              {!privateSession && (
+                              {/* {!privateSession && (
                                 <button
                                   onClick={() => handleShareClick(message.message, message.docId as string)}
                                   className="shareButton hover:bg-gray-200"
@@ -363,7 +365,7 @@ export default function Home() {
                                 >
                                   <span className="material-icons"> share </span>
                                 </button>
-                              )}
+                              )} */}
                               {shareSuccess[message.docId] && (
                                 <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
                                   <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>
