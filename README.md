@@ -32,7 +32,7 @@ The runtime website code is significantly extended from the forked project. We h
 - Display of sources with links
 - Thumbs up, and thumbs down for system feedback
 - Copy button
-- Shared Answers page for social sharing, including heart button to indicate user likes
+- All Answers page for social sharing, including heart button to indicate user likes
 
 ## Development
 

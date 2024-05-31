@@ -12,7 +12,7 @@ const Navbar = () => {
         </li>
         <li>
           <Link href="/shared">
-            <a>Shared Answers</a>
+            <a>All Answers</a>
           </Link>
         </li>
       </ul>

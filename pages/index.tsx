@@ -48,8 +48,8 @@ export default function Home() {
 
   // popup message for new users
   const { showPopup, closePopup, popupMessage } = 
-    usePopup('1.01', 
-    "We log questions and answers to improve the service. " + 
+    usePopup('1.02', 
+    "Others can see questions you ask and answers given. " + 
      "Please click Start Private Session below the text entry box if you would prefer we not log your session."
     );
 

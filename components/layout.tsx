@@ -27,8 +27,8 @@ export default function Layout({ children }: LayoutProps) {
                 </a>
               </Link>
               <Link legacyBehavior href="/shared">
-                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/shared') ? 'text-slate-800 font-bold' : ''}`}>
-                  Shared Answers
+                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/all') ? 'text-slate-800 font-bold' : ''}`}>
+                  All Answers
                 </a>
               </Link>
             </div>
