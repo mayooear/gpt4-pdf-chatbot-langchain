@@ -11,7 +11,7 @@ const Navbar = () => {
           </Link>
         </li>
         <li>
-          <Link href="/shared">
+          <Link href="/all">
             <a>All Answers</a>
           </Link>
         </li>
