@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isSudo } from '../utils/cookieUtils';
+import Link from 'next/link';
 
 interface SudoPageProps {
   pageName: string;
@@ -56,7 +57,7 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
         />
         <button type="submit">Submit</button>
       </form>
-      <a href="/" className="text-blue-500 hover:underline mb-4">Go to Home</a>
+      <Link href="/" className="text-blue-500 hover:underline mb-4">Go to Home</Link>
       <a href="#" onClick={handleRemoveBlessed} className="text-blue-500 hover:underline">Remove Blessed Cookie</a>
     </div>
   );
