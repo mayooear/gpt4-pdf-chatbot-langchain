@@ -75,8 +75,6 @@ export default function Home() {
     master_swami: [
       "How does Swami say to prepare for hard times?",
       "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
-      "What did Yogananda say about the influence of television?",
-      "Tell me in detail about the quote 'And what do you think made me a master?'",
       "Find me a prayer for Radiant Health and Well Being",
       "Inspiring Yogananda quotes",
       "What are some tips for dealing with insomnia?",
