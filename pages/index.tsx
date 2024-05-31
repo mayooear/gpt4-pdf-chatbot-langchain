@@ -50,7 +50,7 @@ export default function Home() {
   const { showPopup, closePopup, popupMessage } = 
     usePopup('1.02', 
     "Others can see questions you ask and answers given. " + 
-     "Please click Start Private Session below the text entry box if you would prefer we not log your session."
+     "Please click 'Start Private Session' below the text entry box if you would prefer we not log your session."
     );
 
   const handleCollectionChange = (newCollection: string) => {
