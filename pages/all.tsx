@@ -10,6 +10,8 @@ import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { Answer } from '@/types/answer';
 import { isSudo } from '@/utils/cookieUtils';
 import { collectionsConfig } from '@/utils/collectionsConfig';
+import { checkUserLikes, getLikeCounts } from '@/services/likeService';
+import { getOrCreateUUID } from '@/utils/uuid';
 
 const AllAnswers = () => {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -32,7 +34,7 @@ const AllAnswers = () => {
   const fetchAnswers = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
-  
+
     let newAnswers: Answer[] = [];
     try {
       const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
@@ -46,10 +48,9 @@ const AllAnswers = () => {
       console.error("Failed to fetch answers:", error);
     } finally {
       setIsLoading(false);
-      // Set initialLoadComplete to true regardless of whether new answers were fetched
       setInitialLoadComplete(true);
     }
-  
+
     if (newAnswers.length === 0) {
       setHasMore(false);
     } else {
@@ -59,6 +60,14 @@ const AllAnswers = () => {
           updatedAnswers[answer.id] = answer;
         });
         return updatedAnswers;
+      });
+
+      // Fetch like counts for the new answers
+      const answerIds = newAnswers.map(answer => answer.id);
+      getLikeCounts(answerIds).then(counts => {
+        setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
+      }).catch(error => {
+        console.error('Error fetching like counts:', error);
       });
     }
   }, [page, isLoading]);
@@ -95,6 +104,29 @@ const AllAnswers = () => {
     };
     checkSudoStatus();
   }, []);
+
+  useEffect(() => {
+    const fetchLikeStatuses = async (answerIds: string[]) => {
+      const uuid = getOrCreateUUID();
+      const statuses = await checkUserLikes(answerIds, uuid);
+      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+    };
+
+    if (Object.keys(answers).length > 0) {
+      fetchLikeStatuses(Object.keys(answers));
+    }
+  }, [answers]);
+
+  useEffect(() => {
+    const fetchLikeCounts = async (answerIds: string[]) => {
+      const counts = await getLikeCounts(answerIds);
+      setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
+    };
+
+    if (Object.keys(answers).length > 0) {
+      fetchLikeCounts(Object.keys(answers));
+    }
+  }, [answers]);
 
   return (
   <Layout>
