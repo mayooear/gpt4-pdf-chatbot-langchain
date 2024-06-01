@@ -1,16 +1,15 @@
 import Layout from '@/components/layout';
-import { useEffect, useState, useCallback } from 'react';
-import { useInView } from 'react-intersection-observer';
-import { formatDistanceToNow } from 'date-fns';
-import { Document } from 'langchain/document';
 import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
+import { useEffect, useState, useCallback } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
+import { checkUserLikes, getLikeCounts } from '@/services/likeService';
 import { isSudo } from '@/utils/cookieUtils';
 import { collectionsConfig } from '@/utils/collectionsConfig';
-import { checkUserLikes, getLikeCounts } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/uuid';
 
 const AllAnswers = () => {
