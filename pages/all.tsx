@@ -21,6 +21,7 @@ const AllAnswers = () => {
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newContentLoaded, setNewContentLoaded] = useState(false);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -112,6 +113,23 @@ const AllAnswers = () => {
     };
     checkSudoStatus();
   }, []);
+
+  // these two are for visual indication when new content loaded by infinite scroll
+  useEffect(() => {
+    if (inView && hasMore && !isLoading) {
+      setPage(prevPage => prevPage + 1);
+      setNewContentLoaded(true);
+    }
+  }, [inView, hasMore, isLoading]);
+  useEffect(() => {
+    if (newContentLoaded) {
+      window.scrollTo({
+        top: document.documentElement.scrollTop + 100, // Scroll down slightly
+        behavior: 'smooth',
+      });
+      setNewContentLoaded(false);
+    }
+  }, [newContentLoaded]);
 
   useEffect(() => {
     if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
