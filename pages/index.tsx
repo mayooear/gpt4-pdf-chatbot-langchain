@@ -20,6 +20,7 @@ import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 
 export default function Home() {
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
   const [collection, setCollection] = useState<string | undefined>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
@@ -282,6 +283,21 @@ export default function Home() {
   if (collection === undefined) {
     return <LoadingDots color="#000" />; 
   }  
+
+  if (isMaintenanceMode) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h1 className="text-3xl font-bold">
+            This page is currently down for maintenance. Please check back later. 
+          </h1>
+          <p className="mt-4">
+            You can still view the <Link href="/all" className="text-blue-500">All Answers</Link> page.
+          </p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <>
