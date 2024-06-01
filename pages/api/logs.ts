@@ -41,13 +41,13 @@ export default async function handler(
 
       res.status(200).json(answers);
     } catch (error: any) {
-        console.error('Error fetching answers: ', error);
-        if (error.code === 8) { 
-          res.status(429).json({ message: 'Error: Quota exceeded. Please try again later.' });
-        } else {
-          res.status(500).json({ message: 'Error fetching answers', error: error.message });
-        }
+      console.error('Error fetching answers: ', error);
+      if (error.code === 8) { 
+        res.status(429).json({ message: 'Error: Quota exceeded. Please try again later.' });
+      } else {
+        res.status(500).json({ message: 'Error fetching answers', error: error.message });
       }
+    }
   } else {
     res.setHeader('Allow', ['GET']);
     res.status(405).end(`Method ${req.method} Not Allowed`);

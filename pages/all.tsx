@@ -21,6 +21,7 @@ const AllAnswers = () => {
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -31,46 +32,54 @@ const AllAnswers = () => {
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
 
-  const fetchAnswers = useCallback(async () => {
-    if (isLoading) return;
-    setIsLoading(true);
+     const fetchAnswers = useCallback(async () => {
+     if (isLoading) return;
+     setIsLoading(true);
+     setError(null); // Reset error state before fetching
 
-    let newAnswers: Answer[] = [];
-    try {
-      const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
-        method: 'GET',
-      });
-      if (!answersResponse.ok) {
-        throw new Error(`HTTP error! status: ${answersResponse.status}`);
-      }
-      newAnswers = await answersResponse.json();
-    } catch (error) {
-      console.error("Failed to fetch answers:", error);
-    } finally {
-      setIsLoading(false);
-      setInitialLoadComplete(true);
-    }
+     let newAnswers: Answer[] = [];
+     try {
+       const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
+         method: 'GET',
+       });
+       if (!answersResponse.ok) {
+         throw new Error(`HTTP error! status: ${answersResponse.status}`);
+       }
+       newAnswers = await answersResponse.json();
+     } catch (error: any) {
+       console.error("Failed to fetch answers:", error);
+       if (error.message.includes('429')) {
+         setError('Quota exceeded. Please try again later.');
+       } else {
+         setError('Failed to fetch answers. Please try again.');
+       }
+     } finally {
+       setIsLoading(false);
+       setInitialLoadComplete(true);
+     }
 
-    if (newAnswers.length === 0) {
-      setHasMore(false);
-    } else {
-      setAnswers(prevAnswers => {
-        const updatedAnswers = { ...prevAnswers };
-        newAnswers.forEach((answer: Answer) => {
-          updatedAnswers[answer.id] = answer;
+     if (newAnswers.length === 0) {
+       setHasMore(false);
+     } else {
+       setAnswers(prevAnswers => {
+         const updatedAnswers = { ...prevAnswers };
+         newAnswers.forEach((answer: Answer) => {
+           updatedAnswers[answer.id] = answer;
+         });
+         return updatedAnswers;
+       });
+
+       // Fetch like counts for the new answers
+       if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+        const answerIds = newAnswers.map(answer => answer.id);
+        getLikeCounts(answerIds).then(counts => {
+          setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
+        }).catch(error => {
+          console.error('Error fetching like counts:', error);
         });
-        return updatedAnswers;
-      });
-
-      // Fetch like counts for the new answers
-      const answerIds = newAnswers.map(answer => answer.id);
-      getLikeCounts(answerIds).then(counts => {
-        setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
-      }).catch(error => {
-        console.error('Error fetching like counts:', error);
-      });
-    }
-  }, [page, isLoading]);
+      }
+     }
+   }, [page, isLoading]);
 
   useEffect(() => {
     if (hasMore && !isLoading) {
@@ -106,86 +115,96 @@ const AllAnswers = () => {
   }, []);
 
   useEffect(() => {
-    const fetchLikeStatuses = async (answerIds: string[]) => {
-      const uuid = getOrCreateUUID();
-      const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
-    };
-
-    if (Object.keys(answers).length > 0) {
-      fetchLikeStatuses(Object.keys(answers));
+    if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+      const fetchLikeStatuses = async (answerIds: string[]) => {
+        const uuid = getOrCreateUUID();
+        const statuses = await checkUserLikes(answerIds, uuid);
+        setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+      };
+  
+      if (Object.keys(answers).length > 0) {
+        fetchLikeStatuses(Object.keys(answers));
+      }
     }
   }, [answers]);
 
   useEffect(() => {
-    const fetchLikeCounts = async (answerIds: string[]) => {
-      const counts = await getLikeCounts(answerIds);
-      setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
-    };
-
-    if (Object.keys(answers).length > 0) {
-      fetchLikeCounts(Object.keys(answers));
+    if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+      const fetchLikeCounts = async (answerIds: string[]) => {
+        const counts = await getLikeCounts(answerIds);
+        setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
+      };
+  
+      if (Object.keys(answers).length > 0) {
+        fetchLikeCounts(Object.keys(answers));
+      }
     }
   }, [answers]);
-
+  
   return (
-  <Layout>
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-      {isLoading && !initialLoadComplete ? (
-        <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
-          <p className="text-lg text-gray-600 ml-4">Loading...</p>
-        </div>
-      ) : (
-        <div>
+    <Layout>
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        {isLoading && !initialLoadComplete ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
+            <p className="text-lg text-gray-600 ml-4">Loading...</p>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-screen">
+            <p className="text-lg text-red-600">{error}</p>
+          </div>
+        ) : (
           <div>
-            {Object.values(answers).map((answer, index) => (
-              <div key={answer.id} className="bg-white p-2.5 m-2.5">
-                <div className="flex items-center">
-                  <span className="material-icons">question_answer</span>
-                  <p className="ml-4">
-                    <b>Question:</b> {answer.question}
-                    <span className="ml-4">
-                      {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
-                      {answer.vote === -1 && (
-                        <span className="items-center ml-2 text-red-600">
-                          <span className="material-icons">thumb_down</span>
-                        </span>
+            <div>
+              {Object.values(answers).map((answer, index) => (
+                <div key={answer.id} className="bg-white p-2.5 m-2.5">
+                  <div className="flex items-center">
+                    <span className="material-icons">question_answer</span>
+                    <p className="ml-4">
+                      <b>Question:</b> {answer.question}
+                      <span className="ml-4">
+                        {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
+                        {answer.vote === -1 && (
+                          <span className="items-center ml-2 text-red-600">
+                            <span className="material-icons">thumb_down</span>
+                          </span>
+                        )}
+                        <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
+                          'Unknown\u00a0Collection'}
+                        </span>            
+                      </span>
+                    </p>
+                  </div>
+                  <div className="bg-gray-100 p-2.5 rounded">
+                    <div className="markdownanswer">
+                      <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
+                      {answer.sources && (
+                        <SourcesList sources={answer.sources} useAccordion={true} />
                       )}
-                      <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
-                        'Unknown\u00a0Collection'}
-                      </span>            
-                    </span>
-                  </p>
-                </div>
-                <div className="bg-gray-100 p-2.5 rounded">
-                  <div className="markdownanswer">
-                    <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
-                    {answer.sources && (
-                      <SourcesList sources={answer.sources} useAccordion={true} />
-                    )}
-                    <div className="flex items-center">
-                      <CopyButton markdown={answer.answer} />
-                      <div className="ml-4">
-                        <LikeButton
-                          answerId={answer.id}
-                          initialLiked={likeStatuses[answer.id] || false}
-                          likeCount={likeCounts[answer.id] || 0}
-                        />
+                      <div className="flex items-center">
+                        <CopyButton markdown={answer.answer} />
+                        <div className="ml-4">
+                          {isSudoUser && process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true' && (
+                            <LikeButton
+                              answerId={answer.id}
+                              initialLiked={likeStatuses[answer.id] || false}
+                              likeCount={likeCounts[answer.id] || 0}
+                            />
+                          )}
+                        </div>
+                        {isSudoUser && <span className="ml-6">IP: ({answer.ip})</span>}
                       </div>
-                      {isSudoUser && <span className="ml-6">IP: ({answer.ip})</span>}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {hasMore && <div ref={ref} style={{ height: 1 }} />}
+              ))}
+              {hasMore && <div ref={ref} style={{ height: 1 }} />}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  </Layout>
- );
+        )}
+      </div>
+    </Layout>
+  );
 };
 
 export default AllAnswers;
