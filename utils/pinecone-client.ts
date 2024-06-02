@@ -51,8 +51,11 @@ export const getPineconeClient = async (context: PineconeConfigKey, operation: '
   console.log("API key", config.apiKey);
   console.log("environment", config.environment)
 
-  if (!config.apiKey || !config.environment) {
-    throw new Error('Invalid context or operation type provided: ' + context + ', ' + operation);
+  if (!config.apiKey) {
+    throw new Error('Invalid API key provided for context: ' + context);
+  }
+  if (!config.environment) {
+    throw new Error('Invalid environment provided for operation type: ' + operation);
   }
   try {
     return await initPinecone(config.apiKey, config.environment);
