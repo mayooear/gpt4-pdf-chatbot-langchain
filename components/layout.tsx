@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
               <Link legacyBehavior href="/all">
                 <a className={`hover:text-slate-600 cursor-pointer ${isActive('/all') ? 'text-slate-800 font-bold' : ''}`}>
-                  All Answers
+                  All&nbsp;Answers
                 </a>
               </Link>
             </div>

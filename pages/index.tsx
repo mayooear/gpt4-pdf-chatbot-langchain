@@ -292,7 +292,7 @@ export default function Home() {
             This page is currently down for maintenance. Please check back later. 
           </h1>
           <p className="mt-4">
-            You can still view the <Link href="/all" className="text-blue-500">All Answers</Link> page.
+            You can still view the <Link href="/all" className="text-blue-500">All&nbsp;Answers</Link> page.
           </p>
         </div>
       </Layout>
