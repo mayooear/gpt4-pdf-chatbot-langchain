@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
+import { isSudo } from '@/utils/cookieUtils';
 
 async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
@@ -33,6 +34,15 @@ async function getAnswersByIds(ids: string[]): Promise<any[]> {
   return answers;
 }
 
+async function deleteAnswerById(id: string): Promise<void> {
+  try {
+    await db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(id).delete();
+  } catch (error) {
+    console.error('Error deleting answer: ', error);
+    throw error;
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -53,6 +63,25 @@ export default async function handler(
       } else {
         res.status(500).json({ message: 'Error fetching answers', error: error.message });
       }
+    }
+  } else if (req.method === 'DELETE') {
+    try {
+      const { answerId } = req.query;
+      if (!answerId || typeof answerId !== 'string') {
+        return res.status(400).json({ message: 'answerId parameter is required.' });
+      }
+
+      const cookies = req.headers.cookie || '';
+      const sudo = await isSudo(cookies);
+      if (!sudo) {
+        return res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
+      }
+
+      await deleteAnswerById(answerId);
+      res.status(200).json({ message: 'Answer deleted successfully.' });
+    } catch (error: any) {
+      console.error('Error deleting answer: ', error);
+      res.status(500).json({ message: 'Error deleting answer', error: error.message });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

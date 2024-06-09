@@ -108,7 +108,8 @@ const AllAnswers = () => {
 
   useEffect(() => {
     const checkSudoStatus = async () => {
-      const sudoStatus = await isSudo();
+      const cookies = document.cookie;
+      const sudoStatus = await isSudo(cookies);
       setIsSudoUser(sudoStatus);
     };
     checkSudoStatus();
@@ -157,6 +158,28 @@ const AllAnswers = () => {
       }
     }
   }, [answers]);
+
+  const handleDelete = async (answerId: string) => {
+    if (confirm('Are you sure you want to delete this answer?')) {
+      try {
+        const response = await fetch(`/api/answers?answerId=${answerId}`, {
+          method: 'DELETE',
+        });
+        const responseData = await response.json();
+        if (!response.ok) {
+          throw new Error('Failed to delete answer (' + responseData.message + ')');
+        }
+        setAnswers(prevAnswers => {
+          const updatedAnswers = { ...prevAnswers };
+          delete updatedAnswers[answerId];
+          return updatedAnswers;
+        });
+      } catch (error) {
+        console.error('Error deleting answer:', error);
+        alert('Failed to delete answer. Please try again.');
+      }
+    }
+  };
   
   return (
     <Layout>
@@ -209,7 +232,14 @@ const AllAnswers = () => {
                             />
                           )}
                         </div>
-                        {isSudoUser && <span className="ml-6">IP: ({answer.ip})</span>}
+                        {isSudoUser && (
+                          <>
+                            <button onClick={() => handleDelete(answer.id)} className="ml-4 text-red-600">
+                              <span className="material-icons">delete</span>
+                            </button>
+                            <span className="ml-6">IP: ({answer.ip})</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

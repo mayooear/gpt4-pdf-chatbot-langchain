@@ -60,7 +60,7 @@ const SharedAnswers = () => {
       // Fetch related answers in a batch
       const answerIds = newShares.map((share: Share) => share.answerId).join(',');
       let answersBatch: Answer[];
-      const answerResponse = await fetch(`/api/getAnswers?answerIds=${answerIds}`);
+      const answerResponse = await fetch(`/api/answers?answerIds=${answerIds}`);
       if (!answerResponse.ok) {
         answersBatch = [];
         toast.error(`Error fetching answers: ${answerResponse.statusText}`);
