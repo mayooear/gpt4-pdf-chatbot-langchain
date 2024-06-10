@@ -42,9 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  console.log(`Request method: ${req.method}`); // Log the request method
-  console.log(`User IP: ${userIp}`); // Log the user IP
-  console.log(`Request headers: ${JSON.stringify(req.headers)}`); // Log the request headers
+  // console.log(`Request method: ${req.method}`); // Log the request method
+  // console.log(`User IP: ${userIp}`); // Log the user IP
+  // console.log(`Request headers: ${JSON.stringify(req.headers)}`); // Log the request headers
 
   if (req.method === 'POST') {
     const { password } = req.body;

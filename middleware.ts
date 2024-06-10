@@ -5,7 +5,7 @@ export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
   // Redirect HTTP to HTTPS
-  if (url.protocol === 'http:') {
+  if (url.protocol === 'http:' && process.env.ENVIRONMENT !== 'dev') {
     url.protocol = 'https:';
     return NextResponse.redirect(url);
   }

@@ -1,5 +1,5 @@
 export async function isSudo(cookies: string): Promise<boolean> {
-  const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/sudoCookie`;
+  const url = `/api/sudoCookie`;
 
   const response = await fetch(url, {
     method: 'GET',
