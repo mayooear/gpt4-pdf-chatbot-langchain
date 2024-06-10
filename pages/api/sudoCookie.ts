@@ -56,7 +56,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const cookies = new Cookies(req, res);
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev'; // secure in production, not secure in development
+  const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
@@ -78,10 +79,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (match) {
       const token = crypto.randomBytes(64).toString('hex');
       const encryptedToken = encrypt(`${token}:${userIp}`);
-      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev'; // secure in production, not secure in development
       const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 3); // Set cookie to expire in 3 months
-      cookies.set(sudoCookieName, encryptedToken, { httpOnly: true, secure: isSecure, sameSite: 'strict', expires: expiryDate });
+      expiryDate.setMonth(expiryDate.getMonth() + 3); 
+      cookies.set(sudoCookieName, encryptedToken, 
+        { httpOnly: true, secure: isSecure, sameSite: 'strict', expires: expiryDate });
       res.status(200).json({ message: 'You have been blessed' });
     } else {
       res.status(403).json({ message: 'Incorrect password' });
