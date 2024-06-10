@@ -1,19 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
+import cors, { runMiddleware } from 'utils/corsMiddleware';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_BASE_URL || '');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  await runMiddleware(req, res, cors);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  console.log(`Request method: ${req.method}`); // Log the request method
+  console.log(`Request method: ${req.method}`);
 
   if (req.method === 'POST') {
     const { password, redirect } = req.body;
@@ -25,8 +23,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const match = await bcrypt.compare(password, storedHashedPassword);
     if (match) {
-      const cookies = new Cookies(req, res);
-      cookies.set('siteAuth', 'true', { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev';
+      const cookies = new Cookies(req, res, { secure: isSecure });
+      cookies.set('siteAuth', 'true', { httpOnly: true, secure: isSecure });
       return res.status(200).json({ message: 'Authenticated', redirect });
     } else {
       return res.status(403).json({ message: 'Incorrect password' });

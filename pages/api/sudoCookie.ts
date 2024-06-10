@@ -2,29 +2,10 @@
 // and includes the user's IP address.
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import Cors from 'cors';
 import Cookies from 'cookies';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-
-// Initialize the cors middleware
-const cors = Cors({
-  methods: ['POST', 'GET', 'DELETE', 'OPTIONS'],
-  origin: process.env.NEXT_PUBLIC_BASE_URL || '', // Allow requests from your frontend domain
-  credentials: true,
-});
-
-// Helper method to wait for a middleware to execute before continuing
-function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: Function) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
+import cors, { runMiddleware } from 'utils/corsMiddleware';
 
 const secretKey = crypto.createHash('sha256').update(process.env.SECRET_KEY || 'fIp0%%wgKqmJ0aqtQo').digest();
 
@@ -56,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev'; // secure in production, not secure in development
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev';
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
