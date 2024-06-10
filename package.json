@@ -48,6 +48,7 @@
     "@types/axios": "^0.14.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookies": "^0.9.0",
+    "@types/cors": "^2.8.17",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^18.14.6",
     "@types/progress": "^2.0.7",
