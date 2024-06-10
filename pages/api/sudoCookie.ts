@@ -1,6 +1,6 @@
 // This has pretty good security. It encrypts the cookie with a secret key
 // and includes the user's IP address.
- 
+
 import Cookies from 'cookies';
 import bcrypt from 'bcrypt';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -27,9 +27,21 @@ function decrypt(text: string) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_BASE_URL);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   const cookies = new Cookies(req, res);
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+  console.log(`Request method: ${req.method}`); // Log the request method
 
   if (req.method === 'POST') {
     const { password } = req.body;
