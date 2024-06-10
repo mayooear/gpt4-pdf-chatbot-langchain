@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const token = crypto.randomBytes(64).toString('hex');
       const encryptedToken = encrypt(`${token}:${userIp}`);
       const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 3); 
+      expiryDate.setMonth(expiryDate.getMonth() + 12); 
       cookies.set(sudoCookieName, encryptedToken, 
         { httpOnly: true, secure: isSecure, sameSite: 'strict', expires: expiryDate });
       res.status(200).json({ message: 'You have been blessed' });

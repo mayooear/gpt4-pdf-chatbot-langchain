@@ -25,7 +25,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (match) {
       const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev';
       const cookies = new Cookies(req, res, { secure: isSecure });
-      cookies.set('siteAuth', 'true', { httpOnly: true, secure: isSecure });
+
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 12);
+      cookies.set('siteAuth', 'true', { httpOnly: true, secure: isSecure, expires: expiryDate });
       return res.status(200).json({ message: 'Authenticated', redirect });
     } else {
       return res.status(403).json({ message: 'Incorrect password' });
