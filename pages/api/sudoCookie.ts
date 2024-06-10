@@ -1,10 +1,30 @@
 // This has pretty good security. It encrypts the cookie with a secret key
 // and includes the user's IP address.
 
+import { NextApiRequest, NextApiResponse } from 'next';
+import Cors from 'cors';
 import Cookies from 'cookies';
 import bcrypt from 'bcrypt';
-import { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
+
+// Initialize the cors middleware
+const cors = Cors({
+  methods: ['POST', 'GET', 'DELETE', 'OPTIONS'],
+  origin: process.env.NEXT_PUBLIC_BASE_URL || '', // Allow requests from your frontend domain
+  credentials: true,
+});
+
+// Helper method to wait for a middleware to execute before continuing
+function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: Function) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
 
 const secretKey = crypto.createHash('sha256').update(process.env.SECRET_KEY || 'fIp0%%wgKqmJ0aqtQo').digest();
 
@@ -27,15 +47,8 @@ function decrypt(text: string) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_BASE_URL || '');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  // Run the CORS middleware
+  await runMiddleware(req, res, cors);
 
   const cookies = new Cookies(req, res);
   const sudoCookieName = 'blessed';
@@ -57,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (match) {
       const token = crypto.randomBytes(64).toString('hex');
       const encryptedToken = encrypt(`${token}:${userIp}`);
-      const isSecure = process.env.ENVIRONMENT !== 'dev'; // secure in production, not secure in development
+      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev'; // secure in production, not secure in development
       const expiryDate = new Date();
       expiryDate.setMonth(expiryDate.getMonth() + 3); // Set cookie to expire in 3 months
       cookies.set(sudoCookieName, encryptedToken, { httpOnly: true, secure: isSecure, sameSite: 'strict', expires: expiryDate });
