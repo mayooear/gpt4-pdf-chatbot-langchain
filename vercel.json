@@ -4,11 +4,4 @@
       "maxDuration": 60
     }
   },
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "https://ask.anandalibrary.org/$1",
-      "permanent": true
-    }
-  ]
 }
