@@ -4,8 +4,18 @@
       "maxDuration": 60
     }
   },
-  "crons": [{
-    "path": "/api/firestoreCron",
-    "schedule": "*/10 * * * *"
-  }]
-}  
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://your-domain.com/$1",
+      "permanent": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-forwarded-proto",
+          "value": "http"
+        }
+      ]
+    }
+  ]
+}
