@@ -3,8 +3,15 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
-  const cookie = req.cookies.get('siteAuth');
 
+  // Redirect HTTP to HTTPS
+  if (url.protocol === 'http:') {
+    url.protocol = 'https:';
+    return NextResponse.redirect(url);
+  }
+
+  // Authentication check
+  // const cookie = req.cookies.get('siteAuth');
   // if (
   //   !cookie &&
   //   url.pathname !== '/login' &&
