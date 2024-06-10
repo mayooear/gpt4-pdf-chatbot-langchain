@@ -70,7 +70,7 @@ const AllAnswers = () => {
        });
 
        // Fetch like counts for the new answers
-       if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+       if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
         const answerIds = newAnswers.map(answer => answer.id);
         getLikeCounts(answerIds).then(counts => {
           setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
@@ -133,7 +133,7 @@ const AllAnswers = () => {
   }, [newContentLoaded]);
 
   useEffect(() => {
-    if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+    if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
       const fetchLikeStatuses = async (answerIds: string[]) => {
         const uuid = getOrCreateUUID();
         const statuses = await checkUserLikes(answerIds, uuid);
@@ -147,7 +147,7 @@ const AllAnswers = () => {
   }, [answers]);
 
   useEffect(() => {
-    if (process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+    if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
       const fetchLikeCounts = async (answerIds: string[]) => {
         const counts = await getLikeCounts(answerIds);
         setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
@@ -224,7 +224,7 @@ const AllAnswers = () => {
                       <div className="flex items-center">
                         <CopyButton markdown={answer.answer} />
                         <div className="ml-4">
-                          {isSudoUser && process.env.PUBLIC_LIKE_BUTTON_ENABLED === 'true' && (
+                          {isSudoUser && process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true' && (
                             <LikeButton
                               answerId={answer.id}
                               initialLiked={likeStatuses[answer.id] || false}
