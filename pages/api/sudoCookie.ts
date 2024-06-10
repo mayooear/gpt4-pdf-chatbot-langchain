@@ -50,11 +50,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Run the CORS middleware
   await runMiddleware(req, res, cors);
 
+  // Handle OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   const cookies = new Cookies(req, res);
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   console.log(`Request method: ${req.method}`); // Log the request method
+  console.log(`User IP: ${userIp}`); // Log the user IP
+  console.log(`Request headers: ${JSON.stringify(req.headers)}`); // Log the request headers
 
   if (req.method === 'POST') {
     const { password } = req.body;
