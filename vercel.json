@@ -8,14 +8,7 @@
     {
       "source": "/(.*)",
       "destination": "https://your-domain.com/$1",
-      "permanent": true,
-      "has": [
-        {
-          "type": "header",
-          "key": "x-forwarded-proto",
-          "value": "http"
-        }
-      ]
+      "permanent": true
     }
   ]
 }
