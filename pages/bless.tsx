@@ -36,7 +36,8 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
 
   useEffect(() => {
     const checkSudoStatus = async () => {
-      const isSudoUser = await isSudo();
+      const cookies = document.cookie;
+      const isSudoUser = await isSudo(cookies);
       setSudoStatus(isSudoUser ? 'You are Blessed!' : 'You are not blessed');
     };
 
