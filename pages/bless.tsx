@@ -55,8 +55,9 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter password"
+          className="border p-2 mb-2"
         />
-        <button type="submit">Submit</button>
+        <button type="submit" className="bg-blue-500 text-white p-2">Submit</button>
       </form>
       <Link href="/" className="text-blue-500 hover:underline mb-4">Go to Home</Link>
       <a href="#" onClick={handleRemoveBlessed} className="text-blue-500 hover:underline">Remove Blessed Cookie</a>
