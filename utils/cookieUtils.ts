@@ -9,6 +9,5 @@ export async function isSudo(cookies: string): Promise<boolean> {
     },
   });
   const data = await response.json();
-  console.log("Sudo Cookie Value: ", data.sudoCookieValue);
   return !!data.sudoCookieValue;
 }

@@ -102,7 +102,6 @@ const AllAnswers = () => {
   // Intersection observer effect
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
-      console.log('Intersection observer effect', { inView, hasMore, isLoading });
       setPage(prevPage => {
         const newPage = prevPage + 1;
         return newPage;
