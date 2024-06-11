@@ -22,6 +22,7 @@ const AllAnswers = () => {
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newContentLoaded, setNewContentLoaded] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -32,45 +33,46 @@ const AllAnswers = () => {
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
 
-     const fetchAnswers = useCallback(async () => {
-     if (isLoading) return;
-     setIsLoading(true);
-     setError(null); // Reset error state before fetching
+  const fetchAnswers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null); // Reset error state before fetching
+    setShowErrorPopup(false); 
 
-     let newAnswers: Answer[] = [];
-     try {
-       const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
-         method: 'GET',
-       });
-       if (!answersResponse.ok) {
-         throw new Error(`HTTP error! status: ${answersResponse.status}`);
-       }
-       newAnswers = await answersResponse.json();
-     } catch (error: any) {
-       console.error("Failed to fetch answers:", error);
-       if (error.message.includes('429')) {
-         setError('Quota exceeded. Please try again later.');
-       } else {
-         setError('Failed to fetch answers. Please try again.');
-       }
-     } finally {
-       setIsLoading(false);
-       setInitialLoadComplete(true);
-     }
-
-     if (newAnswers.length === 0) {
-       setHasMore(false);
-     } else {
-       setAnswers(prevAnswers => {
-         const updatedAnswers = { ...prevAnswers };
-         newAnswers.forEach((answer: Answer) => {
-           updatedAnswers[answer.id] = answer;
-         });
-         return updatedAnswers;
-       });
-
-       // Fetch like counts for the new answers
-       if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
+    let newAnswers: Answer[] = [];
+    try {
+      const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
+        method: 'GET',
+      });
+      if (!answersResponse.ok) {
+        throw new Error(`HTTP error! status: ${answersResponse.status}`);
+      }
+      newAnswers = await answersResponse.json();
+    } catch (error: any) {
+      console.error("Failed to fetch answers:", error);
+      if (error.message.includes('429')) {
+        setError('Quota exceeded. Please try again later.');
+      } else {
+        setError('Failed to fetch answers. Please try again.');
+      }
+      setShowErrorPopup(true); 
+    } finally {
+      setIsLoading(false);
+      setInitialLoadComplete(true);
+    }
+  
+    if (newAnswers.length === 0) {
+      setHasMore(false);
+    } else {
+      setAnswers(prevAnswers => {
+        const updatedAnswers = { ...prevAnswers };
+        newAnswers.forEach((answer: Answer) => {
+          updatedAnswers[answer.id] = answer;
+        });
+        return updatedAnswers;
+      });
+  
+      // Fetch like counts for the new answers
+      if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
         const answerIds = newAnswers.map(answer => answer.id);
         getLikeCounts(answerIds).then(counts => {
           setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
@@ -78,14 +80,12 @@ const AllAnswers = () => {
           console.error('Error fetching like counts:', error);
         });
       }
-     }
-   }, [page, isLoading]);
+    }
+  }, [page]);
 
   useEffect(() => {
-    if (hasMore && !isLoading) {
-      fetchAnswers();
-    }
-  }, [page, hasMore, isLoading, fetchAnswers]);
+    fetchAnswers();
+  }, [page, fetchAnswers]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -102,7 +102,11 @@ const AllAnswers = () => {
   // Intersection observer effect
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
-      setPage(prevPage => prevPage + 1);
+      console.log('Intersection observer effect', { inView, hasMore, isLoading });
+      setPage(prevPage => {
+        const newPage = prevPage + 1;
+        return newPage;
+      });
     }
   }, [inView, hasMore, isLoading]);
 
@@ -184,14 +188,18 @@ const AllAnswers = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        {showErrorPopup && error && (
+          <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
+            <p>{error}</p>
+            <button onClick={() => setShowErrorPopup(false)} className="mt-2 underline">
+              Close
+            </button>
+          </div>
+        )}
         {isLoading && !initialLoadComplete ? (
           <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
             <p className="text-lg text-gray-600 ml-4">Loading...</p>
-          </div>
-        ) : error ? (
-          <div className="flex justify-center items-center h-screen">
-            <p className="text-lg text-red-600">{error}</p>
           </div>
         ) : (
           <div>
