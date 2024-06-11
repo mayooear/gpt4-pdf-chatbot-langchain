@@ -29,10 +29,23 @@ export default async function handler(
       const answersSnapshot = await answersQuery.get();
       const answers = answersSnapshot.docs.map(doc => {
         const data = doc.data();
+        let sources = [];
+        try {
+          sources = data.sources ? JSON.parse(data.sources) : [];
+        } catch (e) {
+          // Very early sources were stored in non-JSON so recognize those and only log an error for other cases
+          if (!data.sources.trim().substring(0, 50).includes("Sources:")) {
+            console.error('Error parsing sources:', e);
+            console.log("data.sources: '" + data.sources + "'");
+            if (!data.sources || data.sources.length === 0) {
+              console.log("data.sources is empty or null");
+            }
+          }
+        }
         return {
           id: doc.id,
           ...data,
-          sources: data.sources ? JSON.parse(data.sources) : [],
+          sources,
         };
       });
 

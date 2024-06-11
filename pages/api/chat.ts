@@ -19,16 +19,6 @@ export default async function handler(
   
   if (req.method == 'POST') {
     let clientIP = '';
-    if (privateSession) {
-      console.log("\nPRIVATE question asked");
-    } else {
-      const forwarded = req.headers['x-forwarded-for'];
-      clientIP = typeof forwarded === 'string' ? forwarded.split(',')[0] : (req.socket.remoteAddress || '');
-      console.log('\nClient IP:', clientIP);
-      console.log('QUESTION:', question);
-      console.log('');
-    }
-
     if (typeof collection !== 'string' || !(collection in pineconeConfig)) {
       return res.status(400).json({ error: 'Invalid collection provided' });
     }
@@ -42,7 +32,6 @@ export default async function handler(
 
     try {  
       const pinecone = await getPineconeClient(collection as PineconeConfigKey, 'web');
-      console.log("Pinecone collection:", collection);
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
       /* create vectorstore */
@@ -64,7 +53,6 @@ export default async function handler(
         callbacks: [
           {
             handleRetrieverEnd(documents) {
-              console.log("Retriever result:", documents);
               resolveWithDocuments(documents);
             },
           },
@@ -118,17 +106,6 @@ export default async function handler(
       };
       const docRef = await chatLogRef.add(logEntry);
       const docId = docRef.id;
-
-      if (privateSession)
-      {
-        console.log(`Word count of answer: ${answerWordCount}`);
-      } else {
-        console.log('ANSWER:\n');
-        console.log(response);
-        console.log(sourceTitlesString);
-        console.log('\nHistory:', history);
-      }
-
       res.status(200).json({ text: response, sourceDocuments, docId });
 
     } catch (error: any) {
