@@ -289,7 +289,7 @@ export default function Home() {
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <h1 className="text-3xl font-bold">
-            This page is currently down for maintenance. Please check back later. 
+            This page is currently down for maintenance until approx. 12:30pm PT. 
           </h1>
           <p className="mt-4">
             You can still view the <Link href="/all" className="text-blue-500">All&nbsp;Answers</Link> page.
