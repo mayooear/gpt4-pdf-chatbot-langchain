@@ -18,6 +18,7 @@ export function middleware(req: NextRequest) {
     !url.pathname.startsWith('/_next') &&
     !url.pathname.startsWith('/api') &&
     !url.pathname.startsWith('/favicon.ico') &&
+    !url.pathname.startsWith('/robots.txt') &&
     !url.pathname.endsWith('.png') &&
     !url.pathname.endsWith('.jpg') &&
     !url.pathname.endsWith('.gif')
