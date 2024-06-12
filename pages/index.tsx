@@ -20,7 +20,7 @@ import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 
 export default function Home() {
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(true); 
   const [collection, setCollection] = useState<string | undefined>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
