@@ -9,6 +9,11 @@ import ProgressBar from 'progress';
 import readline from 'readline';
 import { collectionsConfig, CollectionKey } from '@/utils/collectionsConfig';
 import { Index, RecordMetadata } from '@pinecone-database/pinecone';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+
+const readdir = promisify(fs.readdir);
 
 /* Name of directory to retrieve your files from 
    Make sure to add your PDF files inside the 'docs' folder
@@ -21,7 +26,17 @@ export const run = async (collection: PineconeConfigKey) => {
     process.exit(1); 
   }
 
-  console.log(`Processing collection: ${collectionsConfig[collection as CollectionKey]}`);
+  console.log(`\nProcessing collection: ${collectionsConfig[collection as CollectionKey]}`);
+
+  // Print count of PDF files in the directory
+  try {
+    const files = await readdir(filePath);
+    const pdfFiles = files.filter((file: string) => path.extname(file).toLowerCase() === '.pdf');
+    console.log(`Found ${pdfFiles.length} PDF files.`);
+  } catch (err) {
+    console.error('Unable to scan directory:', err);
+    process.exit(1);
+  }
 
   let pinecone;
   try {
