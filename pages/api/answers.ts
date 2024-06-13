@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
-import { isSudo } from '@/utils/cookieUtils';
+import { getSudoCookie } from '@/utils/sudoCookieUtils';
 
 async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
@@ -70,17 +70,14 @@ export default async function handler(
       if (!answerId || typeof answerId !== 'string') {
         return res.status(400).json({ message: 'answerId parameter is required.' });
       }
-
-      const cookies = req.headers.cookie || '';
-      const sudo = await isSudo(cookies);
-      if (!sudo) {
+      const sudo = getSudoCookie(req, res);
+      if (!sudo.sudoCookieValue) {
         return res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
       }
-
       await deleteAnswerById(answerId);
       res.status(200).json({ message: 'Answer deleted successfully.' });
     } catch (error: any) {
-      console.error('Error deleting answer: ', error);
+      console.error('Handler: Error deleting answer: ', error);
       res.status(500).json({ message: 'Error deleting answer', error: error.message });
     }
   } else {
