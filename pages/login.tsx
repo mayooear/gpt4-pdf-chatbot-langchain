@@ -21,8 +21,7 @@ export default function Login() {
       const data = await res.json();
       router.push(data.redirect || '/');
     } else if (res.status === 429) {
-      const data = await res.json();
-      alert(data.message);
+      alert("Too many login attempts. Please try again later.");
     } else {
       alert('Incorrect password');
     }
