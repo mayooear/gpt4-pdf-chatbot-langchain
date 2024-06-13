@@ -18,11 +18,15 @@ export default async function handler(
   const { collection, question, history, privateSession } = req.body;
   
   if (req.method == 'POST') {
-    let clientIP = '';
     if (typeof collection !== 'string' || !(collection in pineconeConfig)) {
       return res.status(400).json({ error: 'Invalid collection provided' });
     }
-  
+
+    let clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    if (Array.isArray(clientIP)) {
+      clientIP = clientIP[0];
+    }
+
     // send question to chatbot 
     if (!question) {
       return res.status(400).json({ message: 'No question in the request' });
