@@ -23,6 +23,7 @@ const AllAnswers = () => {
   const [error, setError] = useState<string | null>(null);
   const [newContentLoaded, setNewContentLoaded] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [canLoadNextPage, setCanLoadNextPage] = useState(true);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -99,16 +100,6 @@ const AllAnswers = () => {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
-  // Intersection observer effect
-  useEffect(() => {
-    if (inView && hasMore && !isLoading) {
-      setPage(prevPage => {
-        const newPage = prevPage + 1;
-        return newPage;
-      });
-    }
-  }, [inView, hasMore, isLoading]);
-
   useEffect(() => {
     const checkSudoStatus = async () => {
       const cookies = document.cookie;
@@ -118,13 +109,22 @@ const AllAnswers = () => {
     checkSudoStatus();
   }, []);
 
-  // these two are for visual indication when new content loaded by infinite scroll
+  // Intersection observer effect
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
+    if (inView && hasMore && !isLoading && canLoadNextPage) {
       setPage(prevPage => prevPage + 1);
       setNewContentLoaded(true);
+      setCanLoadNextPage(false);
+
+      // Set a delay before allowing the next page to load. This is to avoid it loading
+      // two pages at a time.
+      setTimeout(() => {
+        setCanLoadNextPage(true);
+      }, 1000);
     }
-  }, [inView, hasMore, isLoading]);
+  }, [inView, hasMore, isLoading, canLoadNextPage]);
+
+  // visual indication when new content loaded by infinite scroll
   useEffect(() => {
     if (newContentLoaded) {
       window.scrollTo({
