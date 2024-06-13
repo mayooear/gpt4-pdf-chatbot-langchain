@@ -191,12 +191,17 @@ while attempt < max_retries:
             # Filter out None values and concatenate parent titles with '::'.
             titles = [title for title in [parent_title_3, parent_title_2, parent_title_1, child_post_title] if title]
 
-            # Filter out the rare ones that say not to use them
-            titles = [title for title in titles if "DO NOT USE" not in title]
-
             # We insert a double colon here to be able to distinguish in the front end from a single 
             # colon and a tail. In case that is needed. We can remove the double colon in the front end display.
             post_title = ":: ".join(titles)
+
+            # Skip this loop iteration if any of the titles has "DO NOT USE" in it
+            if any("DO NOT USE" in title for title in titles):
+                print(f"Skipping 'do not use' title: {id}: {post_title}")
+                skipped += 1
+                progress_bar.set_description(f"Skipped {skipped} - {child_post_title}")
+                progress_bar.update(1)
+                continue
 
             # print(f"{id}: {post_title}")
             
