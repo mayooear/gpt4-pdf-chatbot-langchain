@@ -20,6 +20,9 @@ export default function Login() {
     if (res.ok) {
       const data = await res.json();
       router.push(data.redirect || '/');
+    } else if (res.status === 429) {
+      const data = await res.json();
+      alert(data.message);
     } else {
       alert('Incorrect password');
     }
