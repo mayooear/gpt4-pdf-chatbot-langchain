@@ -29,7 +29,7 @@
     "cors": "^2.8.5",
     "date-fns": "^3.4.0",
     "dotenv": "^16.0.3",
-    "express-rate-limit": "^6.7.0",
+    "express-rate-limit": "^6.11.2",
     "firebase-admin": "^11.11.1",
     "js-cookie": "^3.0.5",
     "langchain": "^0.1.30",

@@ -4,7 +4,7 @@
       "maxDuration": 60
     },
     "api/pruneRateLimits.ts": {
-      "runtime": "nodejs14.x"
+      "runtime": "nodejs22.1.0"
     }
   },
   "crons": [
