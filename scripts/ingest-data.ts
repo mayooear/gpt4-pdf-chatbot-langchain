@@ -1,13 +1,13 @@
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
-import { pineconeConfig, PineconeConfigKey, getPineconeClient } from '@/utils/pinecone-client';
+import { pineconeConfig, PineconeConfigKey, getPineconeClient } from '@/utils/server/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import ProgressBar from 'progress';
 import readline from 'readline';
-import { collectionsConfig, CollectionKey } from '@/utils/collectionsConfig';
+import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
 import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 import fs from 'fs';
 import path from 'path';

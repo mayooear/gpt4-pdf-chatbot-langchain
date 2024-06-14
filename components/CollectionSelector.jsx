@@ -1,4 +1,4 @@
-import { collectionsConfig } from '@/utils/collectionsConfig';
+import { collectionsConfig } from '@/utils/client/collectionsConfig';
 
 export default function CollectionSelector({ onCollectionChange, currentCollection }) {
   return (

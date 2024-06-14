@@ -7,7 +7,7 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import { checkUserLikes, getLikeCounts } from '@/services/likeService';
-import { getOrCreateUUID } from '@/utils/uuid';
+import { getOrCreateUUID } from '@/utils/client/uuid';
 import { toast } from 'react-toastify';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { Answer } from '@/types/answer';

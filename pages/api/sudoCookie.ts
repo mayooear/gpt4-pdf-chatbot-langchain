@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import cors, { runMiddleware } from 'utils/corsMiddleware';
-import { setSudoCookie, getSudoCookie, deleteSudoCookie } from 'utils/sudoCookieUtils';
+import cors, { runMiddleware } from '@/utils/server/corsMiddleware';
+import { setSudoCookie, getSudoCookie, deleteSudoCookie } from '@/utils/server/sudoCookieUtils';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getOrCreateUUID } from '@/utils/uuid';
+import { getOrCreateUUID } from '@/utils/client/uuid';
 import { checkUserLikes } from '@/services/likeService';
 
 interface LikeButtonProps {

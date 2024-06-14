@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion';
 import styles from '@/styles/Home.module.css';
-import { collectionsConfig, CollectionKey } from '@/utils/collectionsConfig';
+import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
 
 interface SourcesListProps {
   sources: Document[];

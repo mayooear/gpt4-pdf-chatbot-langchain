@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isSudo } from '../utils/cookieUtils';
+import { isSudo } from '../utils/client/cookieUtils';
 import Link from 'next/link';
 
 interface SudoPageProps {

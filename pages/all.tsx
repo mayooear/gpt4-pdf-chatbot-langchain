@@ -8,9 +8,9 @@ import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
 import { checkUserLikes, getLikeCounts } from '@/services/likeService';
-import { isSudo } from '@/utils/cookieUtils';
-import { collectionsConfig } from '@/utils/collectionsConfig';
-import { getOrCreateUUID } from '@/utils/uuid';
+import { isSudo } from '@/utils/client/cookieUtils';
+import { collectionsConfig } from '@/utils/client/collectionsConfig';
+import { getOrCreateUUID } from '@/utils/client/uuid';
 
 const AllAnswers = () => {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});

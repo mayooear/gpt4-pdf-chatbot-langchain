@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
-import { getSudoCookie } from '@/utils/sudoCookieUtils';
+import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 
 async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];

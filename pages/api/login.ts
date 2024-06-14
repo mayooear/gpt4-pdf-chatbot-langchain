@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
-import cors, { runMiddleware } from 'utils/corsMiddleware';
+import cors, { runMiddleware } from '@/utils/server/corsMiddleware';
 import rateLimit from 'express-rate-limit';
 import { Request } from 'express';
 
