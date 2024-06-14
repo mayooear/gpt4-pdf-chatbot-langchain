@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/pruneRateLimits",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * 0"
     }
   ]
 }

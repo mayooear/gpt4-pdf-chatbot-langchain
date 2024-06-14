@@ -6,8 +6,7 @@ const MS_IN_A_DAY = 24 * 60 * 60 * 1000;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const now = Date.now();
-    const cutoffTime = now - 10 * 60 * 1000;
-    // const cutoffTime = now - PRUNE_OLDER_THAN_DAYS * MS_IN_A_DAY;
+    const cutoffTime = now - PRUNE_OLDER_THAN_DAYS * MS_IN_A_DAY;
 
     const rateLimitsRef = db.collection('rateLimits');
     const oldRateLimitsQuery = rateLimitsRef.where('firstRequestTime', '<', cutoffTime);
