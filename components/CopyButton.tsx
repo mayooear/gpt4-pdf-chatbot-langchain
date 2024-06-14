@@ -1,5 +1,5 @@
 import React from 'react';
-import { copyTextToClipboard } from '../utils/clipboard';
+import { copyTextToClipboard } from '../utils/client/clipboard';
 
 interface CopyButtonProps {
   markdown: string;

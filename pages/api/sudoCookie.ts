@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import cors, { runMiddleware } from '@/utils/server/corsMiddleware';
 import { setSudoCookie, getSudoCookie, deleteSudoCookie } from '@/utils/server/sudoCookieUtils';
+import { rateLimiter } from '@/utils/server/rateLimiter';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
@@ -8,6 +9,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  const isAllowed = await rateLimiter(req, res);
+  if (!isAllowed) {
+    return; // Rate limiter already sent the response
   }
 
   try {

@@ -2,6 +2,15 @@
   "functions": {
     "pages/api/chat.ts": {
       "maxDuration": 60
+    },
+    "api/pruneRateLimits.ts": {
+      "runtime": "nodejs14.x"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/pruneRateLimits",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }
