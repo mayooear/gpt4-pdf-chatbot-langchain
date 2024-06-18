@@ -38,6 +38,7 @@
     "micromark-util-symbol": "^2.0.0",
     "next": "13.2.3",
     "node-cache": "^5.1.2",
+    "node-fetch": "^2.7.0",
     "pdf-parse": "1.1.1",
     "progress": "^2.0.3",
     "react": "18.2.0",

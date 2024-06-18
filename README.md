@@ -76,6 +76,19 @@ PINECONE_INDEX_NAME=
 
 5. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAI` to `gpt-4`, if you have access to `gpt-4` api. Please verify outside this repo that you have access to `gpt-4` api, otherwise the application will not work.
 
+### Setup Firebase 
+
+We use firestore local emulation in dev.
+
+Add to your environment (e.g., .bashrc):
+`export FIRESTORE_EMULATOR_HOST="127.0.0.1:8080”`
+
+Command line:
+1. firebase login
+2. firebase init emulators
+3. firebase emulators:start
+
+It works as long as emulator UI is turned off.
 
 ## Optional: generate PDF files from Wordpress Database
 

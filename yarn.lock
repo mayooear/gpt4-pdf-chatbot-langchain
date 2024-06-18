@@ -4789,7 +4789,7 @@
   "resolved" "https://registry.npmjs.org/node-ensure/-/node-ensure-0.0.0.tgz"
   "version" "0.0.0"
 
-"node-fetch@^2.6.1", "node-fetch@^2.6.12", "node-fetch@^2.6.7", "node-fetch@^2.6.9":
+"node-fetch@^2.6.1", "node-fetch@^2.6.12", "node-fetch@^2.6.7", "node-fetch@^2.6.9", "node-fetch@^2.7.0":
   "integrity" "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A=="
   "resolved" "https://registry.npmjs.org/node-fetch/-/node-fetch-2.7.0.tgz"
   "version" "2.7.0"
