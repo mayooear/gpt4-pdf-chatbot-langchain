@@ -1,7 +1,8 @@
 import { db } from '@/services/firebase';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+// 15 minutes for prod, 5 minutes for dev
+const RATE_LIMIT_WINDOW_MS = process.env.ENVIRONMENT !== 'dev' ? 15 * 60 * 1000 : 5 * 60 * 1000;
 const MAX_REQUESTS = 5;
 
 // Rate limiting by IP address. All uses of this contribute to counts against IP addresses. 
@@ -30,6 +31,8 @@ export async function rateLimiter(req: NextApiRequest, res: NextApiResponse): Pr
                 count: count + 1,
             });
             if (count >= MAX_REQUESTS) {
+                const formattedTime = new Date(firstRequestTime).toLocaleString();
+                console.log(`rate limiter: IP ${ip} has made ${count} attempts since ${formattedTime}`);
                 res.status(429).json({ message: 'Too many attempts. Please try again later.' });
                 return false;
             } else {
@@ -44,7 +47,7 @@ export async function rateLimiter(req: NextApiRequest, res: NextApiResponse): Pr
         }
     }
     return true;
-    
+
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('FetchError:', error.message);
