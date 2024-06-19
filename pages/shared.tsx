@@ -189,7 +189,16 @@ const SharedAnswers = () => {
                           <LikeButton
                             answerId={share.answerId}
                             initialLiked={likeStatuses[share.answerId] || false}
-                            likeCount={answers[share.answerId].likeCount} 
+                            likeCount={answers[share.answerId].likeCount}
+                            onLikeCountChange={(newLikeCount) => {
+                              setAnswers((prevAnswers) => ({
+                                ...prevAnswers,
+                                [share.answerId]: {
+                                  ...prevAnswers[share.answerId],
+                                  likeCount: Number(newLikeCount),
+                                },
+                              }));
+                            }}
                           />
                         </div>
                       </div>
