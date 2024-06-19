@@ -7,7 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
-import { checkUserLikes, getLikeCounts } from '@/services/likeService';
+import { checkUserLikes } from '@/services/likeService';
 import { isSudo } from '@/utils/client/cookieUtils';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
@@ -18,7 +18,6 @@ const AllAnswers = () => {
   const { ref, inView } = useInView();
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
-  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newContentLoaded, setNewContentLoaded] = useState(false);
@@ -71,16 +70,6 @@ const AllAnswers = () => {
         });
         return updatedAnswers;
       });
-  
-      // Fetch like counts for the new answers
-      if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
-        const answerIds = newAnswers.map(answer => answer.id);
-        getLikeCounts(answerIds).then(counts => {
-          setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
-        }).catch(error => {
-          console.error('Error fetching like counts:', error);
-        });
-      }
     }
   }, [page]);
 
@@ -135,32 +124,29 @@ const AllAnswers = () => {
     }
   }, [newContentLoaded]);
 
+  // fetch user like statuses for this user - what they have liked
+  // TODO: cache like statuses so not re-pulled during infinite scroll
   useEffect(() => {
-    if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
-      const fetchLikeStatuses = async (answerIds: string[]) => {
-        const uuid = getOrCreateUUID();
-        const statuses = await checkUserLikes(answerIds, uuid);
-        setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
-      };
-  
-      if (Object.keys(answers).length > 0) {
-        fetchLikeStatuses(Object.keys(answers));
-      }
+    const fetchLikeStatuses = async (answerIds: string[]) => {
+      const uuid = getOrCreateUUID();
+      const statuses = await checkUserLikes(answerIds, uuid);
+      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+    };
+
+    if (Object.keys(answers).length > 0) {
+      fetchLikeStatuses(Object.keys(answers));
     }
   }, [answers]);
 
-  useEffect(() => {
-    if (process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true') {
-      const fetchLikeCounts = async (answerIds: string[]) => {
-        const counts = await getLikeCounts(answerIds);
-        setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
-      };
-  
-      if (Object.keys(answers).length > 0) {
-        fetchLikeCounts(Object.keys(answers));
-      }
-    }
-  }, [answers]);
+  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
+    setAnswers(prevAnswers => ({
+      ...prevAnswers,
+      [answerId]: {
+        ...prevAnswers[answerId],
+        likeCount: newLikeCount,
+      },
+    }));
+  };
 
   const handleDelete = async (answerId: string) => {
     if (confirm('Are you sure you want to delete this answer?')) {
@@ -231,13 +217,12 @@ const AllAnswers = () => {
                       <div className="flex items-center">
                         <CopyButton markdown={answer.answer} />
                         <div className="ml-4">
-                          {isSudoUser && process.env.FF_PUBLIC_LIKE_BUTTON_ENABLED === 'true' && (
-                            <LikeButton
-                              answerId={answer.id}
-                              initialLiked={likeStatuses[answer.id] || false}
-                              likeCount={likeCounts[answer.id] || 0}
-                            />
-                          )}
+                          <LikeButton
+                            answerId={answer.id}
+                            initialLiked={likeStatuses[answer.id] || false}
+                            likeCount={answer.likeCount}
+                            onLikeCountChange={handleLikeCountChange}
+                          />
                         </div>
                         {isSudoUser && (
                           <>

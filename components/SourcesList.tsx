@@ -7,7 +7,7 @@ import styles from '@/styles/Home.module.css';
 import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
 
 interface SourcesListProps {
-  sources: Document[];
+  sources: Document<Record<string, any>>[];
   useAccordion?: boolean;
   collectionName?: string; 
 }

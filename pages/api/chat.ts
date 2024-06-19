@@ -31,6 +31,7 @@ export default async function handler(
     if (!question) {
       return res.status(400).json({ message: 'No question in the request' });
     }
+
     // OpenAI recommends replacing newlines with spaces for best results
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
@@ -94,6 +95,7 @@ export default async function handler(
         collection: collection,
         sources: '',
         history: [],
+        likeCount: 0,
         ip: '',
         timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
       } : {
@@ -101,6 +103,7 @@ export default async function handler(
         answer: response,
         collection: collection,
         sources: JSON.stringify(sourceDocuments),
+        likeCount: 0,
         history: history.map((messagePair: [string, string]) => ({
           question: messagePair[0],
           answer: messagePair[1],

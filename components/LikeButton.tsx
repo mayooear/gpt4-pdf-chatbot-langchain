@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getOrCreateUUID } from '@/utils/client/uuid';
-import { checkUserLikes } from '@/services/likeService';
 
 interface LikeButtonProps {
-    answerId: string;
-    initialLiked: boolean;
-    likeCount: number; 
+  answerId: string;
+  initialLiked: boolean;
+  likeCount: number;
+  onLikeCountChange: (answerId: string, newLikeCount: number) => void;
 }
 
-const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCount }) => {
+const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCount, onLikeCountChange }) => {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likes, setLikes] = useState(likeCount); 
   
@@ -24,7 +24,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
     const uuid = getOrCreateUUID();
     const newLikedState = !isLiked;
     setIsLiked(newLikedState);
-
+  
     try {
       const response = await fetch('/api/like', {
         method: 'POST',
@@ -33,21 +33,33 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
         },
         body: JSON.stringify({ answerId, uuid, like: newLikedState }),
       });
-
+  
       if (!response.ok) {
         // If the response is not ok, revert the liked state
         setIsLiked(!newLikedState);
         const errorData = await response.json();
         throw new Error(errorData.error || 'An error occurred while updating the like status.');
       }
+  
+      // Update the like count in the chat logs
+      await fetch('/api/updateLikeCount', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answerId, likeCount: newLikedState ? likes + 1 : likes - 1 }),
+      });
+
+      // Call the onLikeCountChange callback with the updated like count
+      onLikeCountChange(answerId, newLikedState ? likes + 1 : likes - 1);
+
     } catch (error) {
       console.error('Like error:', error);
-      setIsLiked(!newLikedState); // Revert the liked state on error
+      setIsLiked(!newLikedState);
       // TODO: Optionally handle the error state in the UI, e.g., with a toast notification
     }
-
-    // Update the like count based on the new liked state
-    setLikes(prevLikes => newLikedState ? prevLikes + 1 : prevLikes - 1);
+  
+      setLikes(prevLikes => newLikedState ? prevLikes + 1 : prevLikes - 1);
   };
 
   return (

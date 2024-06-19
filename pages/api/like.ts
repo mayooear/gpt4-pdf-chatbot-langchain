@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase'; 
+import firebase from 'firebase-admin';
+
+// Create a cache object to store the fetched like statuses
+const likeStatusCache: Record<string, Record<string, boolean>> = {};
 
 // New handler for GET request to check like statuses
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
@@ -19,6 +23,8 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     }
   
     try {
+      console.log(`Likes GET: UUID: ${uuid}`);
+      console.log(`Likes GET: Answer IDs: ${answerIds}`);
       const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
       const likesSnapshot = await likesCollection
         .where('uuid', '==', uuid)
@@ -46,40 +52,67 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 
 // New handler for POST request to check like statuses
 async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
-    const { answerIds, uuid } = req.body;
+  const { answerIds, uuid } = req.body;
 
-    // Validate the input
-    if (!Array.isArray(answerIds) || !uuid) {
-        return res.status(400).json({ error: 'Invalid request body' });
-    }
+  // Validate the input
+  if (!Array.isArray(answerIds) || !uuid) {
+      return res.status(400).json({ error: 'Invalid request body' });
+  }
 
-    try {
-        const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
-        const likesSnapshot = await likesCollection
-            .where('uuid', '==', uuid)
-            .where('answerId', 'in', answerIds)
-            .get();
+  try {
+      // Create a key for the cache based on the user's UUID
+      const cacheKey = `user_${uuid}`;
 
-        // Create an object to store the like statuses
-        const likeStatuses: Record<string, boolean> = {};
-        likesSnapshot.forEach(doc => {
-            likeStatuses[doc.data().answerId] = true;
-        });
+      // Check if the like statuses are already cached for the given user
+      if (likeStatusCache[cacheKey]) {
+          const cachedLikeStatuses = likeStatusCache[cacheKey];
+          const filteredLikeStatuses: Record<string, boolean> = {};
 
-        // Fill in false for any answerIds not found
-        answerIds.forEach((id: string) => {
-            if (!likeStatuses[id]) {
-                likeStatuses[id] = false;
-            }
-        });
+          // Filter the cached like statuses based on the provided answer IDs
+          answerIds.forEach((answerId) => {
+              if (answerId in cachedLikeStatuses) {
+                  filteredLikeStatuses[answerId] = cachedLikeStatuses[answerId];
+              }
+          });
 
-        res.status(200).json(likeStatuses);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message || 'Something went wrong' });
-    }
+          // If all the requested answer IDs are found in the cache, return the filtered like statuses
+          if (Object.keys(filteredLikeStatuses).length === answerIds.length) {
+              return res.status(200).json(filteredLikeStatuses);
+          }
+      }
+
+      const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
+      const likesSnapshot = await likesCollection
+          .where('uuid', '==', uuid)
+          .where('answerId', 'in', answerIds)
+          .get();
+
+      // Create an object to store the like statuses
+      const likeStatuses: Record<string, boolean> = {};
+      likesSnapshot.forEach(doc => {
+          likeStatuses[doc.data().answerId] = true;
+      });
+
+      // Fill in false for any answerIds not found
+      answerIds.forEach((id: string) => {
+          if (!likeStatuses[id]) {
+              likeStatuses[id] = false;
+          }
+      });
+
+      // Update the cache with the fetched like statuses
+      likeStatusCache[cacheKey] = {
+          ...likeStatusCache[cacheKey],
+          ...likeStatuses,
+      };
+
+      res.status(200).json(likeStatuses);
+  } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Something went wrong' });
+  }
 }
 
-// fetch like counts
+// fetch like counts from likes collection
 async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
     let answerIds = req.body.answerIds;
 
@@ -120,6 +153,9 @@ export default async function handler(
 ) {
   const action = req.query.action;
 
+  // DEBUG
+  // await checkLikeCountIntegrity();
+
   if (req.method === 'GET') {
     return handleGet(req, res);
   } else if (req.method === 'POST' && action === 'check') {
@@ -130,13 +166,14 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // add a new Like
+
   const { answerId, like, uuid } = req.body;
   if (!answerId || typeof like !== 'boolean' || !uuid) {
     return res.status(400).json({ error: 'Missing answer ID, UUID or invalid like status' });
   }
 
   try {
-    // Reference to the likes collection
     const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
 
     if (like) {
@@ -144,9 +181,20 @@ export default async function handler(
       await likesCollection.add({
         uuid: uuid,
         answerId: answerId,
-        timestamp: new Date() // Store the timestamp of the like
+        timestamp: new Date()
       });
+
+      // Update the like count in the chat logs
+      const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
+      await chatLogRef.update({
+        likeCount: firebase.firestore.FieldValue.increment(1)
+      });
+
+      // Invalidate the cache for the user
+      delete likeStatusCache[`user_${uuid}`];
+
       res.status(200).json({ message: 'Like added' });
+
     } else {
       // If like is false, find the like document and remove it
       const querySnapshot = await likesCollection
@@ -159,7 +207,18 @@ export default async function handler(
         // Assuming there's only one like per user per answer
         const docRef = querySnapshot.docs[0].ref;
         await docRef.delete();
+
+        // Update the like count in the chat logs
+        const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
+        await chatLogRef.update({
+          likeCount: firebase.firestore.FieldValue.increment(-1)
+        });
+
+        // Invalidate the cache for the user
+        delete likeStatusCache[`user_${uuid}`];
+
         res.status(200).json({ message: 'Like removed' });
+
       } else {
         res.status(404).json({ message: 'Like not found' });
       }
@@ -167,4 +226,59 @@ export default async function handler(
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Something went wrong' });
   }
+
+  // DEBUG
+  // await checkLikeCountIntegrity();
+
 }
+
+// async function checkLikeCountIntegrity() {
+//   try {
+//     const chatLogsSnapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`).get();
+//     const likesSnapshot = await db.collection(`${process.env.ENVIRONMENT}_likes`).get();
+
+//     const chatLogLikeCounts: Record<string, number> = {};
+//     const likeCounts: Record<string, number> = {};
+
+//     // Collect like counts from chat logs
+//     chatLogsSnapshot.forEach(doc => {
+//       const data = doc.data();
+//       chatLogLikeCounts[doc.id] = data.likeCount || 0;
+//     });
+
+//     // Collect like counts from likes table
+//     likesSnapshot.forEach(doc => {
+//       const data = doc.data();
+//       const answerId = data.answerId;
+//       likeCounts[answerId] = (likeCounts[answerId] || 0) + 1;
+//     });
+
+//     let discrepancyFound = false;
+
+//     // Compare like counts
+//     for (const answerId in chatLogLikeCounts) {
+//       const chatLogLikeCount = chatLogLikeCounts[answerId];
+//       const likeCount = likeCounts[answerId] || 0;
+
+//       if (chatLogLikeCount !== likeCount) {
+//         console.log(`ERROR: Discrepancy found for answerId ${answerId}:`);
+//         console.log(`Chat log like count: ${chatLogLikeCount}`);
+//         console.log(`Likes table count: ${likeCount}`);
+//         discrepancyFound = true;
+//       }
+//     }
+
+//     // if (!discrepancyFound) {
+//     //   console.log('Like count integrity check passed. No discrepancies found.');
+//     // }
+
+//     for (const [answerId, count] of Object.entries(likeCounts)) {
+//       const uuids = likesSnapshot.docs
+//         .filter(doc => doc.data().answerId === answerId)
+//         .map(doc => doc.data().uuid);
+//       console.log(`Answer ID: ${answerId}, Like Count: ${count}, UUIDs: ${uuids.join(', ')}`);
+//     }
+//   } catch (error: any) {
+//     console.error('Error during like count integrity check:', error);
+//   }
+// }

@@ -2,11 +2,10 @@ import Layout from '@/components/layout';
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
-import { Share } from 'next/font/google';
 import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
-import { checkUserLikes, getLikeCounts } from '@/services/likeService';
+import { checkUserLikes } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { toast } from 'react-toastify';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
@@ -28,7 +27,6 @@ const SharedAnswers = () => {
   const { ref, inView } = useInView();
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
-  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -50,11 +48,11 @@ const SharedAnswers = () => {
         method: 'GET',
       });
       const newShares = await sharesResponse.json();
-      
+
       if (newShares.length === 0) {
         setHasMore(false);
-        setIsLoading(false); 
-        return; 
+        setIsLoading(false);
+        return;
       }
     
       // Fetch related answers in a batch
@@ -72,8 +70,7 @@ const SharedAnswers = () => {
           toast.error('Failed to parse answers. Please try again.');
         }
       }
-      
-      // Update state with new shares and answers
+
       setShares(prevShares => {
         const existingIds = new Set(prevShares.map(share => share.id));
         const newUniqueShares = newShares.filter((share: Share) => !existingIds.has(share.id));
@@ -101,17 +98,6 @@ const SharedAnswers = () => {
         return updatedAnswers;
       });
 
-      // fetch like counts for these answers
-      if (answersBatch && answersBatch.length > 0) {
-        const answerIds = answersBatch.map(answer => answer.id);
-        getLikeCounts(answerIds).then(counts => {
-          setLikeCounts(prevCounts => ({ ...prevCounts, ...counts }));
-        }).catch(error => {
-          console.error('Error fetching like counts:', error);
-        });
-      }
-
-      // Check if there are less than 10, which means we've reached the end
       if (newShares.length < 10) {
         setHasMore(false);
       } else {
@@ -125,7 +111,6 @@ const SharedAnswers = () => {
     if (hasMore && !isLoading) {
       fetchSharesAndAnswers();
     }
-
   }, [page, hasMore, isLoading]);
 
   useEffect(() => {
@@ -133,7 +118,7 @@ const SharedAnswers = () => {
     if (shares.length > 0 || Object.keys(answers).length > 0) {
       setInitialLoadComplete(true);
     }
-  }, [shares, answers]); 
+  }, [shares, answers]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -193,11 +178,9 @@ const SharedAnswers = () => {
                 <div className="bg-gray-100 p-2.5 rounded">
                   {answers[share.answerId] ? (
                     <div className="markdownanswer">
-                      {/* Use the TruncatedMarkdown component for the answer content */}
                       <TruncatedMarkdown markdown={answers[share.answerId].answer} maxCharacters={600} />
-                      {/* Render the sources list if available */}
                       {answers[share.answerId].sources && (
-                        <SourcesList sources={answers[share.answerId].sources} useAccordion={true} />
+                        <SourcesList sources={answers[share.answerId].sources || []} useAccordion={true} />
                       )}
                       {/* Render the interaction buttons */}
                       <div className="flex items-center">
@@ -206,7 +189,7 @@ const SharedAnswers = () => {
                           <LikeButton
                             answerId={share.answerId}
                             initialLiked={likeStatuses[share.answerId] || false}
-                            likeCount={likeCounts[share.answerId] || 0} // Pass the like count to LikeButton
+                            likeCount={answers[share.answerId].likeCount} 
                           />
                         </div>
                       </div>

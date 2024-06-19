@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import NodeCache from 'node-cache';
 
-const cache = new NodeCache({ stdTTL: 100, checkperiod: 120 }); // TTL in seconds
+const cache = new NodeCache({ stdTTL: 100, checkperiod: 60 }); // TTL in seconds
 
 export default async function handler(
   req: NextApiRequest,
@@ -29,9 +29,9 @@ export default async function handler(
       const answersSnapshot = await answersQuery.get();
       const answers = answersSnapshot.docs.map(doc => {
         const data = doc.data();
-        let sources = [];
+        let sources: Document[] = [];
         try {
-          sources = data.sources ? JSON.parse(data.sources) : [];
+          sources = data.sources ? JSON.parse(data.sources) as Document[]: [];
         } catch (e) {
           // Very early sources were stored in non-JSON so recognize those and only log an error for other cases
           if (!data.sources.trim().substring(0, 50).includes("Sources:")) {
@@ -46,6 +46,7 @@ export default async function handler(
           id: doc.id,
           ...data,
           sources,
+          likeCount: data.likeCount || 0,
         };
       });
 
