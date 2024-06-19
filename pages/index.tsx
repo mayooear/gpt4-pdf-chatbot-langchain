@@ -18,6 +18,8 @@ import CollectionSelector from '@/components/CollectionSelector';
 import { useRandomQueries } from '@/hooks/useRandomQueries';
 import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
+import LikeButton from '@/components/LikeButton';
+import { getOrCreateUUID } from '@/utils/client/uuid';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -41,7 +43,7 @@ export default function Home() {
     history: [],
   });
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
-
+  const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const { messages, history } = messageState;
 
   const messageListRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export default function Home() {
   const { showPopup, closePopup, popupMessage } = 
     usePopup('1.02', 
     "Others can see questions you ask and answers given. " + 
-     "Please click 'Start Private Session' below the text entry box if you would prefer we not log your session."
+     "Please click 'Start Private Session' below the text entry box if you would prefer we not log or publish your session."
     );
 
   const handleCollectionChange = (newCollection: string) => {
@@ -91,6 +93,13 @@ export default function Home() {
   const randomQueries = useRandomQueries(queriesForCollection, 3);
   
   const queryRef = useRef<string>('');
+
+  const handleLikeCountChange = (answerId: string, liked: boolean) => {
+    setLikeStatuses(prevStatuses => ({
+      ...prevStatuses,
+      [answerId]: liked,
+    }));
+  };
 
   // private session stuff
   const [privateSession, setPrivateSession] = useState<boolean>(false);
@@ -364,6 +373,13 @@ export default function Home() {
                           {message.docId && (
                             <div className="flex space-x-2">
                               <CopyButton markdown={message.message} />
+                              <LikeButton
+                                answerId={message.docId as string}
+                                initialLiked={likeStatuses[message.docId] || false}
+                                likeCount={0}
+                                onLikeCountChange={(answerId, newLikeCount) => handleLikeCountChange(answerId, newLikeCount > 0)}
+                                showLikeCount={false} 
+                                />
                               <button
                                 onClick={() => handleVote(message.docId as string, false)}
                                 className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}

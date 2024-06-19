@@ -6,9 +6,10 @@ interface LikeButtonProps {
   initialLiked: boolean;
   likeCount: number;
   onLikeCountChange: (answerId: string, newLikeCount: number) => void;
+  showLikeCount?: boolean; // Add this prop
 }
 
-const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCount, onLikeCountChange }) => {
+const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCount, onLikeCountChange, showLikeCount = true }) => {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likes, setLikes] = useState(likeCount); 
   
@@ -72,7 +73,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
       >
         <span className="material-icons">{isLiked ? 'favorite' : 'favorite_border'}</span>
       </button>
-      {likes > 0 && <span className="like-count flex items-center justify-center">{likes}</span>}
+      {showLikeCount && likes > 0 && <span className="like-count flex items-center justify-center">{likes}</span>}
     </div>
   );
 };
