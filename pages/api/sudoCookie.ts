@@ -11,13 +11,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const isAllowed = await rateLimiter(req, res);
-  if (!isAllowed) {
-    return; // Rate limiter already sent the response
-  }
-
   try {
     if (req.method === 'POST') {
+      const isAllowed = await rateLimiter(req, res);
+      if (!isAllowed) {
+        return; // Rate limiter already sent the response
+      }
       const { password } = req.body;
       const response = await setSudoCookie(req, res, password);
       res.status(200).json(response);
