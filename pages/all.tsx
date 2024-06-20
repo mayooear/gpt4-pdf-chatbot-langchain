@@ -197,11 +197,6 @@ const AllAnswers = () => {
                       <b>Question:</b> {answer.question}
                       <span className="ml-4">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
-                        {answer.vote === -1 && (
-                          <span className="items-center ml-2 text-red-600">
-                            <span className="material-icons">thumb_down</span>
-                          </span>
-                        )}
                         <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
                           'Unknown\u00a0Collection'}
                         </span>            
