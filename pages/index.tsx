@@ -260,8 +260,9 @@ export default function Home() {
         });
       }
       if (textAreaRef.current) {
-        textAreaRef.current.value = '';  // Clear the textarea
-      }  
+        textAreaRef.current.value = '';  
+        textAreaRef.current.style.height = 'auto';
+      }
 
       setLoading(false);
     } catch (error) {
