@@ -420,7 +420,11 @@ export default function Home() {
                     <textarea
                       disabled={loading}
                       onKeyDown={handleEnter}
-                      onChange={(e) => queryRef.current = e.target.value}
+                      onChange={(e) => {
+                        queryRef.current = e.target.value;
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
                       ref={textAreaRef}
                       autoFocus={false}
                       rows={1}
