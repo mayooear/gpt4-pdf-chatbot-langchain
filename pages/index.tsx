@@ -90,8 +90,7 @@ export default function Home() {
   const queriesForCollection = collection ? collectionQueries[collection as keyof typeof collectionQueries] || [] : [];
 
   // Always call useRandomQueries with the determined queries
-  const randomQueries = useRandomQueries(queriesForCollection, 3);
-  
+  const { randomQueries, shuffleQueries } = useRandomQueries(queriesForCollection, 3);
   const queryRef = useRef<string>('');
 
   const handleLikeCountChange = (answerId: string, liked: boolean) => {
@@ -469,7 +468,7 @@ export default function Home() {
                   <div className="flex justify-between items-start mt-1">
                     <div className="flex justify-between items-start mt-1">
                       <div className="w-1/2">
-                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} />
+                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} shuffleQueries={shuffleQueries} />
                       </div>
                       <div className="flex flex-col items-end w-1/2">
                         <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />

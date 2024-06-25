@@ -4,20 +4,14 @@ interface RandomQueriesProps {
   queries: string[];
   onQueryClick: (query: string) => void;
   isLoading: boolean;
+  shuffleQueries: () => void;
 }
 
-const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading }) => {
+const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading, shuffleQueries }) => {
   const [displayCount, setDisplayCount] = useState(3);
-  const [displayedQueries, setDisplayedQueries] = useState<string[]>([]);
-
-  const shuffleAndSetQueries = useCallback(() => {
-    const shuffled = [...queries].sort(() => 0.5 - Math.random());
-    setDisplayedQueries(shuffled.slice(0, displayCount));
-  }, [queries, displayCount]); // Dependencies for useCallback
 
   useEffect(() => {
     setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
-    shuffleAndSetQueries();
 
     const handleResize = () => {
       setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
@@ -25,13 +19,8 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup function to remove the event listener
     return () => window.removeEventListener('resize', handleResize);
-  }, [queries, shuffleAndSetQueries]); 
-
-  useEffect(() => {
-    shuffleAndSetQueries();
-  }, [displayCount, shuffleAndSetQueries]); 
+  }, []); 
 
   return (
     <div className="text-left w-full px-0">
@@ -41,18 +30,18 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
           <button
             onClick={(e) => {
               e.preventDefault(); 
-              shuffleAndSetQueries();
+              shuffleQueries();
             }}
             className="inline-flex justify-center items-center transform transition-transform duration-500 hover:rotate-180"
             aria-label="Refresh queries"
-            style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', transformOrigin: 'center center' }} // More specific inline styles
+            style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', transformOrigin: 'center center' }}
             disabled={isLoading} 
           >
             <span className="material-icons text-blue-600 hover:text-blue-800" style={{ display: 'inline-block', transformOrigin: 'center' }}>autorenew</span>
           </button>
         </div>
         <ul className="list-none">
-          {displayedQueries.map((query, index) => (
+          {queries.map((query, index) => (
             <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
               <button
                 className={`focus:outline-none focus:underline w-full text-left ${isLoading ? 'cursor-not-allowed' : ''}`}

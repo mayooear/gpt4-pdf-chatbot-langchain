@@ -12,5 +12,9 @@ export const useRandomQueries = (queries: string[], count: number = 3) => {
     setRandomQueries(getRandomQueries());
   }, [getRandomQueries]);
 
-  return randomQueries;
+  const shuffleQueries = useCallback(() => {
+    setRandomQueries(getRandomQueries());
+  }, [getRandomQueries]);
+
+  return { randomQueries, shuffleQueries };
 };
