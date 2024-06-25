@@ -6,6 +6,7 @@
 /docs-jram/
 /docs-*/
 /*-debug.log
+/emulator-data/
 
 # IDE
 /.idea/

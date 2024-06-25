@@ -5,7 +5,7 @@
       "rules": "firestore.rules"
     },
     "ui": {
-      "enabled": false,
+      "enabled": true,
       "port": 4000
     },
     "singleProjectMode": true

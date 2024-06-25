@@ -69,7 +69,7 @@ After installation, you should now see a `node_modules` folder.
 
 ### Setup Firebase
 
-We use firestore local emulation in dev.
+We use firestore local emulation in dev. Mac users, be sure to install via brew install firebase-cli
 
 Add to your environment (e.g., .bashrc):
 `export FIRESTORE_EMULATOR_HOST="127.0.0.1:8080”`
@@ -78,9 +78,7 @@ Command line:
 
 1. firebase login
 2. firebase init emulators
-3. firebase emulators:start
-
-It works as long as emulator UI is turned off.
+3. npm run emulator
 
 ## Optional: generate PDF files from Wordpress Database
 

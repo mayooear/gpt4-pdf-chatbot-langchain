@@ -13,7 +13,8 @@
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
     "ingest": "NODE_OPTIONS='--max-old-space-size=6000' tsx -r dotenv/config scripts/ingest-data.ts",
-    "ingest-trace": "NODE_OPTIONS='--max-old-space-size=6000 --trace-deprecation' tsx -r dotenv/config scripts/ingest-data.ts"
+    "ingest-trace": "NODE_OPTIONS='--max-old-space-size=6000 --trace-deprecation' tsx -r dotenv/config scripts/ingest-data.ts",
+    "emulator": "firebase emulators:start --import ./emulator-data --export-on-exit ./emulator-data --inspect-functions"
   },
   "dependencies": {
     "@langchain/openai": "^0.1.3",
