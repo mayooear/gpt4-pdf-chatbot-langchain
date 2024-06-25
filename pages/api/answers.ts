@@ -21,14 +21,15 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
     answersQuery = answersQuery.where('likeCount', '>', 0);
   }
 
+  // console.log(`Executing query with page: ${page}, limit: ${limit}, sortBy: ${sortBy}`);
   const answersSnapshot = await answersQuery.get();
-  const answers = answersSnapshot.docs.map(doc => {
+  // console.log(`\nQuery returned ${answersSnapshot.size} documents for page: ${page}, limit: ${limit}`);
+
+  const answers = answersSnapshot.docs.map((doc, index) => {
     const data = doc.data();
     let sources: Document[] = [];
     try {
       sources = data.sources ? JSON.parse(data.sources) as Document[]: [];
-      console.log("question: ", data.question);
-      console.log("likeCount: ", data.likeCount);
     } catch (e) {
       // Very early sources were stored in non-JSON so recognize those and only log an error for other cases
       if (!data.sources.trim().substring(0, 50).includes("Sources:")) {
@@ -39,6 +40,7 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
         }
       }
     }
+    // console.log(`${index + 1}. ${data.question}`);
     return {
       id: doc.id,
       ...data,

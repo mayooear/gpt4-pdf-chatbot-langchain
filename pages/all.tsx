@@ -77,8 +77,10 @@ const AllAnswers = () => {
   }, [page, sortBy]);
 
   useEffect(() => {
-    fetchAnswers();
-  }, [page, fetchAnswers, sortBy]);
+    if (page === 0 || Object.keys(answers).length > 0) {
+      fetchAnswers();
+    }
+  }, [page, fetchAnswers]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -98,7 +100,7 @@ const AllAnswers = () => {
     setPage(0);
     setHasMore(true);
   }, [sortBy]);
-  
+
   useEffect(() => {
     const checkSudoStatus = async () => {
       const cookies = document.cookie;
@@ -180,7 +182,14 @@ const AllAnswers = () => {
       }
     }
   };
-  
+
+  const handleSortChange = (newSortBy: string) => {
+    setAnswers({});
+    setPage(0);
+    setHasMore(true);
+    setSortBy(newSortBy);
+  };
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4">
@@ -190,9 +199,8 @@ const AllAnswers = () => {
           <select
             id="sortBy"
             className="border border-gray-300 rounded p-1"
-            onChange={(e) => {
-              setSortBy(e.target.value);
-            }}
+            onChange={(e) => handleSortChange(e.target.value)}
+            value={sortBy}
           >
             <option value="mostRecent">Most Recent</option>
             <option value="mostPopular">Most Popular</option>
@@ -270,3 +278,4 @@ const AllAnswers = () => {
 };
 
 export default AllAnswers;
+
