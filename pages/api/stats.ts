@@ -70,7 +70,7 @@ export default async function handler(
 
     // Convert Sets to numbers for JSON serialization
     Object.keys(stats.uniqueUsers).forEach((date) => {
-      stats.uniqueUsers[date] = stats.uniqueUsers[date].size;
+      stats.uniqueUsers[date] = stats.uniqueUsers[date].size as any;
     });
 
     // Calculate percentages of questions with likes
