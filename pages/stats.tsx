@@ -72,7 +72,7 @@ const Stats = () => {
               <th className="py-2 px-4 border-b">Unique Users</th>
               <th className="py-2 px-4 border-b">Questions with Likes (%)</th>
               <th className="py-2 px-4 border-b">Most Popular Question</th>
-              <th className="py-2 px-4 border-b">User Retention</th>
+              <th className="py-2 px-4 border-b">Daily User Retention</th>
             </tr>
           </thead>
           <tbody>
