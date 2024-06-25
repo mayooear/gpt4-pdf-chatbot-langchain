@@ -3,6 +3,53 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 
+// 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
+async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<any[]> {
+  let answersQuery = db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
+    .where('question', '!=', 'private')
+    .orderBy(sortBy === 'mostPopular' ? 'likeCount' : 'timestamp', 'desc');
+
+  if (sortBy === 'mostPopular') {
+    answersQuery = answersQuery.orderBy('timestamp', 'desc');
+  }
+
+  answersQuery = answersQuery
+    .offset(page * limit)
+    .limit(limit);
+
+  if (likedOnly) {
+    answersQuery = answersQuery.where('likeCount', '>', 0);
+  }
+
+  const answersSnapshot = await answersQuery.get();
+  const answers = answersSnapshot.docs.map(doc => {
+    const data = doc.data();
+    let sources: Document[] = [];
+    try {
+      sources = data.sources ? JSON.parse(data.sources) as Document[]: [];
+      console.log("question: ", data.question);
+      console.log("likeCount: ", data.likeCount);
+    } catch (e) {
+      // Very early sources were stored in non-JSON so recognize those and only log an error for other cases
+      if (!data.sources.trim().substring(0, 50).includes("Sources:")) {
+        console.error('Error parsing sources:', e);
+        console.log("data.sources: '" + data.sources + "'");
+        if (!data.sources || data.sources.length === 0) {
+          console.log("data.sources is empty or null");
+        }
+      }
+    }
+    return {
+      id: doc.id,
+      ...data,
+      sources,
+      likeCount: data.likeCount || 0,
+    };
+  });
+
+  return answers;
+}
+
 async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
   const chunkSize = 10;
@@ -50,12 +97,23 @@ export default async function handler(
   if (req.method === 'GET') {
     try {
       const { answerIds } = req.query;
-      if (!answerIds || typeof answerIds !== 'string') {
-        return res.status(400).json({ message: 'answerIds parameter is required and must be a comma-separated string.' });
+
+      if (answerIds) {
+        if (typeof answerIds !== 'string') {
+          return res.status(400).json({ message: 'answerIds parameter must be a comma-separated string.' });
+        }
+        const idsArray = answerIds.split(',');
+        const answers = await getAnswersByIds(idsArray);
+        res.status(200).json(answers);
+      } else {
+        const { page, limit, likedOnly, sortBy } = req.query;
+        const pageNumber = parseInt(page as string) || 0;
+        const limitNumber = parseInt(limit as string) || 10;
+        const likedOnlyFlag = likedOnly === 'true';
+        const sortByValue = sortBy as string || 'mostRecent'; 
+        const answers = await getAnswers(pageNumber, limitNumber, likedOnlyFlag, sortByValue); 
+        res.status(200).json(answers);
       }
-      const idsArray = answerIds.split(',');
-      const answers = await getAnswersByIds(idsArray);
-      res.status(200).json(answers);
     } catch (error: any) {
       console.error('Error fetching answers: ', error);
       if (error.code === 8) { 

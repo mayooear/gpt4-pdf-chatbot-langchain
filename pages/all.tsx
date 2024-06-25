@@ -23,6 +23,8 @@ const AllAnswers = () => {
   const [newContentLoaded, setNewContentLoaded] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [canLoadNextPage, setCanLoadNextPage] = useState(true);
+  const [sortBy, setSortBy] = useState('mostRecent');
+  const [contentLoadedByScroll, setContentLoadedByScroll] = useState(false); 
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -40,13 +42,14 @@ const AllAnswers = () => {
 
     let newAnswers: Answer[] = [];
     try {
-      const answersResponse = await fetch(`/api/logs?page=${page}&limit=10`, {
+      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${sortBy}`, {
         method: 'GET',
       });
       if (!answersResponse.ok) {
         throw new Error(`HTTP error! status: ${answersResponse.status}`);
       }
       newAnswers = await answersResponse.json();
+
     } catch (error: any) {
       console.error("Failed to fetch answers:", error);
       if (error.message.includes('429')) {
@@ -71,11 +74,11 @@ const AllAnswers = () => {
         return updatedAnswers;
       });
     }
-  }, [page]);
+  }, [page, sortBy]);
 
   useEffect(() => {
     fetchAnswers();
-  }, [page, fetchAnswers]);
+  }, [page, fetchAnswers, sortBy]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -90,6 +93,13 @@ const AllAnswers = () => {
   }, [isLoading]);
 
   useEffect(() => {
+    // Reset answers and page when sortBy changes
+    setAnswers({});
+    setPage(0);
+    setHasMore(true);
+  }, [sortBy]);
+  
+  useEffect(() => {
     const checkSudoStatus = async () => {
       const cookies = document.cookie;
       const sudoStatus = await isSudo(cookies);
@@ -102,7 +112,7 @@ const AllAnswers = () => {
   useEffect(() => {
     if (inView && hasMore && !isLoading && canLoadNextPage) {
       setPage(prevPage => prevPage + 1);
-      setNewContentLoaded(true);
+      setContentLoadedByScroll(true);
       setCanLoadNextPage(false);
 
       // Set a delay before allowing the next page to load. This is to avoid it loading
@@ -115,14 +125,15 @@ const AllAnswers = () => {
 
   // visual indication when new content loaded by infinite scroll
   useEffect(() => {
-    if (newContentLoaded) {
+    if (newContentLoaded && contentLoadedByScroll) { 
       window.scrollTo({
         top: document.documentElement.scrollTop + 100, // Scroll down slightly
         behavior: 'smooth',
       });
       setNewContentLoaded(false);
+      setContentLoadedByScroll(false);
     }
-  }, [newContentLoaded]);
+  }, [newContentLoaded, contentLoadedByScroll]);
 
   // fetch user like statuses for this user - what they have liked
   // TODO: cache like statuses so not re-pulled during infinite scroll
@@ -136,7 +147,7 @@ const AllAnswers = () => {
     if (Object.keys(answers).length > 0) {
       fetchLikeStatuses(Object.keys(answers));
     }
-  }, [answers]);
+  }, [answers, sortBy]);
 
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     setAnswers(prevAnswers => ({
@@ -172,6 +183,22 @@ const AllAnswers = () => {
   
   return (
     <Layout>
+      <div className="flex justify-between items-center mb-4">
+        <div></div>
+        <div className="flex items-center mt-0.5">
+          <label htmlFor="sortBy" className="mr-2 text-gray-700">Sort by:</label>
+          <select
+            id="sortBy"
+            className="border border-gray-300 rounded p-1"
+            onChange={(e) => {
+              setSortBy(e.target.value);
+            }}
+          >
+            <option value="mostRecent">Most Recent</option>
+            <option value="mostPopular">Most Popular</option>
+          </select>
+        </div>
+      </div>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {showErrorPopup && error && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
@@ -194,8 +221,8 @@ const AllAnswers = () => {
                   <div className="flex items-center">
                     <span className="material-icons">question_answer</span>
                     <p className="ml-4">
-                      <b>Question:</b> {answer.question}
-                      <span className="ml-4">
+                      <b>Question: {answer.question}</b>
+                      <span className="ml-4 text-sm">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
                         <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
                           'Unknown\u00a0Collection'}
@@ -213,6 +240,7 @@ const AllAnswers = () => {
                         <CopyButton markdown={answer.answer} />
                         <div className="ml-4">
                           <LikeButton
+                            key={`${answer.id}-${likeStatuses[answer.id]}`} // Add this key prop
                             answerId={answer.id}
                             initialLiked={likeStatuses[answer.id] || false}
                             likeCount={answer.likeCount}
