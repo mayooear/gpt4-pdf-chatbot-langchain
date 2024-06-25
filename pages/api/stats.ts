@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
-import firebase from 'firebase-admin';
+import NodeCache from 'node-cache';
+
+const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,9 +12,17 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const cachedStats = cache.get('stats');
+  if (cachedStats) {
+    return res.status(200).json(cachedStats);
+  }
+
   try {
     const now = new Date();
+    const todayString = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    threeDaysAgo.setHours(0, 0, 0, 0); // Set to start of the day
+    threeDaysAgo.setTime(threeDaysAgo.getTime() - (threeDaysAgo.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
 
     const chatLogsRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
     const chatLogsSnapshot = await chatLogsRef.where('timestamp', '>=', threeDaysAgo).get();
@@ -29,29 +39,43 @@ export default async function handler(
 
     const userQuestionDates = new Map<string, Set<string>>();
 
+    // Initialize stats for the last 4 days (including today)
+    for (let i = 0; i < 4; i++) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      date.setTime(date.getTime() - (date.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
+      const dateString = date.toISOString().split('T')[0];
+      stats.questions[dateString] = 0;
+      stats.likes[dateString] = 0;
+      stats.downvotes[dateString] = 0;
+      stats.uniqueUsers[dateString] = new Set();
+      stats.questionsWithLikes[dateString] = 0;
+      stats.mostPopularQuestion[dateString] = { question: '', likes: 0 };
+    }
+
     chatLogsSnapshot.forEach((doc) => {
       const data = doc.data();
-      const date = new Date(data.timestamp._seconds * 1000).toISOString().split('T')[0];
+      const date = new Date(data.timestamp._seconds * 1000);
+      date.setTime(date.getTime() - (date.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
+      const dateString = date.toISOString().split('T')[0];
+      stats.questions[dateString] = (stats.questions[dateString] || 0) + 1;
+      stats.likes[dateString] = (stats.likes[dateString] || 0) + (data.likeCount || 0);
+      stats.downvotes[dateString] = (stats.downvotes[dateString] || 0) + (data.vote === -1 ? 1 : 0);
       
-      stats.questions[date] = (stats.questions[date] || 0) + 1;
-      stats.likes[date] = (stats.likes[date] || 0) + (data.likeCount || 0);
-      stats.downvotes[date] = (stats.downvotes[date] || 0) + (data.vote === -1 ? 1 : 0);
-      
-      if (!stats.uniqueUsers[date]) stats.uniqueUsers[date] = new Set();
-      stats.uniqueUsers[date].add(data.ip);
+      if (!stats.uniqueUsers[dateString]) stats.uniqueUsers[dateString] = new Set();
+      stats.uniqueUsers[dateString].add(data.ip);
 
       if (data.likeCount > 0) {
-        stats.questionsWithLikes[date] = (stats.questionsWithLikes[date] || 0) + 1;
+        stats.questionsWithLikes[dateString] = (stats.questionsWithLikes[dateString] || 0) + 1;
       }
 
-      if (!stats.mostPopularQuestion[date] || data.likeCount > stats.mostPopularQuestion[date].likes) {
-        stats.mostPopularQuestion[date] = { question: data.question, likes: data.likeCount || 0 };
+      if (!stats.mostPopularQuestion[dateString] || data.likeCount > stats.mostPopularQuestion[dateString].likes) {
+        stats.mostPopularQuestion[dateString] = { question: data.question, likes: data.likeCount || 0 };
       }
 
       if (!userQuestionDates.has(data.ip)) {
         userQuestionDates.set(data.ip, new Set());
       }
-      userQuestionDates.get(data.ip)!.add(date);
+      userQuestionDates.get(data.ip)!.add(dateString);
     });
 
     // Calculate user retention
@@ -79,8 +103,10 @@ export default async function handler(
       stats.questionsWithLikes[date] = Math.round(percentage * 10) / 10; // Round to 1 decimal place
     });
 
+    cache.set('stats', stats);
     res.status(200).json(stats);
   } catch (error: any) {
+    console.error('Error in stats handler:', error);
     res.status(500).json({ error: error.message || 'Something went wrong' });
   }
 }

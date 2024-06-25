@@ -12,7 +12,15 @@ interface StatsData {
 }
 
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+  const date = new Date(dateString + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (date.getTime() === today.getTime()) {
+    return 'Today';
+  } else if (date.getTime() === today.getTime() - 86400000) {
+    return 'Yesterday';
+  }
   return `${date.getMonth() + 1}/${date.getDate()}`;
 };
 
@@ -62,7 +70,7 @@ const Stats = () => {
               <th className="py-2 px-4 border-b">Likes</th>
               <th className="py-2 px-4 border-b">Downvotes</th>
               <th className="py-2 px-4 border-b">Unique Users</th>
-              <th className="py-2 px-4 border-b">Questions with Likes</th>
+              <th className="py-2 px-4 border-b">Questions with Likes (%)</th>
               <th className="py-2 px-4 border-b">Most Popular Question</th>
               <th className="py-2 px-4 border-b">User Retention</th>
             </tr>
@@ -76,8 +84,8 @@ const Stats = () => {
                 <td className="py-2 px-4 border-b text-center">{stats.downvotes[date] || 0}</td>
                 <td className="py-2 px-4 border-b text-center">{stats.uniqueUsers[date] || 0}</td>
                 <td className="py-2 px-4 border-b text-center">{stats.questionsWithLikes[date] || 0}%</td>
-                <td className="py-2 px-4 border-b text-center">{stats.mostPopularQuestion[date]?.question || ''} ({stats.mostPopularQuestion[date]?.likes || 0} likes)</td>
-                <td className="py-2 px-4 border-b text-center">{stats.userRetention[date] || 0}</td>
+                <td className="py-2 px-4 border-b text-center">{stats.mostPopularQuestion[date]?.question || 'N/A'} ({stats.mostPopularQuestion[date]?.likes || 0} likes)</td>
+                <td className="py-2 px-4 border-b text-center">{stats.userRetention[date] || 'N/A'}</td>
               </tr>
             ))}
           </tbody>

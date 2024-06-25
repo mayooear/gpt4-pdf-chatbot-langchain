@@ -52,11 +52,16 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
       </header>
-      <div>
+      <div className="flex-grow">
         <main className="container mx-auto flex flex-1 flex-col overflow-hidden">
           {children}
         </main>
       </div>
+      <footer className="container mx-auto py-4 text-center text-sm text-gray-500">
+        <Link href="/stats" className="hover:text-slate-600">
+          Site Statistics
+        </Link>
+      </footer>
     </div>
   );
 }
