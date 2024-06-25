@@ -11,8 +11,10 @@ import { checkUserLikes } from '@/services/likeService';
 import { isSudo } from '@/utils/client/cookieUtils';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
+import { useRouter } from 'next/router';
 
 const AllAnswers = () => {
+  const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [page, setPage] = useState(0);
   const { ref, inView } = useInView();
@@ -190,6 +192,21 @@ const AllAnswers = () => {
     setSortBy(newSortBy);
   };
 
+  useEffect(() => {
+    const { sortBy: urlSortBy } = router.query;
+    if (urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
+      setSortBy(urlSortBy);
+    }
+  }, [router.query]);
+
+  useEffect(() => {
+    if (sortBy === 'mostRecent') {
+      router.push('/all', undefined, { shallow: true });
+    } else {
+      router.push(`/all?sortBy=${sortBy}`, undefined, { shallow: true });
+    }
+  }, [sortBy]);
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4">
@@ -278,4 +295,3 @@ const AllAnswers = () => {
 };
 
 export default AllAnswers;
-
