@@ -18,7 +18,6 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     const setupGA = async () => {
-      console.log('Setting up GA...');
       await initGA();
       logPageView(router.pathname);
     };

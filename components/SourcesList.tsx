@@ -29,8 +29,10 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     logEvent('expand_sources', 'UI', expanded ? 'expanded' : 'collapsed');
   };
 
-  const handleSourceClick = (source: string) => {
+  const handleSourceClick = (e: React.MouseEvent<HTMLAnchorElement>, source: string) => {
+    e.preventDefault(); // Prevent default link behavior
     logEvent('click_source', 'UI', source);
+    window.open(source, '_blank', 'noopener,noreferrer'); // Open link manually
   };
 
   if (useAccordion) {
@@ -52,7 +54,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="hover:underline"
-                        onClick={() => handleSourceClick(doc.metadata.source)}
+                        onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                       >
                         {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
                       </a>
@@ -113,7 +115,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                 target="_blank" 
                 rel="noopener noreferrer" 
                 style={{ color: 'blue' }}
-                onClick={() => handleSourceClick(doc.metadata.source)}
+                onClick={(e) => handleSourceClick(e, doc.metadata.source)}
               >
                 {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) : doc.metadata.source}
               </a>
