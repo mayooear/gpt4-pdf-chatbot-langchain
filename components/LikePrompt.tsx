@@ -25,7 +25,7 @@ const LikePrompt: React.FC<LikePromptProps> = ({ show }) => {
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="bg-white p-4 rounded-lg shadow-lg max-w-sm mx-auto">
         <p className="mb-2">
-          Don't forget to like helpful answers! This highlights them for your Gurubhais 🙏🏼 
+          Don&apos;t forget to like helpful answers! This highlights them for your Gurubhais 🙏🏼
         </p>
         <button
           onClick={handleClose}
