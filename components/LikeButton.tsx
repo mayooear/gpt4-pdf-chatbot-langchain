@@ -45,15 +45,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
         throw new Error(errorData.error || 'An error occurred while updating the like status.');
       }
   
-      // Update the like count in the chat logs
-      await fetch('/api/updateLikeCount', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answerId, likeCount: newLikedState ? likes + 1 : likes - 1 }),
-      });
-
       // Call the onLikeCountChange callback with the updated like count
       onLikeCountChange(answerId, newLikedState ? likes + 1 : likes - 1);
 

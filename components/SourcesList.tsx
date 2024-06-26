@@ -5,6 +5,7 @@ import gfm from 'remark-gfm';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion';
 import styles from '@/styles/Home.module.css';
 import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
+import { logEvent } from '@/utils/client/analytics';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
@@ -20,19 +21,39 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
 
   const displayCollectionName = collectionName ? collectionsConfig[collectionName as CollectionKey] : '';
 
+  const handleExpandAll = () => {
+    logEvent('expand_all_sources', 'UI', 'accordion');
+  };
+
+  const handleAccordionExpand = (expanded: boolean) => {
+    logEvent('expand_sources', 'UI', expanded ? 'expanded' : 'collapsed');
+  };
+
+  const handleSourceClick = (source: string) => {
+    logEvent('click_source', 'UI', source);
+  };
+
   if (useAccordion) {
     return (
       <>
       {sources.length > 0 && (
         <div>
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible onValueChange={(value) => handleAccordionExpand(!!value)}>
             <AccordionItem value="sources">
-              <AccordionTrigger className="text-base font-semibold text-blue-500">Sources</AccordionTrigger>
+              <AccordionTrigger className="text-base font-semibold text-blue-500">
+                Sources
+              </AccordionTrigger>
               <AccordionContent>
                 <ul className="text-base">
                   {sources.map((doc, index) => (
                     <li key={index}>
-                      <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      <a 
+                        href={doc.metadata.source} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="hover:underline"
+                        onClick={() => handleSourceClick(doc.metadata.source)}
+                      >
                         {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
                       </a>
                     </li>
@@ -61,6 +82,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                 if (e.target instanceof HTMLElement) {
                   e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
                 }
+                handleExpandAll();
               }}
               className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
               {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
@@ -75,10 +97,24 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
       </div>
       )}
       {sources.map((doc, index) => (
-        <details key={index} className={styles.sourceDocsContainer}>
+        <details 
+          key={index} 
+          className={styles.sourceDocsContainer}
+          onToggle={(e) => {
+            if (e.currentTarget instanceof HTMLDetailsElement) {
+              logEvent('expand_source', 'UI', e.currentTarget.open ? 'expanded' : 'collapsed');
+            }
+          }}
+        >
           <summary title="Click the triangle to see details or title to go to library source">
             {doc.metadata.source.startsWith('http') ? (
-              <a href={doc.metadata.source} target="_blank" rel="noopener noreferrer" style={{ color: 'blue' }}>
+              <a 
+                href={doc.metadata.source} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ color: 'blue' }}
+                onClick={() => handleSourceClick(doc.metadata.source)}
+              >
                 {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) : doc.metadata.source}
               </a>
             ) : (

@@ -20,7 +20,7 @@ import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
-import { initGA, logEvent } from '@/utils/client/analytics';
+import { logEvent } from '@/utils/client/analytics';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -47,6 +47,7 @@ export default function Home() {
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
+  const [answerCount, setAnswerCount] = useState(0);
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -192,9 +193,6 @@ export default function Home() {
     if (window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
-
-    // Initialize Google Analytics
-    initGA();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -271,8 +269,15 @@ export default function Home() {
           }, 10);
         });
 
-        // Show the like prompt after the first answer
-        setShowLikePrompt(true);
+        // Increment the answer count
+        setAnswerCount((prevCount) => {
+          const newCount = prevCount + 1;
+          // Show the like prompt after the second answer
+          if (newCount === 2) {
+            setShowLikePrompt(true);
+          }
+          return newCount;
+        });
       }
       if (textAreaRef.current) {
         textAreaRef.current.value = '';  
