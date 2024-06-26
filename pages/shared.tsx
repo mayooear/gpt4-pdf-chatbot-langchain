@@ -1,3 +1,6 @@
+// TODO if we decide to use this page again:
+// - add google analytics events like in all.tsx
+
 import Layout from '@/components/layout';
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';

@@ -12,6 +12,7 @@ import { isSudo } from '@/utils/client/cookieUtils';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
+import { initGA, logEvent } from '@/utils/client/analytics';
 
 const AllAnswers = () => {
   const router = useRouter();
@@ -36,6 +37,10 @@ const AllAnswers = () => {
 
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
+
+  useEffect(() => {
+    initGA();
+  }, []);
 
   const fetchAnswers = useCallback(async () => {
     setIsLoading(true);
@@ -161,6 +166,8 @@ const AllAnswers = () => {
         likeCount: newLikeCount,
       },
     }));
+
+    logEvent('like_answer', 'Engagement', answerId);
   };
 
   const handleDelete = async (answerId: string) => {
@@ -178,6 +185,7 @@ const AllAnswers = () => {
           delete updatedAnswers[answerId];
           return updatedAnswers;
         });
+        logEvent('delete_answer', 'Admin', answerId);
       } catch (error) {
         console.error('Error deleting answer:', error);
         alert('Failed to delete answer. Please try again.');
@@ -190,6 +198,7 @@ const AllAnswers = () => {
     setPage(0);
     setHasMore(true);
     setSortBy(newSortBy);
+    logEvent('change_sort', 'UI', newSortBy);
   };
 
   useEffect(() => {

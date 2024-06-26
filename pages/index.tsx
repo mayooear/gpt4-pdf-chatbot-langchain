@@ -19,8 +19,8 @@ import { useRandomQueries } from '@/hooks/useRandomQueries';
 import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
-import { getOrCreateUUID } from '@/utils/client/uuid';
 import LikePrompt from '@/components/LikePrompt';
+import { initGA, logEvent } from '@/utils/client/analytics';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -64,6 +64,7 @@ export default function Home() {
     }
     setCollection(newCollection);
     Cookies.set('selectedCollection', newCollection, { expires: 365 });
+    logEvent('change_collection', 'UI', newCollection);
   };
   
   const collectionQueries = useMemo(() => ({
@@ -100,6 +101,8 @@ export default function Home() {
       ...prevStatuses,
       [answerId]: liked,
     }));
+
+    logEvent('like_answer', 'Engagement', answerId);
   };
 
   // private session stuff
@@ -112,6 +115,7 @@ export default function Home() {
     } else {
       // Start a private session
       setPrivateSession(true);
+      logEvent('start_private_session', 'UI', '');
     }
   };
   const [votes, setVotes] = useState<Record<string, number>>({});
@@ -137,6 +141,8 @@ export default function Home() {
       const updatedVotes = { ...prevVotes, [docId]: vote };
       return updatedVotes;
     });
+
+    logEvent(isUpvote ? 'upvote_answer' : 'downvote_answer', 'Engagement', docId, vote);
 
     try {
       const response = await fetch('/api/vote', {
@@ -186,6 +192,9 @@ export default function Home() {
     if (window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
+
+    // Initialize Google Analytics
+    initGA();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -210,6 +219,8 @@ export default function Home() {
         },
       ],
     }));
+
+    logEvent('ask_question', 'Engagement', question);
 
     setLoading(true);
     try {

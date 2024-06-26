@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { logEvent } from '@/utils/client/analytics';
 
 interface RandomQueriesProps {
   queries: string[];
@@ -22,16 +23,26 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
     return () => window.removeEventListener('resize', handleResize);
   }, []); 
 
+  const handleQueryClick = (query: string) => {
+    if (!isLoading) {
+      onQueryClick(query);
+      logEvent('select_suggested_query', 'Engagement', query);
+    }
+  };
+
+  const handleShuffleQueries = (e: React.MouseEvent) => {
+    e.preventDefault();
+    shuffleQueries();
+    logEvent('randomize_suggested_queries', 'UI', '');
+  };
+
   return (
     <div className="text-left w-full px-0">
       <div className="bg-gray-100 p-4 rounded-lg w-full">
         <div className="flex justify-between items-center">
           <p className={`font-semibold mb-3`}>{displayCount > 1 ? 'Suggested Queries:' : 'Suggested Query:'}</p>
           <button
-            onClick={(e) => {
-              e.preventDefault(); 
-              shuffleQueries();
-            }}
+            onClick={handleShuffleQueries}
             className="inline-flex justify-center items-center transform transition-transform duration-500 hover:rotate-180"
             aria-label="Refresh queries"
             style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', transformOrigin: 'center center' }}
@@ -45,7 +56,7 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
             <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
               <button
                 className={`focus:outline-none focus:underline w-full text-left ${isLoading ? 'cursor-not-allowed' : ''}`}
-                onClick={() => !isLoading && onQueryClick(query)}
+                onClick={() => handleQueryClick(query)}
                 aria-label={`Sample query: ${query}`}
                 disabled={isLoading} 
               >

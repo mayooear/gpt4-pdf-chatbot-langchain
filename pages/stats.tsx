@@ -2,13 +2,8 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/layout';
 
 interface StatsData {
-  questions: Record<string, number>;
-  likes: Record<string, number>;
-  downvotes: Record<string, number>;
-  uniqueUsers: Record<string, number>;
   questionsWithLikes: Record<string, number>;
   mostPopularQuestion: Record<string, { question: string; likes: number }>;
-  userRetention: Record<string, number>;
 }
 
 const formatDate = (dateString: string): string => {
@@ -53,8 +48,28 @@ const Stats = () => {
   if (error) return <Layout><div>Error: {error}</div></Layout>;
   if (!stats) return <Layout><div>No data available</div></Layout>;
 
-  const dates = Object.keys(stats.questions);
+  const dates = Object.keys(stats.questionsWithLikes);
   const sortedDates = dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  const calculateAggregateStats = (days: number) => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const relevantDates = sortedDates.filter(date => new Date(date) >= cutoffDate);
+    
+    const totalLikes = relevantDates.reduce((sum, date) => sum + (stats.questionsWithLikes[date] || 0), 0);
+    const averageLikes = relevantDates.length > 0 ? (totalLikes / relevantDates.length).toFixed(1) : 'N/A';
+    
+    const mostPopular = relevantDates.reduce((max, date) => {
+      const current = stats.mostPopularQuestion[date];
+      return (current && current.likes > (max?.likes || 0)) ? current : max;
+    }, { question: 'N/A', likes: 0 });
+
+    return { averageLikes, mostPopular };
+  };
+
+  const sevenDayStats = calculateAggregateStats(7);
+  const thirtyDayStats = calculateAggregateStats(30);
+  const ninetyDayStats = calculateAggregateStats(90);
 
   return (
     <Layout>
@@ -66,28 +81,33 @@ const Stats = () => {
           <thead>
             <tr>
               <th className="py-2 px-4 border-b">Date</th>
-              <th className="py-2 px-4 border-b">Questions Asked</th>
-              <th className="py-2 px-4 border-b">Likes</th>
-              <th className="py-2 px-4 border-b">Downvotes</th>
-              <th className="py-2 px-4 border-b">Unique Users</th>
               <th className="py-2 px-4 border-b">Questions with Likes (%)</th>
               <th className="py-2 px-4 border-b">Most Popular Question</th>
-              <th className="py-2 px-4 border-b">Daily User Retention</th>
             </tr>
           </thead>
           <tbody>
             {sortedDates.map((date) => (
               <tr key={date}>
                 <td className="py-2 px-4 border-b">{formatDate(date)}</td>
-                <td className="py-2 px-4 border-b text-center">{stats.questions[date] || 0}</td>
-                <td className="py-2 px-4 border-b text-center">{stats.likes[date] || 0}</td>
-                <td className="py-2 px-4 border-b text-center">{stats.downvotes[date] || 0}</td>
-                <td className="py-2 px-4 border-b text-center">{stats.uniqueUsers[date] || 0}</td>
                 <td className="py-2 px-4 border-b text-center">{stats.questionsWithLikes[date] || 0}%</td>
                 <td className="py-2 px-4 border-b text-center">{stats.mostPopularQuestion[date]?.question || 'N/A'} ({stats.mostPopularQuestion[date]?.likes || 0} likes)</td>
-                <td className="py-2 px-4 border-b text-center">{stats.userRetention[date] || 'N/A'}</td>
               </tr>
             ))}
+            <tr>
+              <td className="py-2 px-4 border-b font-bold">Last 7 Days</td>
+              <td className="py-2 px-4 border-b text-center">{sevenDayStats.averageLikes}%</td>
+              <td className="py-2 px-4 border-b text-center">{sevenDayStats.mostPopular.question} ({sevenDayStats.mostPopular.likes} likes)</td>
+            </tr>
+            <tr>
+              <td className="py-2 px-4 border-b font-bold">Last 30 Days</td>
+              <td className="py-2 px-4 border-b text-center">{thirtyDayStats.averageLikes}%</td>
+              <td className="py-2 px-4 border-b text-center">{thirtyDayStats.mostPopular.question} ({thirtyDayStats.mostPopular.likes} likes)</td>
+            </tr>
+            <tr>
+              <td className="py-2 px-4 border-b font-bold">Last 90 Days</td>
+              <td className="py-2 px-4 border-b text-center">{ninetyDayStats.averageLikes}%</td>
+              <td className="py-2 px-4 border-b text-center">{ninetyDayStats.mostPopular.question} ({ninetyDayStats.mostPopular.likes} likes)</td>
+            </tr>
           </tbody>
         </table>
       )}

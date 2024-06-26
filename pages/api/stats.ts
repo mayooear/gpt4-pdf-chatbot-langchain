@@ -19,51 +19,35 @@ export default async function handler(
 
   try {
     const now = new Date();
-    const todayString = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    threeDaysAgo.setHours(0, 0, 0, 0); // Set to start of the day
-    threeDaysAgo.setTime(threeDaysAgo.getTime() - (threeDaysAgo.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    ninetyDaysAgo.setHours(0, 0, 0, 0); // Set to start of the day
+    ninetyDaysAgo.setTime(ninetyDaysAgo.getTime() - (ninetyDaysAgo.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
 
     const chatLogsRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
-    const chatLogsSnapshot = await chatLogsRef.where('timestamp', '>=', threeDaysAgo).get();
+    const chatLogsSnapshot = await chatLogsRef.where('timestamp', '>=', ninetyDaysAgo).get();
 
     const stats = {
-      questions: {} as Record<string, number>,
-      likes: {} as Record<string, number>,
-      downvotes: {} as Record<string, number>,
-      uniqueUsers: {} as Record<string, Set<string>>,
       questionsWithLikes: {} as Record<string, number>,
       mostPopularQuestion: {} as Record<string, { question: string; likes: number }>,
-      userRetention: {} as Record<string, number>,
     };
 
-    const userQuestionDates = new Map<string, Set<string>>();
-
-    // Initialize stats for the last 4 days (including today)
-    for (let i = 0; i < 4; i++) {
+    // Initialize stats for the last 90 days
+    for (let i = 0; i < 90; i++) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       date.setTime(date.getTime() - (date.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
       const dateString = date.toISOString().split('T')[0];
-      stats.questions[dateString] = 0;
-      stats.likes[dateString] = 0;
-      stats.downvotes[dateString] = 0;
-      stats.uniqueUsers[dateString] = new Set();
       stats.questionsWithLikes[dateString] = 0;
       stats.mostPopularQuestion[dateString] = { question: '', likes: 0 };
     }
 
+    let totalQuestions = 0;
     chatLogsSnapshot.forEach((doc) => {
       const data = doc.data();
       const date = new Date(data.timestamp._seconds * 1000);
       date.setTime(date.getTime() - (date.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
       const dateString = date.toISOString().split('T')[0];
-      stats.questions[dateString] = (stats.questions[dateString] || 0) + 1;
-      stats.likes[dateString] = (stats.likes[dateString] || 0) + (data.likeCount || 0);
-      stats.downvotes[dateString] = (stats.downvotes[dateString] || 0) + (data.vote === -1 ? 1 : 0);
+      totalQuestions++;
       
-      if (!stats.uniqueUsers[dateString]) stats.uniqueUsers[dateString] = new Set();
-      stats.uniqueUsers[dateString].add(data.ip);
-
       if (data.likeCount > 0) {
         stats.questionsWithLikes[dateString] = (stats.questionsWithLikes[dateString] || 0) + 1;
       }
@@ -71,35 +55,12 @@ export default async function handler(
       if (!stats.mostPopularQuestion[dateString] || data.likeCount > stats.mostPopularQuestion[dateString].likes) {
         stats.mostPopularQuestion[dateString] = { question: data.question, likes: data.likeCount || 0 };
       }
-
-      if (!userQuestionDates.has(data.ip)) {
-        userQuestionDates.set(data.ip, new Set());
-      }
-      userQuestionDates.get(data.ip)!.add(dateString);
-    });
-
-    // Calculate user retention
-    const dates = Object.keys(stats.questions).sort();
-    for (let i = 1; i < dates.length; i++) {
-      const prevDate = dates[i - 1];
-      const currDate = dates[i];
-      let retainedUsers = 0;
-      userQuestionDates.forEach((dates) => {
-        if (dates.has(prevDate) && dates.has(currDate)) {
-          retainedUsers++;
-        }
-      });
-      stats.userRetention[currDate] = retainedUsers;
-    }
-
-    // Convert Sets to numbers for JSON serialization
-    Object.keys(stats.uniqueUsers).forEach((date) => {
-      stats.uniqueUsers[date] = stats.uniqueUsers[date].size as any;
     });
 
     // Calculate percentages of questions with likes
-    Object.keys(stats.questions).forEach((date) => {
-      const percentage = (stats.questionsWithLikes[date] || 0) / stats.questions[date] * 100;
+    Object.keys(stats.questionsWithLikes).forEach((date) => {
+      const questionsForDate = totalQuestions / 90; // Assuming equal distribution over 90 days
+      const percentage = (stats.questionsWithLikes[date] || 0) / questionsForDate * 100;
       stats.questionsWithLikes[date] = Math.round(percentage * 10) / 10; // Round to 1 decimal place
     });
 
