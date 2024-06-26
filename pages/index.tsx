@@ -20,6 +20,7 @@ import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
 import { getOrCreateUUID } from '@/utils/client/uuid';
+import LikePrompt from '@/components/LikePrompt';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -45,6 +46,7 @@ export default function Home() {
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const { messages, history } = messageState;
+  const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -257,6 +259,9 @@ export default function Home() {
             messageListRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }, 10);
         });
+
+        // Show the like prompt after the first answer
+        setShowLikePrompt(true);
       }
       if (textAreaRef.current) {
         textAreaRef.current.value = '';  
@@ -312,6 +317,7 @@ export default function Home() {
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
+        <LikePrompt show={showLikePrompt} />
         <div className="w-3/4 mx-auto flex flex-col">
           <main className="flex flex-col justify-between items-center p-4">
             <div className={styles.cloud}>
@@ -383,7 +389,7 @@ export default function Home() {
                               <button
                                 onClick={() => handleVote(message.docId as string, false)}
                                 className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
-                                title="Downvote for system training"
+                                title="Downvote (private) for system training"
                               >
                                 <span className="material-icons text-black">
                                   {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}

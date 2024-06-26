@@ -6,12 +6,13 @@ interface LikeButtonProps {
   initialLiked: boolean;
   likeCount: number;
   onLikeCountChange: (answerId: string, newLikeCount: number) => void;
-  showLikeCount?: boolean; // Add this prop
+  showLikeCount?: boolean;
 }
 
 const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCount, onLikeCountChange, showLikeCount = true }) => {
   const [isLiked, setIsLiked] = useState(initialLiked);
-  const [likes, setLikes] = useState(likeCount); 
+  const [likes, setLikes] = useState(likeCount);
+  const [animate, setAnimate] = useState(false);
   
   useEffect(() => {
     setIsLiked(initialLiked);
@@ -25,6 +26,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
     const uuid = getOrCreateUUID();
     const newLikedState = !isLiked;
     setIsLiked(newLikedState);
+    setAnimate(true);
+    setTimeout(() => setAnimate(false), 300);
   
     try {
       const response = await fetch('/api/like', {
@@ -65,15 +68,16 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
 
   return (
     <div className="like-container flex items-center">
+      <span className="ml-2 text-sm text-gray-500">Found this helpful?&nbsp;</span>
       <button
-        className={`heart-button ${isLiked ? 'liked' : ''}`}
+        className={`heart-button ${isLiked ? 'liked' : ''} ${animate ? 'animate-pulse' : ''}`}
         onClick={handleLike}
         aria-label={isLiked ? 'Unlike this answer' : 'Like this answer'}
-        title={isLiked ? 'Unlike this answer' : 'Like this answer'}
+        title="Like this answer to show it was helpful"
       >
         <span className="material-icons">{isLiked ? 'favorite' : 'favorite_border'}</span>
       </button>
-      {showLikeCount && likes > 0 && <span className="like-count flex items-center justify-center">{likes}</span>}
+      {showLikeCount && likes > 0 && <span className="like-count flex items-center justify-center ml-1">{likes}</span>}
     </div>
   );
 };
