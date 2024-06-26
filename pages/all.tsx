@@ -87,7 +87,7 @@ const AllAnswers = () => {
     if (page === 0 || Object.keys(answers).length > 0) {
       fetchAnswers();
     }
-  }, [page, fetchAnswers]);
+  }, [page, fetchAnswers, sortBy]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -156,7 +156,7 @@ const AllAnswers = () => {
     if (Object.keys(answers).length > 0) {
       fetchLikeStatuses(Object.keys(answers));
     }
-  }, [answers, sortBy]);
+  }, [answers]);
 
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     setAnswers(prevAnswers => ({
@@ -206,15 +206,18 @@ const AllAnswers = () => {
     if (urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
       setSortBy(urlSortBy);
     }
-  }, [router.query]);
+  }, [router.query, sortBy]);
 
   useEffect(() => {
-    if (sortBy === 'mostRecent') {
-      router.push('/all', undefined, { shallow: true });
-    } else {
-      router.push(`/all?sortBy=${sortBy}`, undefined, { shallow: true });
+    if (router.isReady) {
+      const currentSortBy = router.query.sortBy as string | undefined;
+      if (sortBy === 'mostRecent' && currentSortBy !== undefined) {
+        router.push('/all', undefined, { shallow: true });
+      } else if (sortBy !== 'mostRecent' && currentSortBy !== sortBy) {
+        router.push(`/all?sortBy=${sortBy}`, undefined, { shallow: true });
+      }
     }
-  }, [sortBy]);
+  }, [sortBy, router, router.isReady, router.query.sortBy]);
 
   return (
     <Layout>
