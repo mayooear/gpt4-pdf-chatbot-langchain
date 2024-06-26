@@ -271,7 +271,10 @@ const AllAnswers = () => {
                         <SourcesList sources={answer.sources} useAccordion={true} />
                       )}
                       <div className="flex items-center">
-                        <CopyButton markdown={answer.answer} />
+                        <CopyButton
+                          markdown={answer.answer}
+                          answerId={answer.id}
+                        />
                         <div className="ml-4">
                           <LikeButton
                             key={`${answer.id}-${likeStatuses[answer.id]}`} // Add this key prop

@@ -389,7 +389,7 @@ export default function Home() {
                           <div className="text-left ml-[75px]">
                           {message.docId && (
                             <div className="flex space-x-2">
-                              <CopyButton markdown={message.message} />
+                              <CopyButton markdown={message.message} answerId={message.docId as string} />
                               <LikeButton
                                 answerId={message.docId as string}
                                 initialLiked={likeStatuses[message.docId] || false}

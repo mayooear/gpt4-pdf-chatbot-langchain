@@ -1,17 +1,22 @@
 import React from 'react';
 import { copyTextToClipboard } from '../utils/client/clipboard';
+import { logEvent } from '@/utils/client/analytics';
 
 interface CopyButtonProps {
   markdown: string;
+  answerId?: string; // Add this to identify the answer being copied
 }
 
-const CopyButton: React.FC<CopyButtonProps> = ({ markdown }) => {
+const CopyButton: React.FC<CopyButtonProps> = ({ markdown, answerId }) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = async () => {
     await copyTextToClipboard(markdown);
     setCopied(true);
     setTimeout(() => setCopied(false), 1000);
+
+    // Log the event to Google Analytics
+    logEvent('copy_answer', 'UI', answerId || 'unknown');
   };
 
   return (
