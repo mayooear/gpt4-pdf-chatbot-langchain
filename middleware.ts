@@ -4,6 +4,12 @@ import type { NextRequest } from 'next/server';
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
+  // Redirect /all to /answers, preserving query parameters
+  if (url.pathname === '/all') {
+    url.pathname = '/answers';
+    return NextResponse.redirect(url, { status: 308 }); // 308 is for permanent redirect
+  }
+
   // Redirect HTTP to HTTPS
   if (url.protocol === 'http:' && process.env.ENVIRONMENT !== 'dev') {
     url.protocol = 'https:';

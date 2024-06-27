@@ -225,9 +225,9 @@ const AllAnswers = () => {
     if (router.isReady && isSortByInitialized) {
       const currentSortBy = router.query.sortBy as string | undefined;
       if (sortBy === 'mostRecent' && currentSortBy !== undefined) {
-        router.push('/all', undefined, { shallow: true });
+        router.push('/answers', undefined, { shallow: true });
       } else if (sortBy !== 'mostRecent' && currentSortBy !== sortBy) {
-        router.push(`/all?sortBy=${sortBy}`, undefined, { shallow: true });
+        router.push(`/answers?sortBy=${sortBy}`, undefined, { shallow: true });
       }
     }
   }, [sortBy, router.isReady, isSortByInitialized]);

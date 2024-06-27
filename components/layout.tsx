@@ -44,8 +44,8 @@ export default function Layout({ children }: LayoutProps) {
                   Ask
                 </a>
               </Link>
-              <Link legacyBehavior href="/all">
-                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/all') ? 'text-slate-800 font-bold' : ''}`}>
+              <Link legacyBehavior href="/answers">
+                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/answers') ? 'text-slate-800 font-bold' : ''}`}>
                   All&nbsp;Answers
                 </a>
               </Link>
