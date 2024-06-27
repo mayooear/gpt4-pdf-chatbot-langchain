@@ -17,6 +17,10 @@ import React from 'react';
 
 const AllAnswers = () => {
   const router = useRouter();
+  const { sortBy: urlSortBy } = router.query;
+  const [sortBy, setSortBy] = useState<string>('mostRecent');
+  const [isSortByInitialized, setIsSortByInitialized] = useState(false);
+
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [page, setPage] = useState(0);
   const { ref, inView } = useInView();
@@ -27,7 +31,6 @@ const AllAnswers = () => {
   const [newContentLoaded, setNewContentLoaded] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [canLoadNextPage, setCanLoadNextPage] = useState(true);
-  const [sortBy, setSortBy] = useState('mostRecent');
   const [contentLoadedByScroll, setContentLoadedByScroll] = useState(false); 
 
   // State to track if there are more items to load
@@ -51,7 +54,7 @@ const AllAnswers = () => {
 
   const fetchAnswers = useCallback(async () => {
     setIsLoading(true);
-    setError(null); // Reset error state before fetching
+    setError(null); 
     setShowErrorPopup(false); 
 
     let newAnswers: Answer[] = [];
@@ -92,9 +95,11 @@ const AllAnswers = () => {
 
   useEffect(() => {
     if (page === 0 || Object.keys(answers).length > 0) {
-      fetchAnswers();
+      if (isSortByInitialized) {
+        fetchAnswers();
+      }
     }
-  }, [page, fetchAnswers, sortBy]);
+  }, [page, fetchAnswers, sortBy, isSortByInitialized]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -209,14 +214,15 @@ const AllAnswers = () => {
   };
 
   useEffect(() => {
-    const { sortBy: urlSortBy } = router.query;
-    if (urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
+    if (router.isReady && urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
       setSortBy(urlSortBy);
+    } else {
+      setIsSortByInitialized(true);
     }
-  }, [router.query, sortBy]);
+  }, [router.isReady, urlSortBy]);
 
   useEffect(() => {
-    if (router.isReady) {
+    if (router.isReady && isSortByInitialized) {
       const currentSortBy = router.query.sortBy as string | undefined;
       if (sortBy === 'mostRecent' && currentSortBy !== undefined) {
         router.push('/all', undefined, { shallow: true });
@@ -224,7 +230,7 @@ const AllAnswers = () => {
         router.push(`/all?sortBy=${sortBy}`, undefined, { shallow: true });
       }
     }
-  }, [sortBy, router, router.isReady, router.query.sortBy]);
+  }, [sortBy, router.isReady, isSortByInitialized]);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
