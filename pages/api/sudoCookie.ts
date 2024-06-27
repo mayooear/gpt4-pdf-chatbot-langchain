@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(405).json({ message: 'Method not allowed' });
     }
   } catch (error: any) {
+    console.error("SudoCookie:", error);
     res.status(400).json({ message: error.message });
   }
 }

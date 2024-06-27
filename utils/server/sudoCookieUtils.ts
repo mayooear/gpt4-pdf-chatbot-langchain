@@ -71,7 +71,7 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
       throw new Error('Invalid token');
     }
   } else {
-    throw new Error('No token found');
+    return { sudoCookieValue: false };
   }
 }
 
