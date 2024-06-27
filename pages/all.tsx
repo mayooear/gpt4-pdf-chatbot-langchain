@@ -13,6 +13,7 @@ import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
 import { initGA, logEvent } from '@/utils/client/analytics';
+import React from 'react';
 
 const AllAnswers = () => {
   const router = useRouter();
@@ -37,6 +38,12 @@ const AllAnswers = () => {
 
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
+
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+
+  const expandQuestion = (answerId: string) => {
+    setExpandedQuestions(prev => new Set(prev).add(answerId));
+  };
 
   useEffect(() => {
     initGA();
@@ -219,6 +226,16 @@ const AllAnswers = () => {
     }
   }, [sortBy, router, router.isReady, router.query.sortBy]);
 
+  const renderTruncatedQuestion = (question: string, maxLength: number) => {
+    const truncated = question.slice(0, maxLength);
+    return truncated.split('\n').map((line, i, arr) => (
+      <React.Fragment key={i}>
+        {line}
+        {i < arr.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4">
@@ -257,15 +274,37 @@ const AllAnswers = () => {
                 <div key={answer.id} className="bg-white p-2.5 m-2.5">
                   <div className="flex items-center">
                     <span className="material-icons">question_answer</span>
-                    <p className="ml-4">
-                      <b>Question: {answer.question}</b>
+                    <div className="ml-4 flex-grow">
+                      <b>
+                        {expandedQuestions.has(answer.id) ? (
+                          answer.question.split('\n').map((line, i) => (
+                            <React.Fragment key={i}>
+                              {line}
+                              {i < answer.question.split('\n').length - 1 && <br />}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <>
+                            {renderTruncatedQuestion(answer.question, 200)}
+                            {answer.question.length > 200 && '...'}
+                          </>
+                        )}
+                        {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
+                          <button 
+                            onClick={() => expandQuestion(answer.id)}
+                            className="text-black hover:underline ml-2"
+                          >
+                            See More
+                          </button>
+                        )}
+                      </b>
                       <span className="ml-4 text-sm">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
-                        <span className="ml-4">{answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 
-                          'Unknown\u00a0Collection'}
+                        <span className="ml-4">
+                          {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
                         </span>            
                       </span>
-                    </p>
+                    </div>
                   </div>
                   <div className="bg-gray-100 p-2.5 rounded">
                     <div className="markdownanswer">
@@ -280,7 +319,7 @@ const AllAnswers = () => {
                         />
                         <div className="ml-4">
                           <LikeButton
-                            key={`${answer.id}-${likeStatuses[answer.id]}`} // Add this key prop
+                            key={`${answer.id}-${likeStatuses[answer.id]}`}
                             answerId={answer.id}
                             initialLiked={likeStatuses[answer.id] || false}
                             likeCount={answer.likeCount}

@@ -32,6 +32,10 @@ export default async function handler(
       return res.status(400).json({ message: 'No question in the request' });
     }
 
+    // Store the original, unsanitized question
+    const originalQuestion = question;
+
+    // Use the sanitized version for processing, but keep the original for storage.
     // OpenAI recommends replacing newlines with spaces for best results
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
@@ -99,7 +103,7 @@ export default async function handler(
         ip: '',
         timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
       } : {
-        question: sanitizedQuestion,
+        question: originalQuestion, 
         answer: response,
         collection: collection,
         sources: JSON.stringify(sourceDocuments),
