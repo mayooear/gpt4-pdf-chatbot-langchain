@@ -2,7 +2,7 @@ import { db } from '@/services/firebase';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // 15 minutes for prod, 5 minutes for dev
-const RATE_LIMIT_WINDOW_MS = process.env.ENVIRONMENT !== 'dev' ? 15 * 60 * 1000 : 5 * 60 * 1000;
+const RATE_LIMIT_WINDOW_MS = process.env.NODE_ENV === 'development' ? 5 * 60 * 1000 : 15 * 60 * 1000;
 const MAX_REQUESTS = 5;
 
 // Rate limiting by IP address. All uses of this contribute to counts against IP addresses. 

@@ -50,6 +50,11 @@ export const logPageView = (url: string) => {
 };
 
 export const logEvent = async (action: string, category: string, label: string, value?: number) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`);
+    return;
+  }
+
   if (!isInitialized) {
     await initGA();
   }

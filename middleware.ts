@@ -11,7 +11,7 @@ export function middleware(req: NextRequest) {
   }
 
   // Redirect HTTP to HTTPS
-  if (url.protocol === 'http:' && process.env.ENVIRONMENT !== 'dev') {
+  if (url.protocol === 'http:' && process.env.NODE_ENV !== 'development') {
     url.protocol = 'https:';
     return NextResponse.redirect(url);
   }

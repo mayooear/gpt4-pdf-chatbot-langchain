@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const match = await bcrypt.compare(password, storedHashedPassword);
     if (match) {
-      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.ENVIRONMENT !== 'dev';
+      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV !== 'development';
       const cookies = new Cookies(req, res, { secure: isSecure });
 
       const expiryDate = new Date();

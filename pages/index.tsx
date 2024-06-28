@@ -47,6 +47,7 @@ export default function Home() {
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
+  const [linkCopied, setLinkCopied] = useState<string | null>(null);
   const [answerCount, setAnswerCount] = useState(0);
 
   const messageListRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,15 @@ export default function Home() {
     }
   };
     
+  const handleCopyLink = (answerId: string) => {
+    const url = `${window.location.origin}/answers/${answerId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(answerId);
+      setTimeout(() => setLinkCopied(null), 2000);
+      logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
+    });
+  };
+
   // Share dialog
   // As of 5/30/24 this is disabled. The button has been removed, but all the code is still here in case we want to
   // revive the share page later
@@ -395,6 +405,15 @@ export default function Home() {
                           {message.docId && (
                             <div className="flex space-x-2">
                               <CopyButton markdown={message.message} answerId={message.docId as string} />
+                              <button
+                                onClick={() => handleCopyLink(message.docId as string)}
+                                className="ml-4 text-black-600 hover:underline flex items-center"
+                                title="Copy link to clipboard"
+                              >
+                                <span className="material-icons">
+                                  {linkCopied === message.docId ? 'check' : 'link'}
+                                </span>
+                              </button>
                               <LikeButton
                                 answerId={message.docId as string}
                                 initialLiked={likeStatuses[message.docId] || false}

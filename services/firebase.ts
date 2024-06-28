@@ -17,7 +17,7 @@ if (!fbadmin.apps.length) {
   const db = initializeFirestore(app, { preferRest: true });
 
   // Connect to Firestore emulator if in development mode
-  if (process.env.ENVIRONMENT === 'dev') {
+  if (process.env.NODE_ENV === 'development') {
     db.settings({
       host: 'localhost:8080',
       ssl: false,

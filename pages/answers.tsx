@@ -33,7 +33,7 @@ const AllAnswers = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [canLoadNextPage, setCanLoadNextPage] = useState(true);
   const [contentLoadedByScroll, setContentLoadedByScroll] = useState(false); 
-  const [showCopyMessage, setShowCopyMessage] = useState(false);
+  const [linkCopied, setLinkCopied] = useState<string | null>(null);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -247,8 +247,9 @@ const AllAnswers = () => {
   const handleCopyLink = (answerId: string) => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
-      setShowCopyMessage(true);
-      setTimeout(() => setShowCopyMessage(false), 2000);
+      setLinkCopied(answerId);
+      setTimeout(() => setLinkCopied(null), 2000);
+      logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
     });
   };
 
@@ -276,11 +277,6 @@ const AllAnswers = () => {
             <button onClick={() => setShowErrorPopup(false)} className="mt-2 underline">
               Close
             </button>
-          </div>
-        )}
-        {showCopyMessage && (
-          <div className="fixed top-4 right-4 bg-green-600 text-white p-2 rounded shadow-lg z-50">
-            Link copied to clipboard!
           </div>
         )}
         {isLoading && !initialLoadComplete ? (
@@ -347,7 +343,9 @@ const AllAnswers = () => {
                           className="ml-4 text-black-600 hover:underline flex items-center"
                           title="Copy link to clipboard"
                         >
-                          <span className="material-icons">link</span>
+                          <span className="material-icons">
+                            {linkCopied === answer.id ? 'check' : 'link'}
+                          </span>
                         </button>
                         <div className="ml-4">
                           <LikeButton
@@ -381,5 +379,3 @@ const AllAnswers = () => {
 };
 
 export default AllAnswers;
-
-

@@ -23,7 +23,7 @@ const SingleAnswer = () => {
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [showCopyMessage, setShowCopyMessage] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
@@ -38,8 +38,9 @@ const SingleAnswer = () => {
   const handleCopyLink = () => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
-      setShowCopyMessage(true);
-      setTimeout(() => setShowCopyMessage(false), 2000);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+      logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
     });
   };
 
@@ -141,11 +142,6 @@ const SingleAnswer = () => {
         </button>
       </div>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        {showCopyMessage && (
-          <div className="fixed top-4 right-4 bg-green-600 text-white p-2 rounded shadow-lg z-50">
-            Link copied to clipboard!
-          </div>
-        )}
         <div className="bg-white p-2.5 m-2.5">
           <div className="flex items-center">
             <span className="material-icons">question_answer</span>
@@ -193,11 +189,13 @@ const SingleAnswer = () => {
                   answerId={answer.id}
                 />
                 <button
-                    onClick={() => handleCopyLink()}
+                    onClick={handleCopyLink}
                     className="ml-4 text-black-600 hover:underline flex items-center"
                     title="Copy link to clipboard"
                 >
-                    <span className="material-icons">link</span>
+                    <span className="material-icons">
+                      {linkCopied ? 'check' : 'link'}
+                    </span>
                 </button>
                 <div className="ml-4">
                   <LikeButton
