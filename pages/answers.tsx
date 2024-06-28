@@ -14,6 +14,7 @@ import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
 import { initGA, logEvent } from '@/utils/client/analytics';
 import React from 'react';
+import Link from 'next/link';
 
 const AllAnswers = () => {
   const router = useRouter();
@@ -32,6 +33,7 @@ const AllAnswers = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [canLoadNextPage, setCanLoadNextPage] = useState(true);
   const [contentLoadedByScroll, setContentLoadedByScroll] = useState(false); 
+  const [showCopyMessage, setShowCopyMessage] = useState(false);
 
   // State to track if there are more items to load
   const [hasMore, setHasMore] = useState(true);
@@ -242,6 +244,14 @@ const AllAnswers = () => {
     ));
   };
 
+  const handleCopyLink = (answerId: string) => {
+    const url = `${window.location.origin}/answers/${answerId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShowCopyMessage(true);
+      setTimeout(() => setShowCopyMessage(false), 2000);
+    });
+  };
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4">
@@ -268,6 +278,11 @@ const AllAnswers = () => {
             </button>
           </div>
         )}
+        {showCopyMessage && (
+          <div className="fixed top-4 right-4 bg-green-600 text-white p-2 rounded shadow-lg z-50">
+            Link copied to clipboard!
+          </div>
+        )}
         {isLoading && !initialLoadComplete ? (
           <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
@@ -281,29 +296,33 @@ const AllAnswers = () => {
                   <div className="flex items-center">
                     <span className="material-icons">question_answer</span>
                     <div className="ml-4 flex-grow">
-                      <b>
-                        {expandedQuestions.has(answer.id) ? (
-                          answer.question.split('\n').map((line, i) => (
-                            <React.Fragment key={i}>
-                              {line}
-                              {i < answer.question.split('\n').length - 1 && <br />}
-                            </React.Fragment>
-                          ))
-                        ) : (
-                          <>
-                            {renderTruncatedQuestion(answer.question, 200)}
-                            {answer.question.length > 200 && '...'}
-                          </>
-                        )}
-                        {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
-                          <button 
-                            onClick={() => expandQuestion(answer.id)}
-                            className="text-black hover:underline ml-2"
-                          >
-                            See More
-                          </button>
-                        )}
-                      </b>
+                      <Link href={`/answers/${answer.id}`} legacyBehavior>
+                        <a className="text-black-600 hover:underline cursor-pointer">
+                          <b>
+                            {expandedQuestions.has(answer.id) ? (
+                              answer.question.split('\n').map((line, i) => (
+                                <React.Fragment key={i}>
+                                  {line}
+                                  {i < answer.question.split('\n').length - 1 && <br />}
+                                </React.Fragment>
+                              ))
+                            ) : (
+                              <>
+                                {renderTruncatedQuestion(answer.question, 200)}
+                                {answer.question.length > 200 && '...'}
+                              </>
+                            )}
+                            {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
+                              <button 
+                                onClick={() => expandQuestion(answer.id)}
+                                className="text-black hover:underline ml-2"
+                              >
+                                See More
+                              </button>
+                            )}
+                          </b>
+                        </a>
+                      </Link>
                       <span className="ml-4 text-sm">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
                         <span className="ml-4">
@@ -323,6 +342,13 @@ const AllAnswers = () => {
                           markdown={answer.answer}
                           answerId={answer.id}
                         />
+                        <button
+                          onClick={() => handleCopyLink(answer.id)}
+                          className="ml-4 text-black-600 hover:underline flex items-center"
+                          title="Copy link to clipboard"
+                        >
+                          <span className="material-icons">link</span>
+                        </button>
                         <div className="ml-4">
                           <LikeButton
                             key={`${answer.id}-${likeStatuses[answer.id]}`}
@@ -355,3 +381,5 @@ const AllAnswers = () => {
 };
 
 export default AllAnswers;
+
+

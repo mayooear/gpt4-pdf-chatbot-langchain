@@ -106,6 +106,9 @@ export default async function handler(
         }
         const idsArray = answerIds.split(',');
         const answers = await getAnswersByIds(idsArray);
+        if (answers.length === 0) {
+          return res.status(404).json({ message: 'Answer not found.' });
+        }
         res.status(200).json(answers);
       } else {
         const { page, limit, likedOnly, sortBy } = req.query;
