@@ -24,7 +24,7 @@ import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 
 export default function Home() {
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(true); 
   const [collection, setCollection] = useState<string | undefined>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
