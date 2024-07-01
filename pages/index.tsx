@@ -21,6 +21,7 @@ import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
 import { logEvent } from '@/utils/client/analytics';
+import { getCollectionQueries } from '@/utils/client/collectionQueries';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -69,27 +70,15 @@ export default function Home() {
     logEvent('change_collection', 'UI', newCollection);
   };
   
-  const collectionQueries = useMemo(() => ({
-    whole_library: [
-      "Give me three tips on improving meditation habits",
-      "Can you tell me something about sanatan dharma?",
-      "Was Moses a liberated master?",
-      "How do i grow my connection to god?",
-      "tips on dealing with a challenging coworker?",
-      "Give 10 attitudes essential for discipleship",
-      "Staying in the Spine: topic broken down into 4 parts",
-      "Outline for a 1-day course on the purpose of life"
-      ],
-    master_swami: [
-      "How does Swami say to prepare for hard times?",
-      "Write an article on understanding very tough karma, mentioning things from Swamiji and Master",
-      "Find me a prayer for Radiant Health and Well Being",
-      "Inspiring Yogananda quotes",
-      "What are some tips for dealing with insomnia?",
-      "If God is doing everything through us, how does free will fit in?",
-      "Explain the line in the festival of light that says, 'pain is the fruit of self love, whereas joy is the fruit of love for God.'",
-        ],
-  }), []);
+  const [collectionQueries, setCollectionQueries] = useState({});
+
+  useEffect(() => {
+    async function fetchQueries() {
+      const queries = await getCollectionQueries();
+      setCollectionQueries(queries);
+    }
+    fetchQueries();
+  }, []);
 
   // Determine the queries for the current collection or use an empty array as a fallback
   const queriesForCollection = collection ? collectionQueries[collection as keyof typeof collectionQueries] || [] : [];
