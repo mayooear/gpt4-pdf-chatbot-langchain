@@ -444,7 +444,7 @@ export default function Home() {
             </div>
             <div className={styles.center}>
               {/* <div className={styles.cloudform}> */}
-              <div className="flex flex-col md:flex-row items-stretch space-y-4 md:space-y-0 md:space-x-4">
+              <div className="w-full">
                 <form onSubmit={handleSubmit}>
                   <div className="flex items-center space-x-2">
                     <textarea
@@ -489,29 +489,27 @@ export default function Home() {
                       )}
                     </button>     
                   </div>       
+                  <div className="flex justify-between items-start mt-1">
+                    <div className="w-[40vw] min-w-[300px]">
+                      <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} shuffleQueries={shuffleQueries} />
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+                      <button
+                        type="button"
+                        onClick={handlePrivateSessionChange}
+                        className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} mt-2`}
+                      >
+                        {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                      </button>
+                    </div>
+                  </div>
                   {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
                       <strong className="font-bold">An error occurred: </strong>
                       <span className="block sm:inline">{error}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-start mt-1">
-                    <div className="flex justify-between items-start mt-1">
-                      <div className="w-1/2">
-                        <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} shuffleQueries={shuffleQueries} />
-                      </div>
-                      <div className="flex flex-col items-end w-1/2">
-                        <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-                        <button
-                          type="button"
-                          onClick={handlePrivateSessionChange}
-                          className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''}`}
-                        >
-                          {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </form>
               </div>
             </div>
