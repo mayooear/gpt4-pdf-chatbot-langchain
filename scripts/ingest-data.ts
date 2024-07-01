@@ -20,7 +20,7 @@ const readdir = promisify(fs.readdir);
 */
 const filePath = 'docs';
 
-export const run = async (collection: PineconeConfigKey) => {
+export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
   if (!collection) {
     console.error('Error: No collection provided. Please provide a valid PineconeConfigKey as an argument.');
     process.exit(1); 
@@ -83,7 +83,7 @@ export const run = async (collection: PineconeConfigKey) => {
   }
 
   const vectorCount = stats.totalRecordCount;
-  if (vectorCount && vectorCount > 0) {
+  if (vectorCount && vectorCount > 0 && !keepData) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -99,12 +99,24 @@ export const run = async (collection: PineconeConfigKey) => {
       }
       rl.close();
     });
+  } else if (keepData) {
+    console.log(`Keeping existing ${vectorCount} vectors in the index.`);
   }
   
-  let rawDocs;
+  // Print count of PDF files in the directory
+  try {
+    const files = await readdir(filePath);
+    const pdfFiles = files.filter((file: string) => path.extname(file).toLowerCase() === '.pdf');
+    console.log(`Found ${pdfFiles.length} PDF files.`);
+  } catch (err) {
+    console.error('Unable to scan directory:', err);
+    process.exit(1);
+  }
+
+  let rawDocs: any;
   try {
     const directoryLoader = new DirectoryLoader(filePath, {
-      '.pdf': (path) => new PDFLoader(path),
+      '.pdf': (path: string) => new PDFLoader(path),
     });
     rawDocs = await directoryLoader.load();
     console.log('Number of items in rawDocs:', rawDocs.length);
@@ -114,22 +126,23 @@ export const run = async (collection: PineconeConfigKey) => {
   }
 
   try {
-    let lastSourceURL: string | null = null;
-    // Add source to metadata for each document
     for (const rawDoc of rawDocs) {
-        // Use a regex to match "SOURCE:" followed by any non-whitespace characters
-        const sourceMatch = rawDoc.pageContent.match(/^SOURCE: (\S+)/m);
+      const sourceURL = rawDoc.metadata?.pdf?.info?.Subject;
 
-        // Extract the URL, which will be captured in the first group of the regex match.
-        // If not, assume this is a continuation of the last source URL seen.
-        const sourceURL: string | null = sourceMatch ? sourceMatch[1] : lastSourceURL;
-        lastSourceURL = sourceURL;
+      if (!sourceURL) {
+        console.error('No source URL found in metadata for document:', rawDoc);
+        console.error('Skipping it...');
+        continue;
+      }
 
-      	if (rawDoc.metadata) {
-            rawDoc.metadata.source = sourceURL;
-    	} else {
-            rawDoc.metadata = { source: sourceURL };
-	    }
+      // Debug print
+      console.log('Processing document with source URL:', sourceURL);
+      console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
+
+      rawDoc.metadata.source = sourceURL;
+      
+      // Debug print
+      console.log('Updated metadata:', rawDoc.metadata);
     }
   } catch (error) {
     console.error('Failed during document processing:', error);
@@ -204,7 +217,7 @@ export const run = async (collection: PineconeConfigKey) => {
 
 // arg is master_swami or whole_library or other options as shown in pinecone-client.ts
 const collection = process.argv[2] as PineconeConfigKey;
-
+const keepData = process.argv.includes('--keep-data') || process.argv.includes('-k');
 (async () => {
-  await run(collection);
+  await run(collection, keepData);
 })();

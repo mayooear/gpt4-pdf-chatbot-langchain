@@ -220,8 +220,13 @@ while attempt < max_retries:
             pdf.set_title(post_title)
             pdf.set_subject(permalink)
 
-            # Write post title and author name at the top of the PDF file
-            pdf.set_font('TimesNewRoman', '', 7)
+            # Write post title and author name at the top of the PDF file.
+            # Note important to keep font size VERY small as the URL needs to display on a single line
+            # in a PDF reader or it won't read in properly during ingest.
+            # Some URLs can be upwards of 283 characters.
+            # 7/1/24 mvo: We no longer use SOURCE: Contact from the PDF file during ingestion. Once we are certain
+            # that the Subject metadata contains the correct URL, we can remove writing the source permalink below
+            pdf.set_font('TimesNewRoman', '', 4)
             pdf.multi_cell(0, 10, f"BY: {author_name}\nSOURCE: {permalink}\n\n")
 
             # Reset to larger font size for the title and content

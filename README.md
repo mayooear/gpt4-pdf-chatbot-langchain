@@ -14,10 +14,7 @@ Prelude: Please make sure you have already downloaded node on your system and th
 
 ## Forked Version
 
-This is a fork of gpt4-pdf-chatbot-langchain. This version looks for a specified source in the first
-Line of the PDF file, and uses that as the source instead of the PDF file name. For example:
-
-     SOURCE: https://www.bozo.com/clown37.php
+This is a fork of gpt4-pdf-chatbot-langchain. This version looks for a specified source in the Subject metadata of the PDF file.
 
 ## Generate PDF's to use from Wordpress MySQL database
 
