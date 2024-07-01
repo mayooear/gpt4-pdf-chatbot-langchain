@@ -89,20 +89,23 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
       output: process.stdout
     });
 
-    rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (y/N) `, async (answer) => {
-      if (answer.toLowerCase().charAt(0) === 'y') {
-        await pineconeIndex.deleteAll();
-        console.log('All vectors deleted.');
-      } else {
-        console.log('Deletion aborted.');
-        process.exit(0);
-      }
-      rl.close();
+    await new Promise<void>((resolve) => {
+      rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (y/N) `, async (answer) => {
+        if (answer.toLowerCase().charAt(0) === 'y') {
+          await pineconeIndex.deleteAll();
+          console.log('All vectors deleted.');
+        } else {
+          console.log('Deletion aborted.');
+          process.exit(0);
+        }
+        rl.close();
+        resolve();
+      });
     });
   } else if (keepData) {
     console.log(`Keeping existing ${vectorCount} vectors in the index.`);
   }
-  
+
   // Print count of PDF files in the directory
   try {
     const files = await readdir(filePath);
@@ -112,7 +115,7 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
     console.error('Unable to scan directory:', err);
     process.exit(1);
   }
-
+  
   let rawDocs: any;
   try {
     const directoryLoader = new DirectoryLoader(filePath, {
