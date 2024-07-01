@@ -24,7 +24,7 @@ import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 
 export default function Home() {
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(true); 
   const [collection, setCollection] = useState<string | undefined>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
@@ -318,7 +318,7 @@ export default function Home() {
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <h1 className="text-3xl font-bold">
-            This page is currently down for maintenance until approx. 12:30pm PT. 
+            This page is currently down for maintenance until approx. 1pm PT. 
           </h1>
           <p className="mt-4">
             You can still view the <Link href="/answers" className="text-blue-500">All&nbsp;Answers</Link> page.
