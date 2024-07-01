@@ -27,8 +27,7 @@ export function middleware(req: NextRequest) {
     !url.pathname.startsWith('/robots.txt') &&
     !url.pathname.endsWith('.png') &&
     !url.pathname.endsWith('.jpg') &&
-    !url.pathname.endsWith('.gif') &&
-    !url.pathname.match(/^\/answers\/[^\/]+$/) // Allow /answers/[answerId]
+    !url.pathname.endsWith('.gif')
   ) {
     url.pathname = '/login';
     url.searchParams.set('redirect', req.nextUrl.pathname);
