@@ -46,7 +46,8 @@ const AllAnswers = () => {
 
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
-  const expandQuestion = (answerId: string) => {
+  const expandQuestion = (answerId: string, event: React.MouseEvent) => {
+    event.preventDefault();
     setExpandedQuestions(prev => new Set(prev).add(answerId));
   };
 
@@ -308,17 +309,17 @@ const AllAnswers = () => {
                                 {answer.question.length > 200 && '...'}
                               </>
                             )}
-                            {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
-                              <button 
-                                onClick={() => expandQuestion(answer.id)}
-                                className="text-black hover:underline ml-2"
-                              >
-                                See More
-                              </button>
-                            )}
                           </b>
                         </a>
                       </Link>
+                      {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
+                                               <button 
+                          onClick={(e) => expandQuestion(answer.id, e)}
+                          className="text-black hover:underline ml-2"
+                        >
+                          <b>See More</b>
+                        </button>
+                      )}
                       <span className="ml-4 text-sm">
                         {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
                         <span className="ml-4">
