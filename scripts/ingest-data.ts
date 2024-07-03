@@ -1,14 +1,13 @@
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
-import { pineconeConfig, PineconeConfigKey, getPineconeClient } from '@/utils/server/pinecone-client';
+import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import ProgressBar from 'progress';
 import readline from 'readline';
-import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
-import { Index, RecordMetadata } from '@pinecone-database/pinecone';
+import { Index } from '@pinecone-database/pinecone';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -20,18 +19,13 @@ const readdir = promisify(fs.readdir);
 */
 const filePath = 'docs';
 
-export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
-  if (!collection) {
-    console.error('Error: No collection provided. Please provide a valid PineconeConfigKey as an argument.');
-    process.exit(1); 
-  }
-
-  console.log(`\nProcessing collection: ${collectionsConfig[collection as CollectionKey]}`);
+export const run = async (keepData: boolean) => {
+  console.log(`\nProcessing documents from ${filePath}`);
 
   // Print count of PDF files in the directory
   try {
     const files = await readdir(filePath);
-    const pdfFiles = files.filter((file: string) => path.extname(file).toLowerCase() === '.pdf');
+    const pdfFiles = files.filter((file: string) => file.toLowerCase().endsWith('.pdf'));
     console.log(`Found ${pdfFiles.length} PDF files.`);
   } catch (err) {
     console.error('Unable to scan directory:', err);
@@ -40,29 +34,13 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
 
   let pinecone;
   try {
-    pinecone = await getPineconeClient(collection, 'ingest');
+    pinecone = await getPineconeClient();
   } catch (error) {
     console.error('Failed to initialize Pinecone:', error);
     return;
   }
 
-  const confirmProceed = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  const answer = await new Promise<string>((resolve) => {
-    confirmProceed.question('Are you sure you want to proceed with data ingestion to that API key? (y/N) ', resolve);
-  });
-
-  if (answer.toLowerCase() === 'y') {
-    confirmProceed.close();
-  } else {
-    console.log('Data ingestion aborted.');
-    confirmProceed.close();
-    process.exit(0);
-  }
-
-  let pineconeIndex: Index<RecordMetadata>;
+  let pineconeIndex: Index;
   try {
     pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
   } catch (error) {
@@ -138,14 +116,15 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
         continue;
       }
 
-      // Debug print
-      console.log('Processing document with source URL:', sourceURL);
-      console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
-
+      // Set the source URL for all pages of the document
       rawDoc.metadata.source = sourceURL;
-      
-      // Debug print
-      console.log('Updated metadata:', rawDoc.metadata);
+
+      // Only print debug information for the first page
+      if (rawDoc.metadata.loc.pageNumber === 1) {
+        console.log('Processing document with source URL:', sourceURL);
+        console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
+        console.log('Updated metadata:', rawDoc.metadata);
+      }
     }
   } catch (error) {
     console.error('Failed during document processing:', error);
@@ -190,7 +169,7 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
     /* possible way to specify model: 
        const embeddings = new OpenAIEmbeddings({ modelName: 'text-similarity-babbage-001' }); */
     const embeddings = new OpenAIEmbeddings();
-    const progressBar = new ProgressBar('Embedding and storing documents [:bar] :percent :eta', {
+    const progressBar = new ProgressBar('Embedding and storing documents [:bar] :percent :etas', {
       total: rawDocs.length,
       width: 40,
     });
@@ -199,8 +178,12 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
     const chunk = 40;
     for (let i = 0; i < rawDocs.length; i += chunk) {
       const docsBatch = rawDocs.slice(i, i + chunk);
+      docsBatch.forEach((doc: any) => {
+        doc.metadata.library = "Ananda Library";
+      });
+
       await PineconeStore.fromDocuments(docsBatch, embeddings, {
-        pineconeIndex: pineconeIndex as any,
+        pineconeIndex,
         textKey: 'text',
       });
       
@@ -218,9 +201,7 @@ export const run = async (collection: PineconeConfigKey, keepData: boolean) => {
   }
 };
 
-// arg is master_swami or whole_library or other options as shown in pinecone-client.ts
-const collection = process.argv[2] as PineconeConfigKey;
 const keepData = process.argv.includes('--keep-data') || process.argv.includes('-k');
 (async () => {
-  await run(collection, keepData);
+  await run(keepData);
 })();

@@ -1,10 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/services/firebase'; 
+import { db } from '@/services/firebase';
+import { isDevelopment } from '@/utils/env';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+    const envName = isDevelopment() ? 'dev' : 'prod';
+
     if (req.method === 'GET') {
       // Fetch shares with pagination and reverse chronological order
       const page = parseInt(req.query.page as string) || 0;
@@ -14,7 +17,7 @@ export default async function handler(
       try {
         const startTime = performance.now(); // Start timing before the query
 
-        const sharesQuery = db.collection(`${process.env.ENVIRONMENT}_shares`)
+        const sharesQuery = db.collection(`${envName}_shares`)
           .orderBy('createdAt', 'desc')
           .offset(offset)
           .limit(limit);
@@ -48,7 +51,7 @@ export default async function handler(
 
       try {
       // Add a new document with a generated id to the "shares" collection
-      const docRef = await db.collection(`${process.env.ENVIRONMENT}_shares`).add({
+      const docRef = await db.collection(`${envName}_shares`).add({
           firstName,
           lastName,
           comments,

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { rateLimiter } from 'utils/server/rateLimiter';
+import { isDevelopment } from '@/utils/env';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const match = await bcrypt.compare(password, storedHashedPassword);
     if (match) {
-      const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV !== 'development';
+      const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
       const cookies = new Cookies(req, res, { secure: isSecure });
 
       const expiryDate = new Date();

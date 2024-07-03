@@ -2,10 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
+import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 
 // 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
 async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<any[]> {
-  let answersQuery = db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
+  let answersQuery = db.collection(getChatLogsCollectionName())
     .where('question', '!=', 'private')
     .orderBy(sortBy === 'mostPopular' ? 'likeCount' : 'timestamp', 'desc');
 
@@ -58,7 +59,7 @@ async function getAnswersByIds(ids: string[]): Promise<any[]> {
   for (let i = 0; i < ids.length; i += chunkSize) {
     const chunk = ids.slice(i, i + chunkSize);
     try {
-      const snapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`)
+      const snapshot = await db.collection(getChatLogsCollectionName())
                                .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
                                .get();
       snapshot.forEach(doc => {
@@ -85,7 +86,7 @@ async function getAnswersByIds(ids: string[]): Promise<any[]> {
 
 async function deleteAnswerById(id: string): Promise<void> {
   try {
-    await db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(id).delete();
+    await db.collection(getChatLogsCollectionName()).doc(id).delete();
   } catch (error) {
     console.error('Error deleting answer: ', error);
     throw error;
@@ -147,3 +148,4 @@ export default async function handler(
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
+

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { isDevelopment } from '@/utils/env';
 
 const secretKey = crypto.createHash('sha256').update(process.env.SECRET_KEY || 'fIp0%%wgKqmJ0aqtQo').digest();
 
@@ -24,7 +25,7 @@ function decrypt(text: string) {
 }
 
 async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password: string) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV !== 'development';
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
@@ -50,7 +51,7 @@ async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password
 }
 
 function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV !== 'development';
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
@@ -76,7 +77,7 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
 }
 
 function deleteSudoCookie(req: NextApiRequest, res: NextApiResponse) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV !== 'development';
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   cookies.set(sudoCookieName, '', { expires: new Date(0) });

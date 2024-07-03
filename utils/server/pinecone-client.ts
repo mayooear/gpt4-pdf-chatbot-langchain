@@ -1,37 +1,13 @@
 import { Pinecone } from '@pinecone-database/pinecone';
-import { PineconeAuthorizationError } from '@pinecone-database/pinecone/dist/errors/http';
 
-export const pineconeConfig = {
-  'master_swami': {
-    apiKey: process.env.PINECONE_API_KEY_MASTER_SWAMI,
-    environment: process.env.PINECONE_ENVIRONMENT_MASTER_SWAMI,
-  },
-  'whole_library': {
-    apiKey: process.env.PINECONE_API_KEY_WHOLE_LIBRARY,
-    environment: process.env.PINECONE_ENVIRONMENT_WHOLE_LIBRARY,
-  },
-  'master_swami_ingest': {
-    apiKey: process.env.PINECONE_API_KEY_MASTER_SWAMI_INGEST,
-    environment: process.env.PINECONE_ENVIRONMENT_MASTER_SWAMI_INGEST,
-  },
-  'whole_library_ingest': {
-    apiKey: process.env.PINECONE_API_KEY_WHOLE_LIBRARY_INGEST,
-    environment: process.env.PINECONE_ENVIRONMENT_WHOLE_LIBRARY_INGEST,
-  },
-};
-
-export type PineconeConfigKey = keyof typeof pineconeConfig;
-
-if (!process.env.PINECONE_ENVIRONMENT || !process.env.PINECONE_API_KEY_MASTER_SWAMI ||
-    !process.env.PINECONE_API_KEY_WHOLE_LIBRARY) {
-  throw new Error('Pinecone environment or api key vars missing');
+if (!process.env.PINECONE_API_KEY) {
+  throw new Error('Pinecone API key missing');
 }
 
-async function initPinecone(apiKey: string, environment: string) {
+async function initPinecone() {
   try {
     const pinecone = new Pinecone({
-      environment: environment,
-      apiKey: apiKey,
+      apiKey: process.env.PINECONE_API_KEY || '',
     });
 
     return pinecone;
@@ -41,29 +17,11 @@ async function initPinecone(apiKey: string, environment: string) {
   }
 }
 
-export const getPineconeClient = async (context: PineconeConfigKey, operation: 'ingest' | 'web' = 'web') => {
-  let config;
-  if (operation === 'ingest') {
-    config = context.endsWith('_ingest') ? pineconeConfig[context] : pineconeConfig[`${context}_ingest` as PineconeConfigKey];
-  } else {
-    config = pineconeConfig[context];
-  }
-  console.log("API key", config.apiKey);
-  console.log("environment", config.environment)
-
-  if (!config.apiKey) {
-    throw new Error('Invalid API key provided for context: ' + context);
-  }
-  if (!config.environment) {
-    throw new Error('Invalid environment provided for operation type: ' + operation);
-  }
+export const getPineconeClient = async () => {
   try {
-    return await initPinecone(config.apiKey, config.environment);
+    return await initPinecone();
   } catch (error) {
-    if (error instanceof PineconeAuthorizationError) {
-      console.error('Pinecone authorization failed:', error);
-      throw new Error('Pinecone authorization failed');
-    }
-    throw error;
+    console.error('Pinecone error:', error);
+    throw new Error('Pinecone error');
   }
-}
+};

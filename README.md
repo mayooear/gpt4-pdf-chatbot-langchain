@@ -54,7 +54,6 @@ After installation, you should now see a `node_modules` folder.
 
     OPENAI_API_KEY=
     PINECONE_API_KEY=
-    PINECONE_ENVIRONMENT=
     PINECONE_INDEX_NAME=
 
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key) to retrieve API keys and insert into your `.env` file.

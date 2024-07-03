@@ -30,3 +30,4 @@ export async function getCollectionQueries() {
   cachedQueries = queries;
   return queries;
 }
+

@@ -1,7 +1,8 @@
 import { db } from '@/services/firebase';
+import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 
 async function updateChatLogs() {
-  const chatLogsRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
+  const chatLogsRef = db.collection(getChatLogsCollectionName());
   const snapshot = await chatLogsRef.get();
 
   const batch = db.batch();

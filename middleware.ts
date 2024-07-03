@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isDevelopment } from '@/utils/env';
 
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
@@ -11,7 +12,7 @@ export function middleware(req: NextRequest) {
   }
 
   // Redirect HTTP to HTTPS
-  if (url.protocol === 'http:' && process.env.NODE_ENV !== 'development') {
+  if (url.protocol === 'http:' && !isDevelopment()) {
     url.protocol = 'https:';
     return NextResponse.redirect(url);
   }

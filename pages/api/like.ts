@@ -1,9 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase'; 
 import firebase from 'firebase-admin';
+import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 
 // Create a cache object to store the fetched like statuses
 const likeStatusCache: Record<string, Record<string, boolean>> = {};
+
+import { isDevelopment } from '@/utils/env';
+
+const envName = isDevelopment() ? 'dev' : 'prod';
 
 // New handler for GET request to check like statuses
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
@@ -25,7 +30,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     try {
       console.log(`Likes GET: UUID: ${uuid}`);
       console.log(`Likes GET: Answer IDs: ${answerIds}`);
-      const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
+      const likesCollection = db.collection(`${envName}_likes`);
       const likesSnapshot = await likesCollection
         .where('uuid', '==', uuid)
         .where('answerId', 'in', answerIds)
@@ -81,7 +86,7 @@ async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
           }
       }
 
-      const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
+      const likesCollection = db.collection(`${envName}_likes`);
       const likesSnapshot = await likesCollection
           .where('uuid', '==', uuid)
           .where('answerId', 'in', answerIds)
@@ -124,7 +129,7 @@ async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
     }
 
     try {
-      const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
+      const likesCollection = db.collection(`${envName}_likes`);
       const likesSnapshot = await likesCollection
         .where('answerId', 'in', answerIds)
         .get();
@@ -174,7 +179,7 @@ export default async function handler(
   }
 
   try {
-    const likesCollection = db.collection(`${process.env.ENVIRONMENT}_likes`);
+    const likesCollection = db.collection(`${envName}_likes`);
 
     if (like) {
       // If like is true, add a new like document
@@ -185,7 +190,7 @@ export default async function handler(
       });
 
       // Update the like count in the chat logs
-      const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
+      const chatLogRef = db.collection(getChatLogsCollectionName()).doc(answerId);
       await chatLogRef.update({
         likeCount: firebase.firestore.FieldValue.increment(1)
       });
@@ -209,7 +214,7 @@ export default async function handler(
         await docRef.delete();
 
         // Update the like count in the chat logs
-        const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`).doc(answerId);
+        const chatLogRef = db.collection(getChatLogsCollectionName()).doc(answerId);
         await chatLogRef.update({
           likeCount: firebase.firestore.FieldValue.increment(-1)
         });
@@ -234,8 +239,8 @@ export default async function handler(
 
 // async function checkLikeCountIntegrity() {
 //   try {
-//     const chatLogsSnapshot = await db.collection(`${process.env.ENVIRONMENT}_chatLogs`).get();
-//     const likesSnapshot = await db.collection(`${process.env.ENVIRONMENT}_likes`).get();
+//     const chatLogsSnapshot = await db.collection(getChatLogsCollectionName()).get();
+//     const likesSnapshot = await db.collection(`${envName}_likes`).get();
 
 //     const chatLogLikeCounts: Record<string, number> = {};
 //     const likeCounts: Record<string, number> = {};

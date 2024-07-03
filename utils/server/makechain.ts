@@ -1,10 +1,11 @@
 import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { ChatPromptTemplate } from 'langchain/prompts';
-import { RunnableSequence } from 'langchain/schema/runnable';
-import { StringOutputParser } from 'langchain/schema/output_parser';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { RunnableSequence } from '@langchain/core/runnables';
+import { StringOutputParser } from '@langchain/core/output_parsers';
 import type { Document } from 'langchain/document';
 import type { VectorStoreRetriever } from 'langchain/vectorstores/base';
-import { PineconeConfigKey } from './pinecone-client';
+
+export type CollectionKey = 'master_swami' | 'whole_library';
 
 const CONDENSE_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
@@ -94,7 +95,7 @@ The context is Ananda Library, which has Master and Swami's teachings plus writi
 Say "The Ananda Library materials" or "the library", NOT "the context" or "the content provided in the context".
 If the context is only from Master or only Swami, just say Master's teachings or Swami's teachings.`;
 
-const getQATemplate = (context: PineconeConfigKey) => {
+const getQATemplate = (context: CollectionKey) => {
   const currentDate = new Date().toLocaleDateString();
   let template;
   switch (context) {
@@ -120,7 +121,7 @@ const combineDocumentsFn = (docs: Document[], options: Record<string, any> = {})
   return serializedDocs.join(separator);
 };
 
-export const makeChain = (retriever: VectorStoreRetriever, context: PineconeConfigKey) => {
+export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKey) => {
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
     const answerPrompt = ChatPromptTemplate.fromTemplate(getQATemplate(context));

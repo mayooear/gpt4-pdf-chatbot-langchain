@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import NodeCache from 'node-cache';
+import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 
 const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 
@@ -23,7 +24,7 @@ export default async function handler(
     ninetyDaysAgo.setHours(0, 0, 0, 0); // Set to start of the day
     ninetyDaysAgo.setTime(ninetyDaysAgo.getTime() - (ninetyDaysAgo.getTimezoneOffset() * 60000)); // Adjust to Pacific Time
 
-    const chatLogsRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
+    const chatLogsRef = db.collection(getChatLogsCollectionName());
     const chatLogsSnapshot = await chatLogsRef.where('timestamp', '>=', ninetyDaysAgo).get();
 
     const stats = {

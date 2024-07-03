@@ -10,6 +10,7 @@
 
 # IDE
 /.idea/
+.python-version
 
 # dependencies
 /node_modules

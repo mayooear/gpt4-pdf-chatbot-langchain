@@ -1,5 +1,6 @@
 import * as fbadmin from 'firebase-admin';
 import { initializeFirestore } from 'firebase-admin/firestore';
+import { isDevelopment } from '@/utils/env';
 
 // Initialize the Firebase admin SDK
 if (!fbadmin.apps.length) {
@@ -17,7 +18,7 @@ if (!fbadmin.apps.length) {
   const db = initializeFirestore(app, { preferRest: true });
 
   // Connect to Firestore emulator if in development mode
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment()) {
     db.settings({
       host: 'localhost:8080',
       ssl: false,

@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { PineconeStore, PineconeStoreParams } from '@langchain/pinecone';
-import { makeChain } from '@/utils/server/makechain';
-import { PineconeConfigKey, pineconeConfig, getPineconeClient } from '@/utils/server/pinecone-client';
-// import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { PineconeStore } from '@langchain/pinecone';
+import { makeChain, CollectionKey } from '@/utils/server/makechain';
+import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase'; 
+import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 
@@ -18,7 +18,7 @@ export default async function handler(
   const { collection, question, history, privateSession } = req.body;
   
   if (req.method == 'POST') {
-    if (typeof collection !== 'string' || !(collection in pineconeConfig)) {
+    if (typeof collection !== 'string' || !['master_swami', 'whole_library'].includes(collection)) {
       return res.status(400).json({ error: 'Invalid collection provided' });
     }
 
@@ -27,12 +27,10 @@ export default async function handler(
       clientIP = clientIP[0];
     }
 
-    // send question to chatbot 
     if (!question) {
       return res.status(400).json({ message: 'No question in the request' });
     }
 
-    // Store the original, unsanitized question
     const originalQuestion = question;
 
     // Use the sanitized version for processing, but keep the original for storage.
@@ -40,16 +38,20 @@ export default async function handler(
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
     try {  
-      const pinecone = await getPineconeClient(collection as PineconeConfigKey, 'web');
+      const pinecone = await getPineconeClient();
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
-      /* create vectorstore */
+      const filter = {
+        'library': { $in: ['Ananda Library'] },
+        ...(collection === 'master_swami' && { 'pdf.info.Author': { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
+      };
+
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({}),
         {
-          pineconeIndex: index as any, // Work around temporary
+          pineconeIndex: index,
           textKey: 'text',
-          // namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+          filter: filter,
         },
       );
 
@@ -68,8 +70,7 @@ export default async function handler(
         ],
       });
       
-      //create chain
-      const chain = makeChain(retriever, collection as PineconeConfigKey);
+      const chain = makeChain(retriever, collection as CollectionKey);
 
       const pastMessages = history
         .map((message: [string, string]) => {
@@ -89,10 +90,11 @@ export default async function handler(
       if (sourceDocuments && sourceDocuments.length > 0) {
         const sourceTitles = sourceDocuments.map((doc: any) => doc.metadata['pdf.info.Title']);
         sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
+        console.log(sourceTitlesString);
       }
 
       // Log the question and answer in Firestore, anonymize if private session
-      const chatLogRef = db.collection(`${process.env.ENVIRONMENT}_chatLogs`);
+      const chatLogRef = db.collection(getChatLogsCollectionName());
       const logEntry = privateSession ? {
         question: 'private',
         answer: '(' + answerWordCount + " words)",
@@ -130,3 +132,4 @@ export default async function handler(
     return;
   }
 }
+

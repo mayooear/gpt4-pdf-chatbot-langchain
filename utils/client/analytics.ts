@@ -1,4 +1,5 @@
 // Google Analytics
+import { isDevelopment } from '@/utils/env';
 
 // Add this type declaration at the top of your file
 declare global {
@@ -50,7 +51,8 @@ export const logPageView = (url: string) => {
 };
 
 export const logEvent = async (action: string, category: string, label: string, value?: number) => {
-  if (process.env.NODE_ENV === 'development') {
+
+  if (isDevelopment()) {
     console.log(`Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`);
     return;
   }
