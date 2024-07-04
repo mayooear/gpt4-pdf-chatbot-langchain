@@ -1,12 +1,11 @@
+import hashlib
+import json
 import sys
 import os
 import getopt
 import time
 from openai import OpenAI
 import openai
-from sentence_transformers import SentenceTransformer
-import json
-import hashlib
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from tqdm import tqdm
@@ -14,9 +13,12 @@ import tempfile
 import sqlite3
 import gzip
 from dotenv import load_dotenv
-import pinecone
+from pinecone import Pinecone
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
+TRANSCRIPTIONS_DIR = '../audio/transcriptions'
 
 # Process transcription into overlapping chunks with time codes
 def process_transcription(words, chunk_size=150, overlap=75):
@@ -66,7 +68,7 @@ def split_audio(file_path, min_silence_len=800, silence_thresh=-28, chunk_length
     
     return combined_chunks
 
-def transcribe_chunk(client, chunk, previous_transcript=None):
+def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0):
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
             chunk.export(temp_file.name, format="mp3")
@@ -84,8 +86,17 @@ def transcribe_chunk(client, chunk, previous_transcript=None):
             transcript = client.audio.transcriptions.create(**transcription_options)
         
         os.unlink(temp_file.name)
-        # Convert Transcription object to dictionary
-        return transcript.model_dump()
+        transcript_dict = transcript.model_dump()
+        
+        # Adjust timestamps
+        for segment in transcript_dict['segments']:
+            segment['start'] += cumulative_time
+            segment['end'] += cumulative_time
+            for word in segment['words']:
+                word['start'] += cumulative_time
+                word['end'] += cumulative_time
+        
+        return transcript_dict
     except openai.error.Timeout:
         print("OpenAI API request timed out. Skipping this chunk.")
         return None
@@ -95,10 +106,21 @@ def transcribe_chunk(client, chunk, previous_transcript=None):
 
 def init_db():
     """Initialize SQLite database for transcription indexing."""
-    conn = sqlite3.connect('transcriptions.db')
+    conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS transcriptions
-                 (file_hash TEXT PRIMARY KEY, file_path TEXT, timestamp REAL, json_file TEXT)''')
+    
+    # Check if the table already exists
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transcriptions'")
+    if not c.fetchone():
+        response = input("Warning: sqlite 'transcriptions' table does not exist. Do you want to create a new table? (yes/no): ")
+        if response.lower() == 'yes':
+            c.execute('''CREATE TABLE IF NOT EXISTS transcriptions
+                         (file_hash TEXT PRIMARY KEY, file_path TEXT, timestamp REAL, json_file TEXT)''')
+        else:
+            print("Table creation aborted.")
+            conn.close()
+            return
+    
     conn.commit()
     conn.close()
 
@@ -111,7 +133,7 @@ def get_transcription(file_path):
     2. If found, it loads the transcription from the corresponding gzipped JSON file.
     """
     file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
-    conn = sqlite3.connect('transcriptions.db')
+    conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
     c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
     result = c.fetchone()
@@ -119,16 +141,23 @@ def get_transcription(file_path):
     
     if result:
         json_file = result[0]
-        # Load the transcription from the gzipped JSON file
-        with gzip.open(json_file, 'rt', encoding='utf-8') as f:
-            data = json.load(f)
-            for rec in data:
-                words = rec['text'].split()
-                if len(words) > 40:
-                    print(f"{' '.join(words[:20])} ... {' '.join(words[-20:])} -> ")
-                else:
-                    print(f"{rec['text']} -> ")
-            return data
+        print(f"Using existing transcription for {file_path} ({file_hash})")
+
+        # Ensure we're using the full path to the JSON file
+        full_json_path = os.path.join(os.path.dirname(TRANSCRIPTIONS_DB_PATH), json_file)
+        if os.path.exists(full_json_path):
+            # Load the transcription from the gzipped JSON file
+            with gzip.open(full_json_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+                # for rec in data:
+                    # words = rec['text'].split()
+                    # if len(words) > 40:
+                    #     print(f"{' '.join(words[:20])} ... {' '.join(words[-20:])} -> ")
+                    # else:
+                    #     print(f"{rec['text']} -> ")
+                return data
+        else:
+            print(f"Warning: JSON file not found at {full_json_path}")
     return None
 
 def save_transcription(file_path, transcripts):
@@ -138,17 +167,18 @@ def save_transcription(file_path, transcripts):
     2. Save the file's metadata and location in the SQLite database for quick indexing.
     """
     file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
-    json_file = f"transcriptions/{file_hash}.json.gz"
+    json_file = f"{file_hash}.json.gz"
+    full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
     
     # Ensure the transcriptions directory exists
-    os.makedirs("transcriptions", exist_ok=True)
+    os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
     
     # Save the transcription data as a gzipped JSON file
-    with gzip.open(json_file, 'wt', encoding='utf-8') as f:
+    with gzip.open(full_json_path, 'wt', encoding='utf-8') as f:
         json.dump(transcripts, f, ensure_ascii=False, indent=2)
     
     # Update the SQLite database with the file's metadata and transcription location
-    conn = sqlite3.connect('transcriptions.db')
+    conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
     c.execute("INSERT OR REPLACE INTO transcriptions (file_hash, file_path, timestamp, json_file) VALUES (?, ?, ?, ?)",
               (file_hash, file_path, time.time(), json_file))
@@ -164,7 +194,6 @@ def transcribe_audio(file_path):
     """
     existing_transcription = get_transcription(file_path)
     if existing_transcription:
-        print(f"Using existing transcription for {file_path}")
         return existing_transcription
 
     client = OpenAI()
@@ -173,14 +202,14 @@ def transcribe_audio(file_path):
     print(f"Audio split into {len(chunks)} chunks")
     transcripts = []
     previous_transcript = None
+    cumulative_time = 0
     
     for i, chunk in enumerate(tqdm(chunks, desc="Transcribing chunks", unit="chunk")):
-        # print(f"Processing chunk {i+1}/{len(chunks)}")
-        transcript = transcribe_chunk(client, chunk, previous_transcript)
+        transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time)
         if transcript:
             transcripts.append(transcript)
             previous_transcript = transcript['text']
-            # print(f"Chunk {i+1} transcribed. Transcript length: {len(transcript['words'])} words")
+            cumulative_time += chunk.duration_seconds
         else:
             print(f"Empty transcript for chunk {i+1}")
     
@@ -191,15 +220,15 @@ def transcribe_audio(file_path):
         print(f"No transcripts generated for {file_path}")
     return transcripts
 
-def create_embeddings(chunks):
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode([chunk['text'] for chunk in chunks])
-    return embeddings, model
+def create_embeddings(chunks, client):
+    texts = [chunk['text'] for chunk in chunks]
+    response = client.embeddings.create(input=texts, model="text-embedding-ada-002")
+    return [embedding.embedding for embedding in response.data]
 
 def load_pinecone(index_name):
-    if index_name not in pinecone.list_indexes():
-        pinecone.create_index(index_name, dimension=1536, metric="cosine")
-    return pinecone.Index(index_name)
+    if index_name not in pc.list_indexes().names():
+        pc.create_index(index_name, dimension=1536, metric="cosine")
+    return pc.Index(index_name)
 
 def store_in_pinecone(index, chunks, embeddings, file_path):
     file_name = os.path.basename(file_path)
@@ -207,43 +236,57 @@ def store_in_pinecone(index, chunks, embeddings, file_path):
     
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        title = file_name.replace(' ', '_').replace('.', '_').replace('-', '_')[:40]
+        content_hash = hashlib.md5(chunk['text'].encode()).hexdigest()[:8]
+        chunk_id = f"audio||Treasures||{title}||{content_hash}||chunk{i+1}"
+        
         vectors.append({
-            'id': f"{file_hash}_chunk_{i}",
-            'values': embedding.tolist(),
+            'id': chunk_id,
+            'values': embedding,
             'metadata': {
                 'text': chunk['text'],
                 'start_time': chunk['start_time'],
                 'end_time': chunk['end_time'],
                 'full_info': json.dumps(chunk),
                 'file_name': file_name,
-                'file_hash': file_hash
+                'file_hash': file_hash,
+                'library': "Treasures"
             }
         })
-    
-    index.upsert(vectors)
+
+    try:
+        index.upsert(vectors=vectors)
+    except Exception as e:
+        print(f"Error in upserting vectors: {e}")
 
 def is_file_transcribed(index, file_path):
     file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
     results = index.fetch([f"{file_hash}_chunk_0"])
     return len(results['vectors']) > 0
 
-def query_similar_chunks(index, model, query, n_results=8):
-    query_embedding = model.encode([query])[0].tolist()
-    results = index.query(vector=query_embedding, top_k=n_results, include_metadata=True)
+def query_similar_chunks(index, client, query, n_results=8):
+    response = client.embeddings.create(input=[query], model="text-embedding-ada-002")
+    query_embedding = response.data[0].embedding
+    results = index.query(
+        vector=query_embedding,
+        top_k=n_results,
+        include_metadata=True,
+        filter={"library": "Treasures"}  
+    )
 
     for i, match in enumerate(results['matches']):
         print(f"Chunk {i + 1}:")
-        print(f"Text: {match['metadata']['text']}")
-        start_time = match['metadata']['start_time']
-        end_time = match['metadata']['end_time']
+        print(f"Text: {match['metadata'].get('text', 'N/A')}")
+        start_time = match['metadata'].get('start_time', 0)
+        end_time = match['metadata'].get('end_time', 0)
         start_time_formatted = f"{int(start_time // 3600):02}:{int((start_time % 3600) // 60):02}:{int(start_time % 60):02}"
         end_time_formatted = f"{int(end_time // 3600):02}:{int((end_time % 3600) // 60):02}:{int(end_time % 60):02}"
-        print(f"File name: {match['metadata']['file_name']}")
+        print(f"File name: {match['metadata'].get('file_name', 'N/A')}")
         print(f"Start time: {start_time_formatted}")
         print(f"End time: {end_time_formatted}")
         print()
 
-def process_file(file_path, index, report):
+def process_file(file_path, index, report, client):
     existing_transcription = get_transcription(file_path)
     if existing_transcription:
         print(f"\nUsing existing transcription for {file_path}")
@@ -267,24 +310,24 @@ def process_file(file_path, index, report):
     try:
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc="Processing transcripts"):
             chunks = process_transcription(transcript['words'])
-            embeddings, model = create_embeddings(chunks)
+            embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
         report['errors'] += 1
 
-def process_directory(directory_path, index):
+def process_directory(directory_path, index, client):
     report = {'processed': 0, 'skipped': 0, 'errors': 0}
     for root, dirs, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith(('.mp3', '.wav', '.flac')):
                 file_path = os.path.join(root, file)
-                process_file(file_path, index, report)
+                process_file(file_path, index, report, client)
     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
 
 if __name__ == "__main__":
     def usage():
-        print("Usage: python test.py -f <file_path> [-q <query>] [-t]")
+        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t]")
         print("  -f, --file: Path to audio file or directory")
         print("  -q, --query: Query for similar chunks")
         print("  -t, --transcribe-only: Only transcribe the audio, don't process or store in Chroma")
@@ -307,6 +350,7 @@ if __name__ == "__main__":
             query = arg
         elif opt in ("-t", "--transcribe-only"):
             transcribe_only = True
+            print("Transcribe only mode")
 
     if not file_path:
         usage()
@@ -314,8 +358,11 @@ if __name__ == "__main__":
         # Load environment variables
         load_dotenv('../.env')
 
+        # Initialize OpenAI client
+        client = OpenAI()
+
         # Initialize Pinecone
-        pinecone.init(api_key=os.getenv('PINECONE_API_KEY'), environment="gcp-starter")
+        pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
 
         index = load_pinecone(os.getenv('PINECONE_INDEX_NAME'))
 
@@ -331,22 +378,21 @@ if __name__ == "__main__":
                                 print(f"\nTranscribing {file_path}")
                                 transcribe_audio(file_path)
                 else:
-                    process_directory(file_path, index)
+                    process_directory(file_path, index, client)
             else:
                 if transcribe_only:
                     print(f"\nTranscribing {file_path}")
                     transcribe_audio(file_path)
                 else:
                     report = {'processed': 0, 'skipped': 0, 'errors': 0}
-                    process_file(file_path, index, report)
+                    process_file(file_path, index, report, client)
                     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
         else:
             print("Skipping transcription as no file path is provided")
         
         if query and not transcribe_only:
             print("\nQuerying similar chunks:\n")
-            model = SentenceTransformer('all-MiniLM-L6-v2')  
-            query_similar_chunks(index, model, query)
+            query_similar_chunks(index, client, query)
         elif not transcribe_only:
             print("No query provided. Exiting.")
 
