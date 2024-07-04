@@ -4,8 +4,7 @@ import sys
 import os
 import getopt
 import time
-from openai import OpenAI
-import openai
+from openai import OpenAI, APIError, APITimeoutError
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from tqdm import tqdm
@@ -21,10 +20,9 @@ TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../audio/transcriptions'
 
 # Process transcription into overlapping chunks with time codes
-def process_transcription(words, chunk_size=150, overlap=75):
+def process_transcription(transcript, chunk_size=150, overlap=75):
     chunks = []
-    current_chunk = []
-    current_chunk_text = []
+    words = transcript['words']
     i = 0
     
     while i < len(words):
@@ -88,20 +86,31 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0)
         os.unlink(temp_file.name)
         transcript_dict = transcript.model_dump()
         
-        # Adjust timestamps
-        for segment in transcript_dict['segments']:
-            segment['start'] += cumulative_time
-            segment['end'] += cumulative_time
-            for word in segment['words']:
-                word['start'] += cumulative_time
-                word['end'] += cumulative_time
+        if 'words' not in transcript_dict:
+            print(f"Warning: 'words' not found in transcript. Full response: {transcript_dict}")
+            return None
         
-        return transcript_dict
-    except openai.error.Timeout:
+        # Adjust timestamps for words
+        for word in transcript_dict['words']:
+            word['start'] += cumulative_time
+            word['end'] += cumulative_time
+        
+        # Create a simplified structure similar to the old 'segments' format
+        simplified_transcript = {
+            'text': transcript_dict['text'],
+            'words': transcript_dict['words']
+        }
+        
+        return simplified_transcript
+    except APITimeoutError:
         print("OpenAI API request timed out. Skipping this chunk.")
         return None
+    except APIError as e:
+        print(f"OpenAI API error: {e}")
+        return None
     except Exception as e:
-        print(f"Error transcribing chunk: {e}")
+        print(f"Error transcribing chunk. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
+        print(f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}")
         return None
 
 def init_db():
@@ -144,7 +153,7 @@ def get_transcription(file_path):
         print(f"Using existing transcription for {file_path} ({file_hash})")
 
         # Ensure we're using the full path to the JSON file
-        full_json_path = os.path.join(os.path.dirname(TRANSCRIPTIONS_DB_PATH), json_file)
+        full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
         if os.path.exists(full_json_path):
             # Load the transcription from the gzipped JSON file
             with gzip.open(full_json_path, 'rt', encoding='utf-8') as f:
@@ -185,20 +194,20 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
-def transcribe_audio(file_path):
+def transcribe_audio(file_path, force=False):
     """
-    Transcribe audio file, using existing transcription if available.
+    Transcribe audio file, using existing transcription if available and not forced.
     
     This function first checks for an existing transcription using the hybrid storage system.
-    If not found, it performs the transcription and saves the result.
+    If not found or if force is True, it performs the transcription and saves the result.
     """
     existing_transcription = get_transcription(file_path)
-    if existing_transcription:
+    if existing_transcription and not force:
         return existing_transcription
 
     client = OpenAI()
     print("Splitting audio into chunks...")
-    chunks = split_audio(file_path)
+    chunks = list(tqdm(split_audio(file_path), desc="Splitting audio", unit="chunk"))
     print(f"Audio split into {len(chunks)} chunks")
     transcripts = []
     previous_transcript = None
@@ -211,7 +220,7 @@ def transcribe_audio(file_path):
             previous_transcript = transcript['text']
             cumulative_time += chunk.duration_seconds
         else:
-            print(f"Empty transcript for chunk {i+1}")
+            print(f"Empty or invalid transcript for chunk {i+1}")
     
     print(f"Total transcripts: {len(transcripts)}")
     if transcripts:
@@ -286,16 +295,25 @@ def query_similar_chunks(index, client, query, n_results=8):
         print(f"End time: {end_time_formatted}")
         print()
 
-def process_file(file_path, index, report, client):
+def clear_treasures_vectors(index):
+    print("Clearing existing Treasures vectors from Pinecone...")
+    try:
+        for ids in index.list(prefix='audio||Treasures||'):
+            index.delete(ids=ids)
+        print("Existing Treasures vectors cleared.")
+    except Exception as e:
+        print(f"Error clearing Treasures vectors: {e}")
+
+def process_file(file_path, index, report, client, force=False):
     existing_transcription = get_transcription(file_path)
-    if existing_transcription:
+    if existing_transcription and not force:
         print(f"\nUsing existing transcription for {file_path}")
         transcripts = existing_transcription
         report['skipped'] += 1
     else:
         print(f"\nTranscribing audio for {file_path}")
         try:
-            transcripts = transcribe_audio(file_path)
+            transcripts = transcribe_audio(file_path, force)
             if transcripts:
                 report['processed'] += 1
             else:
@@ -309,32 +327,34 @@ def process_file(file_path, index, report, client):
 
     try:
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc="Processing transcripts"):
-            chunks = process_transcription(transcript['words'])
+            chunks = process_transcription(transcript)
             embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
         report['errors'] += 1
 
-def process_directory(directory_path, index, client):
+def process_directory(directory_path, index, client, force=False):
     report = {'processed': 0, 'skipped': 0, 'errors': 0}
     for root, dirs, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith(('.mp3', '.wav', '.flac')):
                 file_path = os.path.join(root, file)
-                process_file(file_path, index, report, client)
+                process_file(file_path, index, report, client, force)
     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
 
 if __name__ == "__main__":
     def usage():
-        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t]")
+        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t] [--force] [-c]")
         print("  -f, --file: Path to audio file or directory")
         print("  -q, --query: Query for similar chunks")
         print("  -t, --transcribe-only: Only transcribe the audio, don't process or store in Chroma")
+        print("  --force: Force re-transcription even if a transcription already exists")
+        print("  -c, --clear: Clear existing Treasures vectors from Pinecone before processing")
         sys.exit(1)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:q:t", ["file=", "query=", "transcribe-only"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear"])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -342,6 +362,8 @@ if __name__ == "__main__":
     file_path = None
     query = None
     transcribe_only = False
+    force_transcribe = False
+    clear_vectors = False
 
     for opt, arg in opts:
         if opt in ("-f", "--file"):
@@ -350,9 +372,12 @@ if __name__ == "__main__":
             query = arg
         elif opt in ("-t", "--transcribe-only"):
             transcribe_only = True
-            print("Transcribe only mode")
+        elif opt == "--force":
+            force_transcribe = True
+        elif opt in ("-c", "--clear"):
+            clear_vectors = True
 
-    if not file_path:
+    if not file_path and not query:
         usage()
     try:
         # Load environment variables
@@ -366,6 +391,9 @@ if __name__ == "__main__":
 
         index = load_pinecone(os.getenv('PINECONE_INDEX_NAME'))
 
+        if clear_vectors:
+            clear_treasures_vectors(index)
+
         init_db()  # Initialize the SQLite database for transcription indexing
 
         if file_path:
@@ -376,16 +404,16 @@ if __name__ == "__main__":
                             if file.lower().endswith(('.mp3', '.wav', '.flac')):
                                 file_path = os.path.join(root, file)
                                 print(f"\nTranscribing {file_path}")
-                                transcribe_audio(file_path)
+                                transcribe_audio(file_path, force_transcribe)
                 else:
-                    process_directory(file_path, index, client)
+                    process_directory(file_path, index, client, force_transcribe)
             else:
                 if transcribe_only:
                     print(f"\nTranscribing {file_path}")
-                    transcribe_audio(file_path)
+                    transcribe_audio(file_path, force_transcribe)
                 else:
                     report = {'processed': 0, 'skipped': 0, 'errors': 0}
-                    process_file(file_path, index, report, client)
+                    process_file(file_path, index, report, client, force_transcribe)
                     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
         else:
             print("Skipping transcription as no file path is provided")
@@ -399,3 +427,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nKeyboard interrupt. Exiting.")
         sys.exit(0)
+
