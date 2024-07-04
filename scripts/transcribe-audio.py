@@ -1,23 +1,115 @@
-import hashlib
-import json
 import sys
 import os
 import getopt
 import time
-from openai import OpenAI, APIError, APITimeoutError
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
-from tqdm import tqdm
+import json
+import hashlib
 import tempfile
 import sqlite3
 import gzip
+import textwrap
+from datetime import date
 from dotenv import load_dotenv
+from tqdm import tqdm
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
+from openai import OpenAI, APIError, APITimeoutError
+import openai
 from pinecone import Pinecone
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+#os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../audio/transcriptions'
+
+question = "question"
+excerpts = "excerpts"
+
+PROMPT = f"""
+You are an expert research system. Use the following pieces of context to answer the question at the end.
+
+# General guidelines
+
+If you don't know the answer, DO NOT try to make up an answer. Say you don't know, and 
+inform them that you are only answering using the part of the Ananda Library authored    by Swami and Master. Tell them they can use the dropdown menu at the bottom of the page to   change the context to "Whole library" and then you will have access to additional Ananda Library content.
+
+If the question is not related to the context or chat history, politely respond that you are tuned to
+only answer questions that are related to the context.
+IMPORTANT: DO NOT use any information you know about the world.
+Do not mention the source, author, or title.
+Today's date is {date.today().strftime("%Y-%m-%d")}.
+
+# Handling Personal Queries
+
+In response to questions that suggest or imply personal communications, such as "Did [historical figure] tell you...?", explicitly clarify your role as an AI:
+Example: "As an AI, I have not personally communicated with anyone. It is documented that [historical figure] described or wrote that..."
+This ensures clarity and maintains an impersonal tone in the appropriate contexts.
+
+# Direct Informational Responses
+
+For general informational queries that do not imply personal interaction, provide the information directly, omitting any impersonal disclaimer:
+Example: "According to documented teachings, [historical figure] stated that..."
+
+# Names
+
+Refer to Paramhansa Yogananda and Swami Yogananda as Master.
+DO NOT call Master "the Master" or "Master Yogananda".
+Refer to Swami Kriyananda as Swamiji.
+Master = Paramhansa Yogananda
+Swami = Swami Kriyananda
+Swamiji = Swami
+A reference to Swami is always to Swami Kriyananda unless it specifies another Swami.
+Swami Sri Yukteswar is Yogananda's guru.
+Lahiri Mahasaya is Sri Yukteswar's guru.
+Babaji Krishnan is Lahiri Mahasaya's guru.
+AY or The AY = Autobiography of a Yogi book
+
+# Content
+
+The context is Ananda Library, which has Master and Swami's teachings. Say "Master and Swami's teachings" or "the teachings", NOT "the context" or "the content provided in the context". If the context is only from Master or only Swami, just say Master's teachings or Swami's teachings. Don't say "Swami's teachings, as reflected in Master and Swami's teachings". Just say "Swami's teachings" if it's from him.
+
+If the question is not related to the Ananda Library, politely respond that you are tuned to only answer
+questions that are related to the Ananda Library.
+The Autobiography of a Yogi is Yogananda's seminal work and the library includes it in its entirety. Answer
+any questions about it.
+Never list a source as generically "Ananda Library" - not helpful.
+If the question is for someone's email address or affiliation information, politely respond that
+the email list can be found at: https://www.anandalibrary.org/email-list/.
+
+# Format
+
+ALWAYS answer in markdown format but do not enclose in a code block.
+DO NOT start your output with ```markdown.
+
+# Context
+
+Below are transcribed excerpts from audio recorded talks by Swami. You will use these to form an answer to the question.
+
+Give several direct quotes.
+Do not quote more than 12 words from any one excerpt (chunk). 
+Do not put your answer in a single paragraph.
+
+Your answer will refer to the audio to hear more, e.g.:
+
+## Example Answer
+
+Swami mentions calmness related to several other themes in his talks:
+
+1. Calmness is the most Godly quality we can demonstrate [File: 01 Treasures Along the Path 1-1 2.mp3; Start: 00:22:23]
+2. Calmness is the best way to improve one's meditation [File: 01 Treasures Meditation Primer.mp3; Start: 00:11:11]
+3. Seva and Calmness are closely related [File: 01 Calm in the Spine.mp3; Start: 00:03:04]
+4. Calmness is the quickest path to Samadhi [File: 02 Samadhi Much.mp3; Start: 01:23:45]
+
+# Excerpts
+
+{{excerpts}}
+
+# Question
+
+Question: {{question}}
+
+Helpful answer:
+"""
 
 # Process transcription into overlapping chunks with time codes
 def process_transcription(transcript, chunk_size=150, overlap=75):
@@ -194,18 +286,22 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
-def transcribe_audio(file_path, force=False):
+def transcribe_audio(file_path, force=False, current_file=None, total_files=None):
     """
     Transcribe audio file, using existing transcription if available and not forced.
     
     This function first checks for an existing transcription using the hybrid storage system.
     If not found or if force is True, it performs the transcription and saves the result.
     """
+    
+    file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
+        print(f"Using existing transcription for {file_path}{file_info}")
         return existing_transcription
 
     client = OpenAI()
+    print(f"Transcribing audio for {file_path}{file_info}")
     print("Splitting audio into chunks...")
     chunks = list(tqdm(split_audio(file_path), desc="Splitting audio", unit="chunk"))
     print(f"Audio split into {len(chunks)} chunks")
@@ -283,17 +379,40 @@ def query_similar_chunks(index, client, query, n_results=8):
         filter={"library": "Treasures"}  
     )
 
+    excerpts = []
     for i, match in enumerate(results['matches']):
-        print(f"Chunk {i + 1}:")
-        print(f"Text: {match['metadata'].get('text', 'N/A')}")
+        text = match['metadata'].get('text', 'N/A')
+        file_name = match['metadata'].get('file_name', 'N/A')
         start_time = match['metadata'].get('start_time', 0)
         end_time = match['metadata'].get('end_time', 0)
         start_time_formatted = f"{int(start_time // 3600):02}:{int((start_time % 3600) // 60):02}:{int(start_time % 60):02}"
         end_time_formatted = f"{int(end_time // 3600):02}:{int((end_time % 3600) // 60):02}:{int(end_time % 60):02}"
-        print(f"File name: {match['metadata'].get('file_name', 'N/A')}")
-        print(f"Start time: {start_time_formatted}")
-        print(f"End time: {end_time_formatted}")
-        print()
+        
+        excerpt = f"Chunk {i + 1}:\n"
+        excerpt += f"Text: {text}\n"
+        excerpt += f"File name: {file_name}\n"
+        excerpt += f"Start time: {start_time_formatted}\n"
+        excerpt += f"End time: {end_time_formatted}\n"
+        excerpts.append(excerpt)
+
+    excerpts_text = "\n\n".join(excerpts)
+    
+    # Prepare the prompt
+    formatted_prompt = PROMPT.format(excerpts=excerpts_text, question=query)
+    
+    # Send to OpenAI
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": formatted_prompt}
+        ]
+    )
+    
+    wrapped_text = "\n".join(textwrap.fill(line, width=80) for line in response.choices[0].message.content.splitlines())
+    print()
+    print(wrapped_text)
+    print()
 
 def clear_treasures_vectors(index):
     print("Clearing existing Treasures vectors from Pinecone...")
@@ -304,16 +423,16 @@ def clear_treasures_vectors(index):
     except Exception as e:
         print(f"Error clearing Treasures vectors: {e}")
 
-def process_file(file_path, index, report, client, force=False):
+def process_file(file_path, index, report, client, force=False, current_file=None, total_files=None):
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
-        print(f"\nUsing existing transcription for {file_path}")
+        print(f"\nUsing existing transcription for {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
         transcripts = existing_transcription
         report['skipped'] += 1
     else:
-        print(f"\nTranscribing audio for {file_path}")
+        print(f"\nTranscribing audio for {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
         try:
-            transcripts = transcribe_audio(file_path, force)
+            transcripts = transcribe_audio(file_path, force, current_file, total_files)
             if transcripts:
                 report['processed'] += 1
             else:
@@ -336,11 +455,15 @@ def process_file(file_path, index, report, client, force=False):
 
 def process_directory(directory_path, index, client, force=False):
     report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    audio_files = []
     for root, dirs, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith(('.mp3', '.wav', '.flac')):
-                file_path = os.path.join(root, file)
-                process_file(file_path, index, report, client, force)
+                audio_files.append(os.path.join(root, file))
+    
+    total_files = len(audio_files)
+    for i, file_path in enumerate(audio_files, 1):
+        process_file(file_path, index, report, client, force, i, total_files)
     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
 
 if __name__ == "__main__":
@@ -415,11 +538,8 @@ if __name__ == "__main__":
                     report = {'processed': 0, 'skipped': 0, 'errors': 0}
                     process_file(file_path, index, report, client, force_transcribe)
                     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
-        else:
-            print("Skipping transcription as no file path is provided")
-        
+
         if query and not transcribe_only:
-            print("\nQuerying similar chunks:\n")
             query_similar_chunks(index, client, query)
         elif not transcribe_only:
             print("No query provided. Exiting.")
