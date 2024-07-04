@@ -11,6 +11,9 @@ import { Index } from '@pinecone-database/pinecone';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import { Pinecone } from '@pinecone-database/pinecone';
+import crypto from 'crypto';
+import { Document } from 'langchain/document';
 
 const readdir = promisify(fs.readdir);
 
@@ -48,52 +51,59 @@ export const run = async (keepData: boolean) => {
     process.exit(1);
   }
 
-  let stats;
+  // const prefix = '41215503-919c-4e74-9236-';
+  const prefix = 'text||Ananda_Library||';
+
+  let vectorIds: string[] = [];
+  let paginationToken: string | undefined;
+
+  console.log(`Attempting to list vectors with prefix: "${prefix}"`);
+
   try {
-    stats = await pineconeIndex.describeIndexStats();
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error describing index stats:', error.message);
-    } else {
-      console.error('Unknown error describing index stats');
-    }
-    process.exit(1);
-  }
-
-  const vectorCount = stats.totalRecordCount;
-  if (vectorCount && vectorCount > 0 && !keepData) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    await new Promise<void>((resolve) => {
-      rl.question(`The index contains ${vectorCount} vectors. Are you sure you want to delete? (y/N) `, async (answer) => {
-        if (answer.toLowerCase().charAt(0) === 'y') {
-          await pineconeIndex.deleteAll();
-          console.log('All vectors deleted.');
-        } else {
-          console.log('Deletion aborted.');
-          process.exit(0);
-        }
-        rl.close();
-        resolve();
+    do {
+      console.log(`Fetching page${paginationToken ? ' with token: ' + paginationToken : ''}`);
+      const response = await pineconeIndex.listPaginated({ 
+        prefix, 
+        paginationToken,
       });
-    });
-  } else if (keepData) {
-    console.log(`Keeping existing ${vectorCount} vectors in the index.`);
-  }
+      
+      console.log(`Received response:`, JSON.stringify(response, null, 2));
+      
+      if (response.vectors) {
+        const pageVectorIds = response.vectors.map(vector => vector.id).filter(id => id !== undefined) as string[];
+        console.log(`Found ${pageVectorIds.length} vectors on this page`);
+        vectorIds.push(...pageVectorIds);
+      } else {
+        console.log('No vectors found in this response');
+      }
+      
+      paginationToken = response.pagination?.next;
+      console.log(`Next pagination token: ${paginationToken || 'None'}`);
+    } while (paginationToken);
 
-  // Print count of PDF files in the directory
-  try {
-    const files = await readdir(filePath);
-    const pdfFiles = files.filter((file: string) => path.extname(file).toLowerCase() === '.pdf');
-    console.log(`Found ${pdfFiles.length} PDF files.`);
-  } catch (err) {
-    console.error('Unable to scan directory:', err);
+  } catch (error) {
+    console.error('Error listing records:', error);
     process.exit(1);
   }
-  
+
+  console.log(`Total vectors found: ${vectorIds.length}`);
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  await new Promise<void>((resolve) => {
+    rl.question(`The index contains ${vectorIds.length} vectors. Do you want to proceed with adding more? (y/N) `, async (answer) => {
+      if (answer.toLowerCase().charAt(0) !== 'y') {
+        console.log('Ingestion process aborted.');
+        process.exit(0);
+      }
+      rl.close();
+      resolve();
+    });
+  });
+
   let rawDocs: any;
   try {
     const directoryLoader = new DirectoryLoader(filePath, {
@@ -109,6 +119,7 @@ export const run = async (keepData: boolean) => {
   try {
     for (const rawDoc of rawDocs) {
       const sourceURL = rawDoc.metadata?.pdf?.info?.Subject;
+      let title = rawDoc.metadata?.pdf?.info?.Title || 'Untitled';
 
       if (!sourceURL) {
         console.error('No source URL found in metadata for document:', rawDoc);
@@ -116,12 +127,14 @@ export const run = async (keepData: boolean) => {
         continue;
       }
 
-      // Set the source URL for all pages of the document
+      // Set the source URL and title for all pages of the document
       rawDoc.metadata.source = sourceURL;
+      rawDoc.metadata.title = title;
 
       // Only print debug information for the first page
       if (rawDoc.metadata.loc.pageNumber === 1) {
         console.log('Processing document with source URL:', sourceURL);
+        console.log('Document title:', title);
         console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
         console.log('Updated metadata:', rawDoc.metadata);
       }
@@ -131,73 +144,67 @@ export const run = async (keepData: boolean) => {
     return;
   }
 
-  let docs;
   try {
     const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
     });
-    docs = await textSplitter.splitDocuments(rawDocs);
+    const docs = await textSplitter.splitDocuments(rawDocs);
 
-    // Log the structure of the first document to check for the 'text' property
+    // Log the structure of the first document to check for the 'pageContent' property
     if (docs.length > 0) {
       console.log('Structure of the first document:', docs[0]);
     }
 
     // Check if each document has a 'text' property after splitting
-    for (const doc of docs) {
+    const validDocs = docs.filter(doc => {
       if (typeof doc.pageContent !== 'string') {
         console.error(`Document missing 'pageContent' property: ${JSON.stringify(doc)}`);
-        continue; // Skip this document or handle the error as needed
+        return false;
       }
-    }
+      return true;
+    });
 
-    // Check if each document has a 'text' property after splitting
-    // for (const doc of docs) {
-    //   if (typeof doc.text !== 'string') {
-    //     throw new Error(`Document missing 'text' property: ${JSON.stringify(doc)}`);
-    //   }
-    // }
-  } catch (error) {
-    console.error('Failed to split documents:', error);
-    return;
-  }
-
-  console.log('creating vector store...');
-  try {
-    /* create and store the embeddings in the vectorStore */
-    /* possible way to specify model: 
-       const embeddings = new OpenAIEmbeddings({ modelName: 'text-similarity-babbage-001' }); */
     const embeddings = new OpenAIEmbeddings();
+    const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+      pineconeIndex,
+      textKey: 'text',
+    });
+
     const progressBar = new ProgressBar('Embedding and storing documents [:bar] :percent :etas', {
-      total: rawDocs.length,
+      total: validDocs.length,
       width: 40,
     });
 
-    // Process documents in batches instead of all at once so we can give progress bar
-    const chunk = 40;
-    for (let i = 0; i < rawDocs.length; i += chunk) {
-      const docsBatch = rawDocs.slice(i, i + chunk);
-      docsBatch.forEach((doc: any) => {
-        doc.metadata.library = "Ananda Library";
-      });
-
-      await PineconeStore.fromDocuments(docsBatch, embeddings, {
-        pineconeIndex,
-        textKey: 'text',
-      });
+    for (let i = 0; i < validDocs.length; i++) {
+      const doc = validDocs[i];
+      let title = doc.metadata.pdf?.info?.Title || 'Untitled';
+      title = title
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_]/g, '')
+        .substring(0, 40);
       
-      progressBar.tick(chunk);
+      const contentHash = crypto.createHash('md5').update(doc.pageContent).digest('hex').substring(0, 8);
+      const id = `text||Ananda_Library||${title}||${contentHash}||chunk${i + 1}`;
+      
+      await vectorStore.addDocuments([
+        new Document({
+          pageContent: doc.pageContent,
+          metadata: {
+            ...doc.metadata,
+            id: id,
+            library: "Ananda Library",
+          }
+        })
+      ], [id]);
+      
+      progressBar.tick();
     }
     
-    console.log(`Ingestion complete. ${rawDocs.length} documents processed.`);
+    console.log(`Ingestion complete. ${validDocs.length} documents processed.`);
 
   } catch (error: any) {
-    if (error.message && error.message.includes("Starter index record limit reached")) {
-      console.error('Error: Starter index record limit reached.');
-    } else {
-      console.error('Failed to embed documents or store in Pinecone:', error.message || error);
-    }
+    console.error('Failed to ingest documents:', error);
   }
 };
 
