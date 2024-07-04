@@ -51,7 +51,6 @@ export const run = async (keepData: boolean) => {
     process.exit(1);
   }
 
-  // const prefix = '41215503-919c-4e74-9236-';
   const prefix = 'text||Ananda_Library||';
 
   let vectorIds: string[] = [];
