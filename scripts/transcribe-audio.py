@@ -16,6 +16,9 @@ from pydub.silence import split_on_silence
 from openai import OpenAI, APIError, APITimeoutError
 import openai
 from pinecone import Pinecone
+import multiprocessing
+from functools import partial
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -78,29 +81,56 @@ the email list can be found at: https://www.anandalibrary.org/email-list/.
 
 # Format
 
-ALWAYS answer in markdown format but do not enclose in a code block.
-DO NOT start your output with ```markdown.
+Format beautifully in plain text for display in a terminal window.
+Leave a blank line between paragraphs.
 
 # Context
 
-Below are transcribed excerpts from audio recorded talks by Swami. You will use these to form an answer to the question.
-
-Give several direct quotes.
-Do not quote more than 12 words from any one excerpt (chunk). 
+You *MUST* give several direct quotes, but do not quote more than 12 words from any one excerpt (chunk). 
 Do not put your answer in a single paragraph.
 
 Your answer will refer to the audio to hear more, e.g.:
 
+## Example Question
+
+dealing with very tough health karma
+
 ## Example Answer
 
-Swami mentions calmness related to several other themes in his talks:
+Handling tough health karma involves understanding various elements according to
+Master and Swami's teachings.
 
-1. Calmness is the most Godly quality we can demonstrate [File: 01 Treasures Along the Path 1-1 2.mp3; Start: 00:22:23]
-2. Calmness is the best way to improve one's meditation [File: 01 Treasures Meditation Primer.mp3; Start: 00:11:11]
-3. Seva and Calmness are closely related [File: 01 Calm in the Spine.mp3; Start: 00:03:04]
-4. Calmness is the quickest path to Samadhi [File: 02 Samadhi Much.mp3; Start: 01:23:45]
+1. Karma, particularly health karma, can often result as a correction for past
+tendencies. It can work as a restraint on previous wrongful tendencies, and
+sometimes, a physical problem or ailment serves as a significant part of
+spiritual growth. As Swamiji illuminates, "The karmic pattern had been set up
+for the correction but it needed to get down on deep enough levels of his own
+mind for him to be able to understand." 
+[File: Principles of Healing Part Two.mp3; Start: 00:38:27]
+
+2. The understanding of how karma works is crucial here, as Swamiji states, "If
+you act harshly if you act cruelly if you hurt people you certainly will suffer
+because they are a part of you. And most people think well I'm not suffering
+they're suffering. Yes, something inside you will suffer and karma will come out
+in the end." 
+[File: 01 Nature of True Self.mp3; Start: 00:04:00]
+
+3. No karma is unchangeable. Persistence is the key. Even deep issues can be
+overcome if one keeps trying. One should rejoice in being on the right path and
+see this as the lifetime to get rid of those karmic debts. In Swamiji's words,
+"All you do know for sure is that if you keep tugging away even a deep karma can
+be overcome finally." 
+[File: 01 How to Use Your Emotions Part1.mp3; Start: 01:08:00]
+
+While struggling with health karma, maintaining inner calmness and positive
+attitude can attract better outcomes as suggested in the teachings. Remember
+Swamiji's affirmation, "You will attract the kinds of things that you expect the
+world to do." 
+[File: Acheiving Emotional Maturity.mp3; Start: 01:00:37]
 
 # Excerpts
+
+Use these transcribed excerpts from talks by Swami to form an answer to the question.
 
 {{excerpts}}
 
@@ -158,6 +188,12 @@ def split_audio(file_path, min_silence_len=800, silence_thresh=-28, chunk_length
     
     return combined_chunks
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type((APITimeoutError, APIError)),
+    reraise=False
+)
 def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0):
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
@@ -179,7 +215,7 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0)
         transcript_dict = transcript.model_dump()
         
         if 'words' not in transcript_dict:
-            print(f"Warning: 'words' not found in transcript. Full response: {transcript_dict}")
+            print(f"\n*** ERROR *** 'words' not found in transcript. Full response: {transcript_dict}")
             return None
         
         # Adjust timestamps for words
@@ -195,13 +231,13 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0)
         
         return simplified_transcript
     except APITimeoutError:
-        print("OpenAI API request timed out. Skipping this chunk.")
-        return None
+        print("\n*** ERROR *** OpenAI API request timed out. Retrying...")
+        raise
     except APIError as e:
-        print(f"OpenAI API error: {e}")
-        return None
+        print(f"\n*** ERROR *** OpenAI API error: {e}")
+        raise
     except Exception as e:
-        print(f"Error transcribing chunk. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
+        print(f"\n*** ERROR *** Error transcribing chunk. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
         print(f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}")
         return None
 
@@ -293,35 +329,34 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     This function first checks for an existing transcription using the hybrid storage system.
     If not found or if force is True, it performs the transcription and saves the result.
     """
-    
+    file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
-        print(f"Using existing transcription for {file_path}{file_info}")
+        print(f"Using existing transcription for {file_name}{file_info}")
         return existing_transcription
 
     client = OpenAI()
-    print(f"Transcribing audio for {file_path}{file_info}")
-    print("Splitting audio into chunks...")
+    print(f"Splitting audio into chunks for {file_name}...{file_info}")
     chunks = split_audio(file_path)
-    print(f"Audio split into {len(chunks)} chunks")
+    print(f"Audio split into {len(chunks)} chunks for {file_name}")
     transcripts = []
     previous_transcript = None
     cumulative_time = 0
     
-    for i, chunk in enumerate(tqdm(chunks, desc="Transcribing chunks", unit="chunk")):
+    for i, chunk in enumerate(tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")):
         transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time)
         if transcript:
             transcripts.append(transcript)
             previous_transcript = transcript['text']
             cumulative_time += chunk.duration_seconds
         else:
-            print(f"Empty or invalid transcript for chunk {i+1}")
+            print(f"\n*** ERROR *** Empty or invalid transcript for chunk {i+1} in {file_name}")
     
     if transcripts:
         save_transcription(file_path, transcripts)
     else:
-        print(f"No transcripts generated for {file_path}")
+        print(f"\n*** ERROR *** No transcripts generated for {file_name}")
     return transcripts
 
 def create_embeddings(chunks, client):
@@ -451,42 +486,56 @@ def is_file_fully_indexed(index, file_path):
         print(f"File not fully indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
         return False
 
-def process_file(file_path, index, report, client, force=False, current_file=None, total_files=None):
+def init_worker():
+    global client, index
+    client = OpenAI()
+    pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+    index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
+
+def process_file_wrapper(args):
+    file_path, force, current_file, total_files = args
+    return process_file(file_path, index, client, force, current_file, total_files)
+
+def process_file(file_path, index, client, force=False, current_file=None, total_files=None):
+    local_report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    file_name = os.path.basename(file_path)
+    file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
         if is_file_fully_indexed(index, file_path):
-            print(f"\nFile already fully transcribed and indexed: {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
-            report['skipped'] += 1
-            return
+            print(f"\nFile already fully transcribed and indexed: {file_name}{file_info}")
+            local_report['skipped'] += 1
+            return local_report
         else:
-            print(f"\nFile transcribed but not fully indexed. Re-processing: {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
+            print(f"\nFile transcribed but not fully indexed. Re-processing: {file_name}{file_info}")
             transcripts = existing_transcription
     else:
-        print(f"\nTranscribing audio for {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
+        print(f"\nTranscribing audio for {file_name}{file_info}")
         try:
             transcripts = transcribe_audio(file_path, force, current_file, total_files)
             if transcripts:
-                report['processed'] += 1
+                local_report['processed'] += 1
             else:
-                print(f"No transcription data generated for {file_path}")
-                report['errors'] += 1
-                return
+                print(f"\n*** ERROR *** No transcription data generated for {file_name}")
+                local_report['errors'] += 1
+                return local_report
         except Exception as e:
-            print(f"Error transcribing file {file_path}: {e}")
-            report['errors'] += 1
-            return
+            print(f"\n*** ERROR *** Error transcribing file {file_name}: {e}")
+            local_report['errors'] += 1
+            return local_report
 
     try:
-        for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc="Processing transcripts"):
+        for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc=f"Processing transcripts for {file_name}"):
             chunks = process_transcription(transcript)
             embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
     except Exception as e:
-        print(f"Error processing file {file_path}: {e}")
-        report['errors'] += 1
+        print(f"\n*** ERROR *** Error processing file {file_name}: {e}")
+        local_report['errors'] += 1
 
-def process_directory(directory_path, index, client, force=False):
-    report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    return local_report
+
+def process_directory(directory_path, force=False):
     audio_files = []
     for root, dirs, files in os.walk(directory_path):
         for file in files:
@@ -494,8 +543,26 @@ def process_directory(directory_path, index, client, force=False):
                 audio_files.append(os.path.join(root, file))
     
     total_files = len(audio_files)
-    for i, file_path in enumerate(audio_files, 1):
-        process_file(file_path, index, report, client, force, i, total_files)
+    
+    # Calculate the number of processes
+    max_processes = multiprocessing.cpu_count()
+    reduced_processes = max(1, int(max_processes * 0.7))  # Reduce by 30%
+    num_processes = min(reduced_processes, 4)  # Cap at 4 processes
+    
+    print(f"Using {num_processes} processes for parallel processing")
+    
+    # Use multiprocessing to process files in parallel
+    with multiprocessing.Pool(processes=num_processes, initializer=init_worker) as pool:
+        args_list = [(file_path, force, i+1, total_files) for i, file_path in enumerate(audio_files)]
+        results = pool.map(process_file_wrapper, args_list)
+    
+    # Aggregate results from all processes
+    report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    for result in results:
+        report['processed'] += result['processed']
+        report['skipped'] += result['skipped']
+        report['errors'] += result['errors']
+    
     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
 
 if __name__ == "__main__":
@@ -561,12 +628,16 @@ if __name__ == "__main__":
                                 print(f"\nTranscribing {file_path}")
                                 transcribe_audio(file_path, force_transcribe)
                 else:
-                    process_directory(file_path, index, client, force_transcribe)
+                    process_directory(file_path, force_transcribe)
             else:
                 if transcribe_only:
                     print(f"\nTranscribing {file_path}")
                     transcribe_audio(file_path, force_transcribe)
                 else:
+                    # For single file processing, create client and index here
+                    client = OpenAI()
+                    pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+                    index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
                     report = {'processed': 0, 'skipped': 0, 'errors': 0}
                     process_file(file_path, index, report, client, force_transcribe)
                     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
