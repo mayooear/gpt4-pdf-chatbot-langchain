@@ -303,7 +303,7 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     client = OpenAI()
     print(f"Transcribing audio for {file_path}{file_info}")
     print("Splitting audio into chunks...")
-    chunks = list(tqdm(split_audio(file_path), desc="Splitting audio", unit="chunk"))
+    chunks = split_audio(file_path)
     print(f"Audio split into {len(chunks)} chunks")
     transcripts = []
     previous_transcript = None
@@ -318,7 +318,6 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
         else:
             print(f"Empty or invalid transcript for chunk {i+1}")
     
-    print(f"Total transcripts: {len(transcripts)}")
     if transcripts:
         save_transcription(file_path, transcripts)
     else:
@@ -363,11 +362,6 @@ def store_in_pinecone(index, chunks, embeddings, file_path):
         index.upsert(vectors=vectors)
     except Exception as e:
         print(f"Error in upserting vectors: {e}")
-
-def is_file_transcribed(index, file_path):
-    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
-    results = index.fetch([f"{file_hash}_chunk_0"])
-    return len(results['vectors']) > 0
 
 def query_similar_chunks(index, client, query, n_results=8):
     response = client.embeddings.create(input=[query], model="text-embedding-ada-002")
@@ -423,12 +417,50 @@ def clear_treasures_vectors(index):
     except Exception as e:
         print(f"Error clearing Treasures vectors: {e}")
 
+def get_expected_chunk_count(file_path):
+    transcripts = get_transcription(file_path)
+    if not transcripts:
+        return 0
+    total_chunks = sum(len(process_transcription(transcript)) for transcript in transcripts)
+    return total_chunks
+
+def is_file_fully_indexed(index, file_path):
+    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+    file_name = os.path.basename(file_path)
+    
+    expected_chunks = get_expected_chunk_count(file_path)
+    if expected_chunks == 0:
+        return False
+    
+    results = index.query(
+        vector=[0] * 1536,  # Dummy vector
+        top_k=expected_chunks,
+        include_metadata=True,
+        filter={
+            "file_hash": file_hash,
+            "file_name": file_name
+        }
+    )
+    
+    actual_chunks = len(results['matches'])
+    
+    if actual_chunks == expected_chunks:
+        print(f"File fully indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
+        return True
+    else:
+        print(f"File not fully indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
+        return False
+
 def process_file(file_path, index, report, client, force=False, current_file=None, total_files=None):
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
-        print(f"\nUsing existing transcription for {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
-        transcripts = existing_transcription
-        report['skipped'] += 1
+        if is_file_fully_indexed(index, file_path):
+            print(f"\nFile already fully transcribed and indexed: {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
+            report['skipped'] += 1
+            return
+        else:
+            print(f"\nFile transcribed but not fully indexed. Re-processing: {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
+            transcripts = existing_transcription
     else:
         print(f"\nTranscribing audio for {file_path}" + (f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""))
         try:
