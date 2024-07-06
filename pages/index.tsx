@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
 import Link from 'next/link';
@@ -250,6 +250,14 @@ export default function Home() {
         setError(data.error);
         console.log('ERROR: data error: ' + data.error);
       } else {
+        const transformedSourceDocs = data.sourceDocuments.map((doc: any) => ({
+          ...doc,
+          metadata: {
+            ...doc.metadata,
+            title: doc.metadata.title || 'Unknown source'
+          }
+        }));
+
         setMessageState((state) => ({
           ...state,
           messages: [
@@ -257,7 +265,7 @@ export default function Home() {
             {
               type: 'apiMessage',
               message: data.text,
-              sourceDocs: data.sourceDocuments,
+              sourceDocs: transformedSourceDocs,
               docId: data.docId,
               collection: collection,
             },
@@ -340,7 +348,7 @@ export default function Home() {
   }
 
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-  const [audioPlayerIds, setAudioPlayerIds] = useState<Record<string, string>>({});
+  const audioPlayerIds = useMemo<Record<string, string>>(() => ({}), []);
 
   const renderAudioPlayer = useCallback((source: any, index: number) => {
     if (source.metadata.type === 'audio') {
@@ -349,10 +357,7 @@ export default function Home() {
 
       // Generate a unique ID for this audio player instance if it doesn't exist
       if (!audioPlayerIds[uniqueKey]) {
-        setAudioPlayerIds(prev => ({
-          ...prev,
-          [uniqueKey]: `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }));
+        audioPlayerIds[uniqueKey] = `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       }
 
       const audioId = audioPlayerIds[uniqueKey];
@@ -370,15 +375,16 @@ export default function Home() {
       const isThisPlaying = currentlyPlayingId === audioId;
 
       return (
-        <AudioPlayer
-          key={audioId}
-          src={`/api/audio/${source.metadata.file_name}`}
-          startTime={source.metadata.start_time}
-          endTime={source.metadata.end_time}
-          onPlay={handlePlay}
-          onPause={handlePause}
-          isPlaying={isThisPlaying}
-        />
+        <div key={audioId} className="mb-4"> {/* Added margin-bottom */}
+          <AudioPlayer
+            src={`/api/audio/${source.metadata.file_name}`}
+            startTime={source.metadata.start_time}
+            endTime={source.metadata.end_time}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            isPlaying={isThisPlaying}
+          />
+        </div>
       );
     }
     return null;

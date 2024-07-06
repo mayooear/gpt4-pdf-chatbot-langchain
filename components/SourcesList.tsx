@@ -73,6 +73,11 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     window.open(source, '_blank', 'noopener,noreferrer'); // Open link manually
   };
 
+  const truncateText = (text: string, wordLimit: number) => {
+    const words = text.split(' ');
+    return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : text;
+  };
+
   if (useAccordion) {
     return (
       <>
@@ -94,8 +99,11 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         className="hover:underline"
                         onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                       >
-                        {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : (doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata.source)}
+                        {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
                       </a>
+                      {doc.metadata.type === 'audio' && (
+                        <p>{truncateText(doc.pageContent, 30)}</p>
+                      )}
                       {doc.metadata.type === 'audio' && (
                         renderAudioPlayerWrapper(doc, index)
                       )}
@@ -139,42 +147,49 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
         )}
       </div>
       )}
-      {sources.map((doc, index) => (
-        <details 
-          key={index} 
-          className={styles.sourceDocsContainer}
-          onToggle={(e) => {
-            if (e.currentTarget instanceof HTMLDetailsElement) {
-              logEvent('expand_source', 'UI', e.currentTarget.open ? 'expanded' : 'collapsed');
-            }
-          }}
-        >
-          <summary title="Click the triangle to see details or title to go to library source">
-            {doc.metadata && doc.metadata.source && doc.metadata.source.startsWith('http') ? (
-              <a 
-                href={doc.metadata.source} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={{ color: 'blue' }}
-                onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-              >
-                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) 
-                : (doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata.source)}
-              </a>
-            ) : (
-              doc.metadata && doc.metadata.source ? doc.metadata.source : 'Unknown source'
+      {sources.map((doc, index) => {
+        return (
+          <details 
+            key={index} 
+            className={styles.sourceDocsContainer}
+            onToggle={(e) => {
+              if (e.currentTarget instanceof HTMLDetailsElement) {
+                logEvent('expand_source', 'UI', e.currentTarget.open ? 'expanded' : 'collapsed');
+              }
+            }}
+          >
+            <summary title="Click the triangle to see details or title to go to library source">
+              {doc.metadata && doc.metadata.source ? (
+                <a 
+                  href={doc.metadata.source} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ color: 'blue' }}
+                  onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+                >
+                  {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
+                </a>
+              ) : doc.metadata.title ? (
+                <span style={{ color: 'blue' }}>
+                  {formatTitle(doc.metadata.title)}
+                </span>
+              ) : (
+                <span style={{ color: 'blue' }}>
+                  Unknown source
+                </span>
+              )}
+            </summary>
+            <div className={styles.sourceDocContent}>
+              <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                {doc.metadata.type === 'audio' ? truncateText(doc.pageContent, 30) : `*${doc.pageContent}*`}
+              </ReactMarkdown>
+            </div>
+            {doc.metadata && doc.metadata.type === 'audio' && (
+              renderAudioPlayerWrapper(doc, index)
             )}
-          </summary>
-          <div className={styles.sourceDocContent}>
-            <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-              {`*${doc.pageContent}*`}
-            </ReactMarkdown>
-          </div>
-          {doc.metadata && doc.metadata.type === 'audio' && (
-            renderAudioPlayerWrapper(doc, index)
-          )}
-        </details>
-      ))}
+          </details>
+        );
+      })}
     </>
   );
 };

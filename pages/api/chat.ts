@@ -91,7 +91,7 @@ export default async function handler(
       if (processedSourceDocuments && processedSourceDocuments.length > 0) {
         const sourceTitles = processedSourceDocuments.map((doc: any) => {
           console.log('Document Metadata:', doc.metadata);
-          return doc.metadata.title || doc.metadata['pdf.info.Title'];
+          return doc.metadata.title;
         });
         sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
         console.log(sourceTitlesString);
