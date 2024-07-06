@@ -19,11 +19,16 @@ from pinecone import Pinecone
 import multiprocessing
 from functools import partial
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from progress.bar import Bar
+import signal
 
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../audio/transcriptions'
+
+interrupt_requested = multiprocessing.Value('b', False)
+force_exit = multiprocessing.Value('b', False)
 
 question = "question"
 excerpts = "excerpts"
@@ -355,9 +360,11 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     
     if transcripts:
         save_transcription(file_path, transcripts)
+        return transcripts
     else:
-        print(f"\n*** ERROR *** No transcripts generated for {file_name}")
-    return transcripts
+        error_msg = f"No transcripts generated for {file_name}"
+        print(f"\n*** ERROR *** {error_msg}")
+        return None, error_msg  # Return None and the error message
 
 def create_embeddings(chunks, client):
     texts = [chunk['text'] for chunk in chunks]
@@ -389,7 +396,9 @@ def store_in_pinecone(index, chunks, embeddings, file_path):
                 'full_info': json.dumps(chunk),
                 'file_name': file_name,
                 'file_hash': file_hash,
-                'library': "Treasures"
+                'library': "Treasures",
+                'author': 'Swami Kriyananda',        
+                'type': 'audio',
             }
         })
 
@@ -446,11 +455,25 @@ def query_similar_chunks(index, client, query, n_results=8):
 def clear_treasures_vectors(index):
     print("Clearing existing Treasures vectors from Pinecone...")
     try:
-        for ids in index.list(prefix='audio||Treasures||'):
+        vector_ids = list(index.list(prefix='audio||Treasures||'))
+        total_vectors = len(vector_ids)
+        
+        if total_vectors == 0:
+            print("No existing Treasures vectors found.")
+            return
+        
+        print(f"Found {total_vectors} vectors to clear.")
+        progress_bar = Bar('Clearing vectors', max=total_vectors)
+        
+        for ids in vector_ids:
             index.delete(ids=ids)
+            progress_bar.next()
+        
+        progress_bar.finish()
         print("Existing Treasures vectors cleared.")
     except Exception as e:
         print(f"Error clearing Treasures vectors: {e}")
+        sys.exit(1)
 
 def get_expected_chunk_count(file_path):
     transcripts = get_transcription(file_path)
@@ -487,17 +510,20 @@ def is_file_fully_indexed(index, file_path):
         return False
 
 def init_worker():
-    global client, index
+    global client, index, interrupt_requested, force_exit
     client = OpenAI()
     pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
     index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 def process_file_wrapper(args):
     file_path, force, current_file, total_files = args
+    if check_interrupt():
+        return None
     return process_file(file_path, index, client, force, current_file, total_files)
 
 def process_file(file_path, index, client, force=False, current_file=None, total_files=None):
-    local_report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': []}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -512,16 +538,18 @@ def process_file(file_path, index, client, force=False, current_file=None, total
     else:
         print(f"\nTranscribing audio for {file_name}{file_info}")
         try:
-            transcripts = transcribe_audio(file_path, force, current_file, total_files)
+            transcripts, error_msg = transcribe_audio(file_path, force, current_file, total_files)
             if transcripts:
                 local_report['processed'] += 1
             else:
-                print(f"\n*** ERROR *** No transcription data generated for {file_name}")
                 local_report['errors'] += 1
+                local_report['error_details'].append(error_msg)
                 return local_report
         except Exception as e:
-            print(f"\n*** ERROR *** Error transcribing file {file_name}: {e}")
+            error_msg = f"Error transcribing file {file_name}: {str(e)}"
+            print(f"\n*** ERROR *** {error_msg}")
             local_report['errors'] += 1
+            local_report['error_details'].append(error_msg)
             return local_report
 
     try:
@@ -530,8 +558,10 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
     except Exception as e:
-        print(f"\n*** ERROR *** Error processing file {file_name}: {e}")
+        error_msg = f"Error processing file {file_name}: {str(e)}"
+        print(f"\n*** ERROR *** {error_msg}")
         local_report['errors'] += 1
+        local_report['error_details'].append(error_msg)
 
     return local_report
 
@@ -553,17 +583,59 @@ def process_directory(directory_path, force=False):
     
     # Use multiprocessing to process files in parallel
     with multiprocessing.Pool(processes=num_processes, initializer=init_worker) as pool:
-        args_list = [(file_path, force, i+1, total_files) for i, file_path in enumerate(audio_files)]
-        results = pool.map(process_file_wrapper, args_list)
+        try:
+            args_list = [(file_path, force, i+1, total_files) for i, file_path in enumerate(audio_files)]
+            results = []
+            for result in pool.imap_unordered(process_file_wrapper, args_list):
+                if result is None:
+                    print("Interrupt detected. Stopping processing...")
+                    break
+                results.append(result)
+                if check_interrupt():
+                    print("Interrupt requested. Finishing current files...")
+                    break
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt received. Terminating workers...")
+            pool.terminate()
+        finally:
+            pool.close()
+            pool.join()
     
     # Aggregate results from all processes
-    report = {'processed': 0, 'skipped': 0, 'errors': 0}
+    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': []}
     for result in results:
         report['processed'] += result['processed']
         report['skipped'] += result['skipped']
         report['errors'] += result['errors']
+        report['error_details'].extend(result.get('error_details', []))
     
-    print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
+    print(f"\nFinal Report:")
+    print(f"Files processed: {report['processed']}")
+    print(f"Files skipped: {report['skipped']}")
+    print(f"Files with errors: {report['errors']}")
+    
+    if report['errors'] > 0:
+        print("\nError details:")
+        for error in report['error_details']:
+            print(f"- {error}")
+
+    return report  # Return the report for use in the main function
+
+def signal_handler(sig, frame):
+    global interrupt_requested, force_exit
+    if not interrupt_requested.value:
+        print('\nCtrl+C pressed. Finishing current files and then exiting...')
+        interrupt_requested.value = True
+    else:
+        print('\nCtrl+C pressed again. Forcing immediate exit...')
+        force_exit.value = True
+        sys.exit(0)
+
+# Add this function to check for interrupts
+def check_interrupt():
+    if force_exit.value:
+        sys.exit(0)
+    return interrupt_requested.value
 
 if __name__ == "__main__":
     def usage():
@@ -572,11 +644,11 @@ if __name__ == "__main__":
         print("  -q, --query: Query for similar chunks")
         print("  -t, --transcribe-only: Only transcribe the audio, don't process or store in Chroma")
         print("  --force: Force re-transcription even if a transcription already exists")
-        print("  -c, --clear: Clear existing Treasures vectors from Pinecone before processing")
+        print("  -c, --clear-treasures-vectors: Clear existing Treasures vectors from Pinecone before processing")
         sys.exit(1)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear-treasures-vectors"])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -596,7 +668,7 @@ if __name__ == "__main__":
             transcribe_only = True
         elif opt == "--force":
             force_transcribe = True
-        elif opt in ("-c", "--clear"):
+        elif opt in ("-c", "--clear-treasures-vectors"):
             clear_vectors = True
 
     if not file_path and not query:
@@ -627,8 +699,11 @@ if __name__ == "__main__":
                                 file_path = os.path.join(root, file)
                                 print(f"\nTranscribing {file_path}")
                                 transcribe_audio(file_path, force_transcribe)
+                            if check_interrupt():
+                                print("Interrupt requested. Exiting...")
+                                sys.exit(0)
                 else:
-                    process_directory(file_path, force_transcribe)
+                    report = process_directory(file_path, force_transcribe)
             else:
                 if transcribe_only:
                     print(f"\nTranscribing {file_path}")
@@ -638,14 +713,17 @@ if __name__ == "__main__":
                     client = OpenAI()
                     pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
                     index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
-                    report = {'processed': 0, 'skipped': 0, 'errors': 0}
-                    process_file(file_path, index, report, client, force_transcribe)
+                    report = process_file(file_path, index, client, force_transcribe)
                     print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
+                    if report['errors'] > 0:
+                        print("\nError details:")
+                        for error in report['error_details']:
+                            print(f"- {error}")
 
         if query and not transcribe_only:
             query_similar_chunks(index, client, query)
-        elif not transcribe_only:
-            print("No query provided. Exiting.")
+        elif not file_path and not transcribe_only:
+            print("No file path or query provided. Exiting.")
 
     except KeyboardInterrupt:
         print("\nKeyboard interrupt. Exiting.")
