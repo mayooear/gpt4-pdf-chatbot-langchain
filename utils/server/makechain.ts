@@ -117,8 +117,12 @@ const getQATemplate = (context: CollectionKey) => {
 
 const combineDocumentsFn = (docs: Document[], options: Record<string, any> = {}) => {
   const separator = typeof options.separator === 'string' ? options.separator : '\n\n';
-  const serializedDocs = docs.map((doc) => doc.pageContent);
-  return serializedDocs.join(separator);
+  const serializedDocs = docs.map((doc) => ({
+    content: doc.pageContent,
+    metadata: doc.metadata,
+    id: (doc as any).id 
+  }));
+  return JSON.stringify(serializedDocs);
 };
 
 export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKey) => {
@@ -140,7 +144,10 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
   ]);
 
   // Retrieve documents based on a query, then format them.
-  const retrievalChain = retriever.pipe(combineDocumentsFn);
+  const retrievalChain = retriever.pipe((docs) => ({
+    documents: docs,
+    combinedContent: combineDocumentsFn(docs)
+  }));
 
   // Generate an answer to the standalone question based on the chat history
   // and retrieved documents. Additionally, we return the source documents directly.
@@ -149,9 +156,15 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
       context: RunnableSequence.from([
         (input) => input.question,
         retrievalChain,
+        (output) => output.combinedContent,
       ]),
       chat_history: (input) => input.chat_history,
       question: (input) => input.question,
+      documents: RunnableSequence.from([
+        (input) => input.question,
+        retrievalChain,
+        (output) => output.documents,
+      ]),
     },
     answerPrompt,
     model,
@@ -170,4 +183,3 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
 
   return conversationalRetrievalQAChain;
 };
-

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
+import AudioPlayer from '@/components/AudioPlayer';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -192,6 +193,16 @@ export default function Home() {
     if (window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
+
+    // Add this effect to update the Content-Security-Policy
+    const meta = document.createElement('meta');
+    meta.httpEquiv = "Content-Security-Policy";
+    meta.content = "default-src 'self'; media-src 'self' https://ananda-chatbot.s3.us-west-1.amazonaws.com";
+    document.head.appendChild(meta);
+
+    return () => {
+      document.head.removeChild(meta);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -328,6 +339,51 @@ export default function Home() {
     );
   }
 
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [audioPlayerIds, setAudioPlayerIds] = useState<Record<string, string>>({});
+
+  const renderAudioPlayer = useCallback((source: any, index: number) => {
+    if (source.metadata.type === 'audio') {
+      const fileHash = source.metadata.file_hash;
+      const uniqueKey = `${fileHash}_${index}`;
+
+      // Generate a unique ID for this audio player instance if it doesn't exist
+      if (!audioPlayerIds[uniqueKey]) {
+        setAudioPlayerIds(prev => ({
+          ...prev,
+          [uniqueKey]: `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }));
+      }
+
+      const audioId = audioPlayerIds[uniqueKey];
+
+      const handlePlay = () => {
+        setCurrentlyPlayingId(audioId);
+        logEvent('play_audio', 'Engagement', audioId);
+      };
+
+      const handlePause = () => {
+        setCurrentlyPlayingId(null);
+        logEvent('pause_audio', 'Engagement', audioId);
+      };
+
+      const isThisPlaying = currentlyPlayingId === audioId;
+
+      return (
+        <AudioPlayer
+          key={audioId}
+          src={`/api/audio/${source.metadata.file_name}`}
+          startTime={source.metadata.start_time}
+          endTime={source.metadata.end_time}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          isPlaying={isThisPlaying}
+        />
+      );
+    }
+    return null;
+  }, [currentlyPlayingId, audioPlayerIds]);
+
   return (
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
@@ -382,6 +438,7 @@ export default function Home() {
                               sources={message.sourceDocs} 
                               useAccordion={false} 
                               collectionName={collectionChanged ? message.collection : undefined}
+                              renderAudioPlayer={(source, index) => renderAudioPlayer(source, index)}
                             />
                           )}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
@@ -390,7 +447,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="text-left" style={{ backgroundColor: '#f9fafb' }}>
-                          <div className="text-left ml-[75px]">
+                        <div className="text-left ml-[75px]">
                           {message.docId && (
                             <div className="flex space-x-2">
                               <CopyButton markdown={message.message} answerId={message.docId as string} />
@@ -409,7 +466,7 @@ export default function Home() {
                                 likeCount={0}
                                 onLikeCountChange={(answerId, newLikeCount) => handleLikeCountChange(answerId, newLikeCount > 0)}
                                 showLikeCount={false} 
-                                />
+                              />
                               <button
                                 onClick={() => handleVote(message.docId as string, false)}
                                 className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}

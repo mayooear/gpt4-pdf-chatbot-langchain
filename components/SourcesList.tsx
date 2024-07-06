@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Document } from 'langchain/document';
 import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
@@ -6,14 +6,52 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './
 import styles from '@/styles/Home.module.css';
 import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
 import { logEvent } from '@/utils/client/analytics';
+import AudioPlayer from './AudioPlayer';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
   useAccordion?: boolean;
-  collectionName?: string; 
+  collectionName?: string;
+  renderAudioPlayer?: (source: any, index: number) => React.ReactNode;
 }
 
-const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
+const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null, renderAudioPlayer }) => {
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [audioPlayerIds, setAudioPlayerIds] = useState<Record<string, string>>({});
+
+  const handleAudioPlay = useCallback((id: string) => {
+    setCurrentlyPlayingId(id);
+  }, []);
+
+  const handleAudioPause = useCallback(() => {
+    setCurrentlyPlayingId(null);
+  }, []);
+
+  const renderAudioPlayerWrapper = useCallback((doc: Document<Record<string, any>>, index: number) => {
+    if (renderAudioPlayer && doc.metadata.type === 'audio') {
+      const fileHash = doc.metadata.file_hash;
+      const uniqueKey = `${fileHash}_${index}`;
+
+      // Generate a unique ID for this audio player instance if it doesn't exist
+      if (!audioPlayerIds[uniqueKey]) {
+        setAudioPlayerIds(prev => ({
+          ...prev,
+          [uniqueKey]: `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }));
+      }
+
+      const audioId = audioPlayerIds[uniqueKey];
+
+      return renderAudioPlayer({
+        ...doc,
+        onPlay: () => handleAudioPlay(audioId),
+        onPause: handleAudioPause,
+        isPlaying: currentlyPlayingId === audioId,
+      }, index);
+    }
+    return null;
+  }, [renderAudioPlayer, currentlyPlayingId, handleAudioPlay, handleAudioPause, audioPlayerIds]);
+
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
   // replace double colon with right arrow.
@@ -56,8 +94,11 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         className="hover:underline"
                         onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                       >
-                        {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : doc.metadata.source}
+                        {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : (doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata.source)}
                       </a>
+                      {doc.metadata.type === 'audio' && (
+                        renderAudioPlayerWrapper(doc, index)
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -109,7 +150,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
           }}
         >
           <summary title="Click the triangle to see details or title to go to library source">
-            {doc.metadata.source.startsWith('http') ? (
+            {doc.metadata && doc.metadata.source && doc.metadata.source.startsWith('http') ? (
               <a 
                 href={doc.metadata.source} 
                 target="_blank" 
@@ -117,10 +158,11 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                 style={{ color: 'blue' }}
                 onClick={(e) => handleSourceClick(e, doc.metadata.source)}
               >
-                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) : doc.metadata.source}
+                {doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title'].replace(/&amp;/g, '&')) 
+                : (doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata.source)}
               </a>
             ) : (
-              doc.metadata.source
+              doc.metadata && doc.metadata.source ? doc.metadata.source : 'Unknown source'
             )}
           </summary>
           <div className={styles.sourceDocContent}>
@@ -128,6 +170,9 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
               {`*${doc.pageContent}*`}
             </ReactMarkdown>
           </div>
+          {doc.metadata && doc.metadata.type === 'audio' && (
+            renderAudioPlayerWrapper(doc, index)
+          )}
         </details>
       ))}
     </>

@@ -42,7 +42,7 @@ export default async function handler(
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
       const filter = {
-        'library': { $in: ['Ananda Library'] },
+        // 'library': { $in: ['Ananda Library', 'Treasures'] },
         ...(collection === 'master_swami' && { 'pdf.info.Author': { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
       };
 
@@ -84,11 +84,15 @@ export default async function handler(
         chat_history: pastMessages,
       });
       const answerWordCount = response.split(/\s+/).length;
-
       const sourceDocuments = await documentPromise;
+      const processedSourceDocuments = [...sourceDocuments];
+      console.log('Processed Source Documents:', processedSourceDocuments); 
       let sourceTitlesString = '';
-      if (sourceDocuments && sourceDocuments.length > 0) {
-        const sourceTitles = sourceDocuments.map((doc: any) => doc.metadata['pdf.info.Title']);
+      if (processedSourceDocuments && processedSourceDocuments.length > 0) {
+        const sourceTitles = processedSourceDocuments.map((doc: any) => {
+          console.log('Document Metadata:', doc.metadata);
+          return doc.metadata.title || doc.metadata['pdf.info.Title'];
+        });
         sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
         console.log(sourceTitlesString);
       }
@@ -108,7 +112,7 @@ export default async function handler(
         question: originalQuestion, 
         answer: response,
         collection: collection,
-        sources: JSON.stringify(sourceDocuments),
+        sources: JSON.stringify(processedSourceDocuments),
         likeCount: 0,
         history: history.map((messagePair: [string, string]) => ({
           question: messagePair[0],
@@ -119,7 +123,7 @@ export default async function handler(
       };
       const docRef = await chatLogRef.add(logEntry);
       const docId = docRef.id;
-      res.status(200).json({ text: response, sourceDocuments, docId });
+      res.status(200).json({ text: response, sourceDocuments: processedSourceDocuments, docId });
 
     } catch (error: any) {
       console.log('error', error);
@@ -132,4 +136,3 @@ export default async function handler(
     return;
   }
 }
-
