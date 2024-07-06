@@ -21,6 +21,8 @@ from functools import partial
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from progress.bar import Bar
 import signal
+import mutagen
+from mutagen.mp3 import MP3
 
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -376,13 +378,25 @@ def load_pinecone(index_name):
         pc.create_index(index_name, dimension=1536, metric="cosine")
     return pc.Index(index_name)
 
+def get_audio_metadata(file_path):
+    try:
+        audio = MP3(file_path)
+        title = audio.tags.get('TIT2', [os.path.splitext(os.path.basename(file_path))[0]])[0]
+        author = audio.tags.get('TPE1', ['Swami Kriyananda'])[0]
+        return title, author
+    except Exception as e:
+        print(f"Error reading MP3 metadata: {e}")
+        return os.path.splitext(os.path.basename(file_path))[0], 'Swami Kriyananda'
+
 def store_in_pinecone(index, chunks, embeddings, file_path):
     file_name = os.path.basename(file_path)
     file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
     
+    # Get the title and author from metadata or fallback
+    title, author = get_audio_metadata(file_path)
+    
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-        title = file_name.replace(' ', '_').replace('.', '_').replace('-', '_')[:40]
         content_hash = hashlib.md5(chunk['text'].encode()).hexdigest()[:8]
         chunk_id = f"audio||Treasures||{title}||{content_hash}||chunk{i+1}"
         
@@ -397,8 +411,9 @@ def store_in_pinecone(index, chunks, embeddings, file_path):
                 'file_name': file_name,
                 'file_hash': file_hash,
                 'library': "Treasures",
-                'author': 'Swami Kriyananda',        
+                'author': author,
                 'type': 'audio',
+                'title': title,
             }
         })
 
@@ -453,7 +468,7 @@ def query_similar_chunks(index, client, query, n_results=8):
     print()
 
 def clear_treasures_vectors(index):
-    print("Clearing existing Treasures vectors from Pinecone...")
+    print("Preparing to clear existing Treasures vectors from Pinecone...")
     try:
         vector_ids = list(index.list(prefix='audio||Treasures||'))
         total_vectors = len(vector_ids)
@@ -463,6 +478,13 @@ def clear_treasures_vectors(index):
             return
         
         print(f"Found {total_vectors} vectors to clear.")
+        
+        # Add user confirmation
+        confirmation = input(f"Are you sure you want to clear {total_vectors} Treasures vectors? (yes/no): ").lower()
+        if confirmation != 'yes':
+            print("Vector clearing aborted.")
+            return
+        
         progress_bar = Bar('Clearing vectors', max=total_vectors)
         
         for ids in vector_ids:
@@ -506,7 +528,8 @@ def is_file_fully_indexed(index, file_path):
         print(f"File fully indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
         return True
     else:
-        print(f"File not fully indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
+        if actual_chunks > 0:
+            print(f"WARNING: File partially indexed: {file_path} ({actual_chunks}/{expected_chunks} chunks)")
         return False
 
 def init_worker():
