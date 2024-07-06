@@ -22,6 +22,39 @@ const readdir = promisify(fs.readdir);
 */
 const filePath = 'docs';
 
+async function clearAnandaLibraryTextVectors(pineconeIndex: Index) {
+  console.log("Clearing existing Ananda Library text vectors from Pinecone...");
+  try {
+    const prefix = 'text||Ananda_Library||';
+    let paginationToken: string | undefined;
+    let totalDeleted = 0;
+
+    do {
+      const response = await pineconeIndex.listPaginated({ 
+        prefix, 
+        paginationToken,
+      });
+      
+      if (response.vectors && response.vectors.length > 0) {
+        const vectorIds = response.vectors.map(vector => vector.id);
+        console.log(`Found ${vectorIds.length} vectors to delete.`);
+        
+        await pineconeIndex.deleteMany(vectorIds);
+        totalDeleted += vectorIds.length;
+        
+        console.log(`Deleted ${totalDeleted} vectors so far...`);
+      }
+      
+      paginationToken = response.pagination?.next;
+    } while (paginationToken);
+
+    console.log(`Cleared a total of ${totalDeleted} Ananda Library text vectors.`);
+  } catch (error) {
+    console.error("Error clearing Ananda Library text vectors:", error);
+    process.exit(1);
+  }
+}
+
 export const run = async (keepData: boolean) => {
   console.log(`\nProcessing documents from ${filePath}`);
 
@@ -93,12 +126,15 @@ export const run = async (keepData: boolean) => {
   });
 
   await new Promise<void>((resolve) => {
-    rl.question(`The index contains ${vectorIds.length} vectors. Do you want to proceed with adding more? (y/N) `, async (answer) => {
+    rl.question(`The index contains ${vectorIds.length} vectors. Do you want to proceed with ${keepData ? 'adding more' : 'deleting and then adding more'}? (y/N) `, async (answer) => {
       if (answer.toLowerCase().charAt(0) !== 'y') {
         console.log('Ingestion process aborted.');
         process.exit(0);
       }
       rl.close();
+      if (!keepData) {
+        await clearAnandaLibraryTextVectors(pineconeIndex);
+      }
       resolve();
     });
   });
@@ -193,6 +229,8 @@ export const run = async (keepData: boolean) => {
             ...doc.metadata,
             id: id,
             library: "Ananda Library",
+            type: "text",
+            author: doc.metadata.pdf?.info?.Author || 'Unknown', 
           }
         })
       ], [id]);
