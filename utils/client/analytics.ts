@@ -38,7 +38,6 @@ export const initGA = () => {
     script.onerror = (error) => {
       console.error('Failed to load GA script:', error);
       console.error('Script src:', script.src);
-      console.error('ReadyState:', script.readyState);
       resolve();
     };
 
