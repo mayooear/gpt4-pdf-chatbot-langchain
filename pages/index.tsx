@@ -74,17 +74,25 @@ export default function Home() {
   const [collectionQueries, setCollectionQueries] = useState({});
 
   useEffect(() => {
+    let isMounted = true;
     async function fetchQueries() {
       const queries = await getCollectionQueries();
-      setCollectionQueries(queries);
+      if (isMounted) {
+        setCollectionQueries(queries);
+      }
     }
     fetchQueries();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array
 
   // Determine the queries for the current collection or use an empty array as a fallback
-  const queriesForCollection = collection ? collectionQueries[collection as keyof typeof collectionQueries] || [] : [];
+  const queriesForCollection = useMemo(() => {
+    return collection ? collectionQueries[collection as keyof typeof collectionQueries] || [] : [];
+  }, [collection, collectionQueries]);
 
-  // Always call useRandomQueries with the determined queries
+  // Use the memoized queries
   const { randomQueries, shuffleQueries } = useRandomQueries(queriesForCollection, 3);
   const queryRef = useRef<string>('');
 
