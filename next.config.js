@@ -27,9 +27,6 @@ const nextConfig = {
       },
     ];
   },
-  onDemandEntries: {
-    logLevel: 'debug',
-  },
 };
 
 export default nextConfig;
