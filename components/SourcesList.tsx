@@ -100,6 +100,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                       >
                         {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
+                        {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                       </a>
                       {doc.metadata.type === 'audio' && (
                         <p>{truncateText(doc.pageContent, 30)}</p>
@@ -168,10 +169,12 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                   onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                 >
                   {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
+                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </a>
               ) : doc.metadata.title ? (
                 <span style={{ color: 'blue' }}>
                   {formatTitle(doc.metadata.title)}
+                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </span>
               ) : (
                 <span style={{ color: 'blue' }}>
@@ -181,7 +184,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             </summary>
             <div className={styles.sourceDocContent}>
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.metadata.type === 'audio' ? truncateText(doc.pageContent, 30) : `*${doc.pageContent}*`}
+                {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 30)}"` : `*${doc.pageContent}*`}
               </ReactMarkdown>
             </div>
             {doc.metadata && doc.metadata.type === 'audio' && (
