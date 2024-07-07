@@ -420,7 +420,13 @@ def store_in_pinecone(index, chunks, embeddings, file_path):
     try:
         index.upsert(vectors=vectors)
     except Exception as e:
-        print(f"Error in upserting vectors: {e}")
+        error_message = str(e)
+        if "429" in error_message and "Too Many Requests" in error_message:
+            print(f"Error in upserting vectors: {e}")
+            print("You may have reached your write unit limit for the current month. Exiting script.")
+            sys.exit(1)
+        else:
+            print(f"Error in upserting vectors: {e}")
 
 def query_similar_chunks(index, client, query, n_results=8):
     response = client.embeddings.create(input=[query], model="text-embedding-ada-002")
