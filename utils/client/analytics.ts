@@ -14,6 +14,7 @@ let isInitialized = false;
 export const initGA = () => {
   return new Promise<void>((resolve) => {
     if (isInitialized) {
+      console.log('GA already initialized');
       resolve();
       return;
     }
@@ -23,6 +24,7 @@ export const initGA = () => {
     script.async = true;
     
     script.onload = () => {
+      console.log('GA script loaded successfully');
       window.dataLayer = window.dataLayer || [];
       window.gtag = function gtag() {
         window.dataLayer.push(arguments);
@@ -35,10 +37,13 @@ export const initGA = () => {
 
     script.onerror = (error) => {
       console.error('Failed to load GA script:', error);
+      console.error('Script src:', script.src);
+      console.error('ReadyState:', script.readyState);
       resolve();
     };
 
     document.head.appendChild(script);
+    console.log('GA script appended to head');
   });
 };
 
