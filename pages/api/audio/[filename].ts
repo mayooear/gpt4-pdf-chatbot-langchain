@@ -20,8 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 21600 });
 
-    console.log('Generated signed URL:', signedUrl);
-
     res.redirect(signedUrl);
   } catch (error) {
     if (error instanceof Error) {
