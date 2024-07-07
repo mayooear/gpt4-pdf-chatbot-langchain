@@ -9,18 +9,28 @@ import ProgressBar from 'progress';
 import readline from 'readline';
 import { Index } from '@pinecone-database/pinecone';
 import fs from 'fs';
-import path from 'path';
+import { promises as fsPromises } from 'fs';
 import { promisify } from 'util';
 import { Pinecone } from '@pinecone-database/pinecone';
 import crypto from 'crypto';
 import { Document } from 'langchain/document';
+import pMap from 'p-map';
 
-const readdir = promisify(fs.readdir);
+const CHECKPOINT_FILE = 'ingestion_checkpoint.json';
+const filePath = process.env.PDF_DIRECTORY || './docs';
 
-/* Name of directory to retrieve your files from 
-   Make sure to add your PDF files inside the 'docs' folder
-*/
-const filePath = 'docs';
+async function saveCheckpoint(processedDocs: number) {
+  await fsPromises.writeFile(CHECKPOINT_FILE, JSON.stringify({ processedDocs }));
+}
+
+async function loadCheckpoint(): Promise<number> {
+  try {
+    const data = await fsPromises.readFile(CHECKPOINT_FILE, 'utf-8');
+    return JSON.parse(data).processedDocs;
+  } catch (error) {
+    return 0;
+  }
+}
 
 async function clearAnandaLibraryTextVectors(pineconeIndex: Index) {
   console.log("Clearing existing Ananda Library text vectors from Pinecone...");
@@ -37,7 +47,6 @@ async function clearAnandaLibraryTextVectors(pineconeIndex: Index) {
       
       if (response.vectors && response.vectors.length > 0) {
         const vectorIds = response.vectors.map(vector => vector.id);
-        console.log(`Found ${vectorIds.length} vectors to delete.`);
         
         await pineconeIndex.deleteMany(vectorIds);
         totalDeleted += vectorIds.length;
@@ -55,12 +64,86 @@ async function clearAnandaLibraryTextVectors(pineconeIndex: Index) {
   }
 }
 
+async function processDocument(rawDoc: any, vectorStore: PineconeStore, index: number) {
+  const sourceURL = rawDoc.metadata?.pdf?.info?.Subject;
+  let title = rawDoc.metadata?.pdf?.info?.Title || 'Untitled';
+
+  if (!sourceURL) {
+    console.error('No source URL found in metadata for document:', rawDoc);
+    console.error('Skipping it...');
+    return;
+  }
+
+  // Set the source URL and title for all pages of the document
+  rawDoc.metadata.source = sourceURL;
+  rawDoc.metadata.title = title;
+
+  // Only print debug information for the first page
+  if (rawDoc.metadata.loc.pageNumber === 1) {
+    console.log('Processing document with source URL:', sourceURL);
+    console.log('Document title:', title);
+    console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
+    console.log('Updated metadata:', rawDoc.metadata);
+  }
+
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
+  const docs = await textSplitter.splitDocuments([rawDoc]);
+
+  const validDocs = docs.filter(doc => {
+    if (typeof doc.pageContent !== 'string') {
+      console.error(`Document missing 'pageContent' property: ${JSON.stringify(doc)}`);
+      return false;
+    }
+    return true;
+  });
+
+  await pMap(validDocs, async (doc, i) => {
+    let title = doc.metadata.pdf?.info?.Title || 'Untitled';
+    title = title
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_]/g, '')
+      .substring(0, 40);
+    
+    const contentHash = crypto.createHash('md5').update(doc.pageContent).digest('hex').substring(0, 8);
+    const id = `text||Ananda_Library||${title}||${contentHash}||chunk${i + 1}`;
+    
+    await vectorStore.addDocuments([
+      new Document({
+        pageContent: doc.pageContent,
+        metadata: {
+          ...doc.metadata,
+          id: id,
+          library: "Ananda Library",
+          type: "text",
+          author: doc.metadata.pdf?.info?.Author || 'Unknown', 
+        }
+      })
+    ], [id]);
+  }, { concurrency: 5 });
+}
+
+let isExiting = false;
+
+process.on('SIGINT', async () => {
+  if (isExiting) {
+    console.log('\nForced exit. Data may be inconsistent.');
+    process.exit(1);
+  } else {
+    console.log('\nGraceful shutdown initiated. Press Ctrl+C again to force exit.');
+    isExiting = true;
+    // Optionally, you can save the current state here
+  }
+});
+
 export const run = async (keepData: boolean) => {
   console.log(`\nProcessing documents from ${filePath}`);
 
   // Print count of PDF files in the directory
   try {
-    const files = await readdir(filePath);
+    const files = await fsPromises.readdir(filePath);
     const pdfFiles = files.filter((file: string) => file.toLowerCase().endsWith('.pdf'));
     console.log(`Found ${pdfFiles.length} PDF files.`);
   } catch (err) {
@@ -93,14 +176,11 @@ export const run = async (keepData: boolean) => {
 
   try {
     do {
-      console.log(`Fetching page${paginationToken ? ' with token: ' + paginationToken : ''}`);
       const response = await pineconeIndex.listPaginated({ 
         prefix, 
         paginationToken,
       });
-      
-      console.log(`Received response:`, JSON.stringify(response, null, 2));
-      
+            
       if (response.vectors) {
         const pageVectorIds = response.vectors.map(vector => vector.id).filter(id => id !== undefined) as string[];
         console.log(`Found ${pageVectorIds.length} vectors on this page`);
@@ -110,7 +190,6 @@ export const run = async (keepData: boolean) => {
       }
       
       paginationToken = response.pagination?.next;
-      console.log(`Next pagination token: ${paginationToken || 'None'}`);
     } while (paginationToken);
 
   } catch (error) {
@@ -126,17 +205,23 @@ export const run = async (keepData: boolean) => {
   });
 
   await new Promise<void>((resolve) => {
-    rl.question(`The index contains ${vectorIds.length} vectors. Do you want to proceed with ${keepData ? 'adding more' : 'deleting and then adding more'}? (y/N) `, async (answer) => {
-      if (answer.toLowerCase().charAt(0) !== 'y') {
-        console.log('Ingestion process aborted.');
-        process.exit(0);
-      }
+    if (vectorIds.length === 0) {
+      console.log('The index contains 0 vectors. Proceeding with adding more.');
       rl.close();
-      if (!keepData) {
-        await clearAnandaLibraryTextVectors(pineconeIndex);
-      }
       resolve();
-    });
+    } else {
+      rl.question(`The index contains ${vectorIds.length} vectors. Do you want to proceed with ${keepData ? 'adding more' : 'deleting and then adding more'}? (y/N) `, async (answer) => {
+        if (answer.toLowerCase().charAt(0) !== 'y') {
+          console.log('Ingestion process aborted.');
+          process.exit(0);
+        }
+        rl.close();
+        if (!keepData) {
+          await clearAnandaLibraryTextVectors(pineconeIndex);
+        }
+        resolve();
+      });
+    }
   });
 
   let rawDocs: any;
@@ -152,94 +237,28 @@ export const run = async (keepData: boolean) => {
   }
 
   try {
-    for (const rawDoc of rawDocs) {
-      const sourceURL = rawDoc.metadata?.pdf?.info?.Subject;
-      let title = rawDoc.metadata?.pdf?.info?.Title || 'Untitled';
-
-      if (!sourceURL) {
-        console.error('No source URL found in metadata for document:', rawDoc);
-        console.error('Skipping it...');
-        continue;
-      }
-
-      // Set the source URL and title for all pages of the document
-      rawDoc.metadata.source = sourceURL;
-      rawDoc.metadata.title = title;
-
-      // Only print debug information for the first page
-      if (rawDoc.metadata.loc.pageNumber === 1) {
-        console.log('Processing document with source URL:', sourceURL);
-        console.log('Document title:', title);
-        console.log('First 100 characters of document content:', rawDoc.pageContent.substring(0, 100));
-        console.log('Updated metadata:', rawDoc.metadata);
-      }
-    }
-  } catch (error) {
-    console.error('Failed during document processing:', error);
-    return;
-  }
-
-  try {
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 200,
-    });
-    const docs = await textSplitter.splitDocuments(rawDocs);
-
-    // Log the structure of the first document to check for the 'pageContent' property
-    if (docs.length > 0) {
-      console.log('Structure of the first document:', docs[0]);
-    }
-
-    // Check if each document has a 'text' property after splitting
-    const validDocs = docs.filter(doc => {
-      if (typeof doc.pageContent !== 'string') {
-        console.error(`Document missing 'pageContent' property: ${JSON.stringify(doc)}`);
-        return false;
-      }
-      return true;
-    });
-
-    const embeddings = new OpenAIEmbeddings();
-    const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+    const vectorStore = await PineconeStore.fromExistingIndex(new OpenAIEmbeddings(), {
       pineconeIndex,
       textKey: 'text',
     });
 
-    const progressBar = new ProgressBar('Embedding and storing documents [:bar] :percent :etas', {
-      total: validDocs.length,
-      width: 40,
-    });
+    const checkpoint = await loadCheckpoint();
+    console.log(`Resuming from document ${checkpoint + 1}`);
 
-    for (let i = 0; i < validDocs.length; i++) {
-      const doc = validDocs[i];
-      let title = doc.metadata.pdf?.info?.Title || 'Untitled';
-      title = title
-        .replace(/\s+/g, '_')
-        .replace(/[^a-zA-Z0-9_]/g, '')
-        .substring(0, 40);
-      
-      const contentHash = crypto.createHash('md5').update(doc.pageContent).digest('hex').substring(0, 8);
-      const id = `text||Ananda_Library||${title}||${contentHash}||chunk${i + 1}`;
-      
-      await vectorStore.addDocuments([
-        new Document({
-          pageContent: doc.pageContent,
-          metadata: {
-            ...doc.metadata,
-            id: id,
-            library: "Ananda Library",
-            type: "text",
-            author: doc.metadata.pdf?.info?.Author || 'Unknown', 
-          }
-        })
-      ], [id]);
-      
-      progressBar.tick();
+    for (let i = checkpoint; i < rawDocs.length; i++) {
+      if (isExiting) {
+        console.log('Graceful shutdown: saving progress...');
+        await saveCheckpoint(i);
+        console.log(`Progress saved. Resumed from document ${i + 1} next time.`);
+        process.exit(0);
+      }
+
+      await processDocument(rawDocs[i], vectorStore, i);
+      await saveCheckpoint(i + 1);
+      console.log(`Processed document ${i + 1} of ${rawDocs.length} (${Math.floor((i + 1) / rawDocs.length * 100)}% done)`);
     }
-    
-    console.log(`Ingestion complete. ${validDocs.length} documents processed.`);
 
+    console.log(`Ingestion complete. ${rawDocs.length} documents processed.`);
   } catch (error: any) {
     console.error('Failed to ingest documents:', error);
   }
