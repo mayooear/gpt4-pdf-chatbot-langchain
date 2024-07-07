@@ -43,7 +43,7 @@ export default async function handler(
 
       const filter = {
         // 'library': { $in: ['Ananda Library', 'Treasures'] },
-        ...(collection === 'master_swami' && { 'pdf.info.Author': { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
+        ...(collection === 'master_swami' && { 'author': { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
       };
 
       const vectorStore = await PineconeStore.fromExistingIndex(
