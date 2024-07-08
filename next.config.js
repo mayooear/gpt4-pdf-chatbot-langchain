@@ -2,8 +2,17 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  webpack(config) {
+  webpack: (config, { dev, isServer }) => {
     config.experiments = { ...config.experiments, topLevelAwait: true };
+    
+    if (dev && !isServer) {
+      // Disable optimization in development mode
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: false,
+      };
+    }
+    
     return config;
   },
   async rewrites() {
@@ -11,19 +20,6 @@ const nextConfig = {
       {
         source: '/api/sudoCookie',
         destination: 'https://ask.anandalibary.org/api/sudoCookie',
-      },
-    ];
-  },
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://ananda-chatbot.s3.us-west-1.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com data:; media-src 'self' https://ananda-chatbot.s3.us-west-1.amazonaws.com blob:"
-          },
-        ],
       },
     ];
   },

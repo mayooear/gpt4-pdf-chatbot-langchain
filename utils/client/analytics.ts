@@ -12,6 +12,11 @@ declare global {
 let isInitialized = false;
 
 export const initGA = () => {
+  if (isDevelopment()) {
+    console.log('Development mode: Skipping GA initialization');
+    return Promise.resolve();
+  }
+
   return new Promise<void>((resolve) => {
     if (isInitialized) {
       console.log('GA already initialized');
@@ -47,6 +52,11 @@ export const initGA = () => {
 };
 
 export const logPageView = (url: string) => {
+  if (isDevelopment()) {
+    console.log(`Development mode: Skipping logPageView for URL: ${url}`);
+    return;
+  }
+
   if (typeof window.gtag === 'function') {
     window.gtag('config', 'G-9551DZXPEZ', {
       page_path: url,
@@ -55,7 +65,6 @@ export const logPageView = (url: string) => {
 };
 
 export const logEvent = async (action: string, category: string, label: string, value?: number) => {
-
   if (isDevelopment()) {
     console.log(`Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`);
     return;

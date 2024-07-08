@@ -19,14 +19,18 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     const setupGA = async () => {
-      await initGA();
-      logPageView(router.pathname);
+      if (process.env.NODE_ENV === 'production') {
+        await initGA();
+        logPageView(router.pathname);
+      }
     };
 
     setupGA();
 
     const handleRouteChange = (url: string) => {
-      logPageView(url);
+      if (process.env.NODE_ENV === 'production') {
+        logPageView(url);
+      }
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);
@@ -44,6 +48,10 @@ function MyApp({ Component, pageProps }: AppProps) {
       <ToastContainer />
     </AudioProvider>
   );
+}
+
+export function reportWebVitals(metric: any) {
+  console.log(metric);
 }
 
 export default MyApp;
