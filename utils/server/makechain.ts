@@ -170,7 +170,7 @@ const combineDocumentsFn = (docs: Document[], options: Record<string, any> = {})
 export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKey) => {
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
-    const answerPrompt = ChatPromptTemplate.fromTemplate(getQATemplate(context));
+  const answerPrompt = ChatPromptTemplate.fromTemplate(getQATemplate(context));
 
   const model = new ChatOpenAI({
     temperature: 0, // increase temperature to get more creative answers
@@ -181,7 +181,7 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([
     condenseQuestionPrompt,
-    model,
+    model as any,
     new StringOutputParser(),
   ]);
 
@@ -196,20 +196,20 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
   const answerChain = RunnableSequence.from([
     {
       context: RunnableSequence.from([
-        (input) => input.question,
-        retrievalChain,
-        (output) => output.combinedContent,
+        (input: any) => input.question,
+        retrievalChain as any,
+        (output: any) => output.combinedContent,
       ]),
-      chat_history: (input) => input.chat_history,
-      question: (input) => input.question,
+      chat_history: (input: any) => input.chat_history,
+      question: (input: any) => input.question,
       documents: RunnableSequence.from([
-        (input) => input.question,
-        retrievalChain,
-        (output) => output.documents,
+        (input: any) => input.question,
+        retrievalChain as any,
+        (output: any) => output.documents,
       ]),
     },
     answerPrompt,
-    model,
+    model as any,
     new StringOutputParser(),
   ]);
 
@@ -218,7 +218,7 @@ export const makeChain = (retriever: VectorStoreRetriever, context: CollectionKe
   const conversationalRetrievalQAChain = RunnableSequence.from([
     {
       question: standaloneQuestionChain,
-      chat_history: (input) => input.chat_history,
+      chat_history: (input: any) => input.chat_history,
     },
     answerChain,
   ]);

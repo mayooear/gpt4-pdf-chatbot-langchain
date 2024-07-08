@@ -46,22 +46,19 @@
     "node-fetch": "^2.7.0",
     "pdf-parse": "1.1.1",
     "progress": "^2.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-intersection-observer": "^9.8.1",
-    "react-is": "^18.3.1",
-    "react-markdown": "^8.0.7",
+    "react-markdown": "^8.0.5",
     "react-toastify": "^10.0.5",
     "rehype-stringify": "^10.0.0",
     "remark-gfm": "3.0.1",
     "tailwind-merge": "^1.10.0"
   },
   "devDependencies": {
-    "@types/axios": "^0.14.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookies": "^0.9.0",
     "@types/cors": "^2.8.17",
-    "@types/express-rate-limit": "^6.0.0",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^18.14.6",
     "@types/progress": "^2.0.7",
@@ -88,9 +85,5 @@
     "legal",
     "pdf",
     "openai"
-  ],
-  "resolutions": {
-    "react-is": "^18.3.1",
-    "vfile": "^6.0.1"
-  }
+  ]
 }
