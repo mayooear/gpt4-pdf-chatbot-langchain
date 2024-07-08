@@ -24,30 +24,17 @@ import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { ChatInput } from '@/components/ChatInput';
+import { useChat } from '@/hooks/useChat';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
-  const [collection, setCollection] = useState<string | undefined>('master_swami'); 
+  const [collection, setCollection] = useState<string>('master_swami'); 
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [messageState, setMessageState] = useState<{
-    messages: Message[];
-    pending?: string;
-    history: [string, string][];
-    pendingSourceDocs?: Document[];
-  }>({
-    messages: [
-      {
-        message: 'Hi GuruBuddy! What would you like to learn about from the Ananda Library?',
-        type: 'apiMessage',
-      },
-    ],
-    history: [],
-  });
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
+  const [privateSession, setPrivateSession] = useState<boolean>(false);
+  const { messageState, loading, error, handleSubmit } = useChat(collection, [], privateSession);
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
@@ -110,8 +97,6 @@ export default function Home() {
     logEvent('like_answer', 'Engagement', answerId);
   };
 
-  // private session stuff
-  const [privateSession, setPrivateSession] = useState<boolean>(false);
   const handlePrivateSessionChange = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     if (privateSession) {
@@ -123,6 +108,7 @@ export default function Home() {
       logEvent('start_private_session', 'UI', '');
     }
   };
+
   const [votes, setVotes] = useState<Record<string, number>>({});
   const handleVote = async (docId: string, isUpvote: boolean) => {
     if (!docId) {
@@ -217,107 +203,6 @@ export default function Home() {
       document.head.removeChild(meta);
     };
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent, query: string) => {
-    e.preventDefault();
-    
-    setError(null);
-  
-    if (!query) {
-      alert('Please input a question');
-      return;
-    }
-  
-    setMessageState((state) => ({
-      ...state,
-      messages: [
-        ...state.messages,
-        {
-          type: 'userMessage',
-          message: query,
-        },
-      ],
-    }));
-
-    logEvent('ask_question', 'Engagement', query);
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          collection,
-          question: query,
-          history,
-          privateSession: privateSession,
-        }),
-      });
-      const data = await response.json();
-
-      if (data.error) {
-        setError(data.error);
-        console.log('ERROR: data error: ' + data.error);
-      } else {
-        const transformedSourceDocs = data.sourceDocuments.map((doc: any) => ({
-          ...doc,
-          metadata: {
-            ...doc.metadata,
-            title: doc.metadata.title || 'Unknown source'
-          }
-        }));
-
-        setMessageState((state) => ({
-          ...state,
-          messages: [
-            ...state.messages,
-            {
-              type: 'apiMessage',
-              message: data.text,
-              sourceDocs: transformedSourceDocs,
-              docId: data.docId,
-              collection: collection,
-            },
-          ],
-          history: [...state.history, [query, data.text]],
-        }));
-
-        // Scroll to the bottom of the message list after a short delay
-        setTimeout(() => {
-          // Focus the text area after the message has been updated.
-          // Check if the device is not mobile (e.g., width greater than 768px for iPad)
-          if (window.innerWidth > 768) {
-            textAreaRef.current?.focus();
-          }
-  
-          // Set a slight delay to ensure focus change has completed
-          setTimeout(() => {
-            // Scroll to the latest message
-            messageListRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 10);
-        });
-
-        // Increment the answer count
-        setAnswerCount((prevCount) => {
-          const newCount = prevCount + 1;
-          // Show the like prompt after the second answer
-          if (newCount === 2) {
-            setShowLikePrompt(true);
-          }
-          return newCount;
-        });
-      }
-
-      setQuery('');
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      setError('An error occurred while fetching the data. Please try again.');
-      console.log('error', error);
-    }
-  };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>, query: string) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -510,10 +395,10 @@ export default function Home() {
                   handleCollectionChange={handleCollectionChange}
                   handlePrivateSessionChange={handlePrivateSessionChange}
                   collection={collection}
-                  privateSession={privateSession}
                   error={error}
                   randomQueries={randomQueries}
                   shuffleQueries={shuffleQueries}
+                  privateSession={privateSession}
                   clearQuery={clearQuery}
                   messageListRef={messageListRef}
                   textAreaRef={textAreaRef}
