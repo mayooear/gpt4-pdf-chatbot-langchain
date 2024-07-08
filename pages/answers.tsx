@@ -332,7 +332,7 @@ const AllAnswers = () => {
                     <div className="markdownanswer">
                       <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
                       {answer.sources && (
-                        <SourcesList sources={answer.sources} useAccordion={true} />
+                        <SourcesList sources={answer.sources} useAccordion={false} />
                       )}
                       <div className="flex items-center">
                         <CopyButton
