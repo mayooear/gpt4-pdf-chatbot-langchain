@@ -23,6 +23,7 @@ import LikePrompt from '@/components/LikePrompt';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { ChatInput } from '@/components/ChatInput';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -73,6 +74,10 @@ export default function Home() {
   
   const [collectionQueries, setCollectionQueries] = useState({});
 
+  const handleClick = (query: string) => {
+    setQuery(query);
+  };
+  
   useEffect(() => {
     let isMounted = true;
     async function fetchQueries() {
@@ -213,14 +218,12 @@ export default function Home() {
     };
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent, query: string) => {
     e.preventDefault();
-  
+    
     setError(null);
   
-    const question = queryRef.current.trim();
-
-    if (!question) {
+    if (!query) {
       alert('Please input a question');
       return;
     }
@@ -231,12 +234,12 @@ export default function Home() {
         ...state.messages,
         {
           type: 'userMessage',
-          message: question,
+          message: query,
         },
       ],
     }));
 
-    logEvent('ask_question', 'Engagement', question);
+    logEvent('ask_question', 'Engagement', query);
 
     setLoading(true);
     try {
@@ -247,7 +250,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           collection,
-          question,
+          question: query,
           history,
           privateSession: privateSession,
         }),
@@ -278,9 +281,10 @@ export default function Home() {
               collection: collection,
             },
           ],
-          history: [...state.history, [question, data.text]],
+          history: [...state.history, [query, data.text]],
         }));
-        // Scroll to the top of the latest message
+
+        // Scroll to the bottom of the message list after a short delay
         setTimeout(() => {
           // Focus the text area after the message has been updated.
           // Check if the device is not mobile (e.g., width greater than 768px for iPad)
@@ -305,35 +309,43 @@ export default function Home() {
           return newCount;
         });
       }
-      if (textAreaRef.current) {
-        textAreaRef.current.value = '';  
-        textAreaRef.current.style.height = 'auto';
-      }
 
+      setQuery('');
       setLoading(false);
     } catch (error) {
       setLoading(false);
       setError('An error occurred while fetching the data. Please try again.');
       console.log('error', error);
     }
-  }
-
-  const handleClick = (query: string) => {
-    queryRef.current = query;
-    if (textAreaRef.current) {
-      textAreaRef.current.value = query;
-    }
   };
-    
-  //prevent empty submissions
-  const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+  const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>, query: string) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (queryRef.current.trim()) {
-        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+      if (query.trim()) {
+        handleSubmit(e as unknown as React.FormEvent, query);
       }
     }
   };
+
+  const clearQuery = () => {
+    setQuery('');
+  };
+
+  // Add this effect to scroll when messages change
+  useEffect(() => {
+    if (messageListRef.current) {
+      const scrollToBottom = () => {
+        messageListRef.current!.scrollTop = messageListRef.current!.scrollHeight;
+      };
+
+      // Scroll immediately
+      scrollToBottom();
+
+      // Scroll again after a short delay to ensure all content has rendered
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [messages]);
 
   // Render the component only after the collection has been determined
   if (collection === undefined) {
@@ -489,74 +501,23 @@ export default function Home() {
               </div>
             </div>
             <div className={styles.center}>
-              {/* <div className={styles.cloudform}> */}
               <div className="w-full">
-                <form onSubmit={handleSubmit}>
-                  <div className="flex items-center space-x-2">
-                    <textarea
-                      disabled={loading}
-                      onKeyDown={handleEnter}
-                      onChange={(e) => {
-                        queryRef.current = e.target.value;
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
-                      }}
-                      ref={textAreaRef}
-                      autoFocus={false}
-                      rows={1}
-                      maxLength={3000}
-                      id="userInput"
-                      name="userInput"
-                      placeholder={
-                        loading
-                          ? 'Waiting for response...'
-                          : 'How can I think of God more?'
-                      }
-                      className={styles.textarea}
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className={styles.generatebutton}
-                    >
-                      {loading ? (
-                        <div className={styles.loadingwheel}>
-                          <LoadingDots color="#000" />
-                        </div>
-                      ) : (
-                        // Send icon SVG in input field
-                        <svg
-                          viewBox="0 0 20 20"
-                          className={styles.svgicon}
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
-                        </svg>
-                      )}
-                    </button>     
-                  </div>       
-                  <div className="flex justify-between items-start mt-1">
-                    <div className="w-[40vw] min-w-[300px]">
-                      <RandomQueries queries={randomQueries} onQueryClick={handleClick} isLoading={loading} shuffleQueries={shuffleQueries} />
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-                      <button
-                        type="button"
-                        onClick={handlePrivateSessionChange}
-                        className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} mt-2`}
-                      >
-                        {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                      </button>
-                    </div>
-                  </div>
-                  {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                      <strong className="font-bold">An error occurred: </strong>
-                      <span className="block sm:inline">{error}</span>
-                    </div>
-                  )}
-                </form>
+                <ChatInput
+                  loading={loading}
+                  handleSubmit={handleSubmit}
+                  handleEnter={handleEnter}
+                  handleClick={handleClick}
+                  handleCollectionChange={handleCollectionChange}
+                  handlePrivateSessionChange={handlePrivateSessionChange}
+                  collection={collection}
+                  privateSession={privateSession}
+                  error={error}
+                  randomQueries={randomQueries}
+                  shuffleQueries={shuffleQueries}
+                  clearQuery={clearQuery}
+                  messageListRef={messageListRef}
+                  textAreaRef={textAreaRef}
+                />
               </div>
             </div>
           </main>
