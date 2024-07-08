@@ -252,25 +252,6 @@ export default function Home() {
     );
   }
 
-  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-  const audioPlayerIds = useMemo<Record<string, string>>(() => ({}), []);
-
-  const renderAudioPlayer = useCallback((source: any, index: number) => {
-    if (source.metadata.type === 'audio') {
-      const audioId = `audio_${source.metadata.file_hash}_${index}`;
-      return (
-        <AudioPlayer
-          key={audioId}
-          src={`/api/audio/${source.metadata.file_name}`}
-          startTime={source.metadata.start_time}
-          endTime={source.metadata.end_time}
-          audioId={audioId}
-        />
-      );
-    }
-    return null;
-  }, []);
-
   return (
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
