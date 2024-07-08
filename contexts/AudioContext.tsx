@@ -19,7 +19,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useAudioContext = () => {
   const context = useContext(AudioContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAudioContext must be used within an AudioProvider');
   }
   return context;
