@@ -22,7 +22,7 @@ import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
-import AudioPlayer from '@/components/AudioPlayer';
+import { AudioPlayer } from '@/components/AudioPlayer';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -360,43 +360,20 @@ export default function Home() {
 
   const renderAudioPlayer = useCallback((source: any, index: number) => {
     if (source.metadata.type === 'audio') {
-      const fileHash = source.metadata.file_hash;
-      const uniqueKey = `${fileHash}_${index}`;
-
-      // Generate a unique ID for this audio player instance if it doesn't exist
-      if (!audioPlayerIds[uniqueKey]) {
-        audioPlayerIds[uniqueKey] = `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      }
-
-      const audioId = audioPlayerIds[uniqueKey];
-
-      const handlePlay = () => {
-        setCurrentlyPlayingId(audioId);
-        logEvent('play_audio', 'Engagement', audioId);
-      };
-
-      const handlePause = () => {
-        setCurrentlyPlayingId(null);
-        logEvent('pause_audio', 'Engagement', audioId);
-      };
-
-      const isThisPlaying = currentlyPlayingId === audioId;
-
+      const audioId = `audio_${source.metadata.file_hash}_${index}`;
       return (
-        <div key={audioId} className="mb-4"> {/* Added margin-bottom */}
-          <AudioPlayer
-            src={`/api/audio/${source.metadata.file_name}`}
-            startTime={source.metadata.start_time}
-            endTime={source.metadata.end_time}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            isPlaying={isThisPlaying}
-          />
-        </div>
+        <AudioPlayer
+          key={audioId}
+          src={`/api/audio/${source.metadata.file_name}`}
+          startTime={source.metadata.start_time}
+          endTime={source.metadata.end_time}
+          onPlay={() => setCurrentlyPlayingId(audioId)}
+          onPause={() => setCurrentlyPlayingId(null)}
+        />
       );
     }
     return null;
-  }, [currentlyPlayingId, audioPlayerIds]);
+  }, []);
 
   return (
     <>
@@ -449,10 +426,9 @@ export default function Home() {
                         <div className="markdownanswer">
                           {message.sourceDocs && (
                             <SourcesList 
-                              sources={message.sourceDocs} 
-                              useAccordion={false} 
-                              collectionName={collectionChanged ? message.collection : undefined}
-                              renderAudioPlayer={(source, index) => renderAudioPlayer(source, index)}
+                            sources={message.sourceDocs} 
+                            useAccordion={false} 
+                            collectionName={collectionChanged ? message.collection : undefined}
                             />
                           )}
                           <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 

@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 interface AudioPlayerProps {
   src: string;
@@ -6,76 +7,28 @@ interface AudioPlayerProps {
   endTime?: number;
   onPlay: () => void;
   onPause: () => void;
-  isPlaying: boolean;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, startTime, endTime, onPlay, onPause, isPlaying }) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [currentTime, setCurrentTime] = useState(startTime);
-  const [duration, setDuration] = useState(0);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      audio.currentTime = startTime;
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    return () => audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-  }, [startTime]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.play().catch(error => console.error('Error playing audio:', error));
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, src]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      if (endTime && audio.currentTime >= endTime) {
-        audio.pause();
-        onPause();
-      }
-    };
-
-    const handleEnded = () => {
-      onPause();
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [endTime, onPause]);
-
-  const togglePlayPause = () => {
-    if (isPlaying) {
-      onPause();
-    } else {
-      onPlay();
-    }
-  };
+export function AudioPlayer({ src, startTime, endTime, onPlay, onPause }: AudioPlayerProps) {
+  const { audioRef, isPlaying, currentTime, duration, togglePlayPause, setAudioTime } = useAudioPlayer({
+    src,
+    startTime,
+    endTime,
+  });
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  React.useEffect(() => {
+    if (isPlaying) {
+      onPlay();
+    } else {
+      onPause();
+    }
+  }, [isPlaying, onPlay, onPause]);
 
   return (
     <div className="audio-player bg-gray-100 p-4 rounded-lg">
@@ -97,18 +50,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, startTime, endTime, onPl
           min={0}
           max={endTime || duration}
           value={currentTime}
-          onChange={(e) => {
-            const newTime = parseFloat(e.target.value);
-            setCurrentTime(newTime);
-            if (audioRef.current) {
-              audioRef.current.currentTime = newTime;
-            }
-          }}
+          onChange={(e) => setAudioTime(parseFloat(e.target.value))}
           className="w-full"
         />
       </div>
     </div>
   );
-};
-
-export default AudioPlayer;
+}

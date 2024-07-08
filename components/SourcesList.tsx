@@ -6,18 +6,16 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './
 import styles from '@/styles/Home.module.css';
 import { collectionsConfig, CollectionKey } from '@/utils/client/collectionsConfig';
 import { logEvent } from '@/utils/client/analytics';
-import AudioPlayer from './AudioPlayer';
+import { AudioPlayer } from './AudioPlayer';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
   useAccordion?: boolean;
   collectionName?: string;
-  renderAudioPlayer?: (source: any, index: number) => React.ReactNode;
 }
 
-const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null, renderAudioPlayer }) => {
+const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-  const [audioPlayerIds, setAudioPlayerIds] = useState<Record<string, string>>({});
 
   const handleAudioPlay = useCallback((id: string) => {
     setCurrentlyPlayingId(id);
@@ -27,30 +25,22 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     setCurrentlyPlayingId(null);
   }, []);
 
-  const renderAudioPlayerWrapper = useCallback((doc: Document<Record<string, any>>, index: number) => {
-    if (renderAudioPlayer && doc.metadata.type === 'audio') {
-      const fileHash = doc.metadata.file_hash;
-      const uniqueKey = `${fileHash}_${index}`;
-
-      // Generate a unique ID for this audio player instance if it doesn't exist
-      if (!audioPlayerIds[uniqueKey]) {
-        setAudioPlayerIds(prev => ({
-          ...prev,
-          [uniqueKey]: `audio_${fileHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }));
-      }
-
-      const audioId = audioPlayerIds[uniqueKey];
-
-      return renderAudioPlayer({
-        ...doc,
-        onPlay: () => handleAudioPlay(audioId),
-        onPause: handleAudioPause,
-        isPlaying: currentlyPlayingId === audioId,
-      }, index);
+  const renderAudioPlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
+    if (doc.metadata.type === 'audio') {
+      const audioId = `audio_${doc.metadata.file_hash}_${index}`;
+      return (
+        <AudioPlayer
+          key={audioId}
+          src={`/api/audio/${doc.metadata.file_name}`}
+          startTime={doc.metadata.start_time}
+          endTime={doc.metadata.end_time}
+          onPlay={() => handleAudioPlay(audioId)}
+          onPause={handleAudioPause}
+        />
+      );
     }
     return null;
-  }, [renderAudioPlayer, currentlyPlayingId, handleAudioPlay, handleAudioPause, audioPlayerIds]);
+  }, [handleAudioPlay, handleAudioPause]);
 
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
@@ -106,7 +96,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         <p>{truncateText(doc.pageContent, 30)}</p>
                       )}
                       {doc.metadata.type === 'audio' && (
-                        renderAudioPlayerWrapper(doc, index)
+                        renderAudioPlayer(doc, index)
                       )}
                     </li>
                   ))}
@@ -188,7 +178,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
               </ReactMarkdown>
             </div>
             {doc.metadata && doc.metadata.type === 'audio' && (
-              renderAudioPlayerWrapper(doc, index)
+              renderAudioPlayer(doc, index)
             )}
           </details>
         );
