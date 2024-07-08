@@ -4,9 +4,11 @@ interface UseAudioPlayerProps {
   src: string;
   startTime: number;
   endTime?: number;
+  audioId: string;
+  isGloballyPlaying: boolean;
 }
 
-export function useAudioPlayer({ src, startTime, endTime }: UseAudioPlayerProps) {
+export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPlaying }: UseAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
@@ -49,6 +51,19 @@ export function useAudioPlayer({ src, startTime, endTime }: UseAudioPlayerProps)
       audio.removeEventListener('ended', handleEnded);
     };
   }, [endTime]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isGloballyPlaying && !isPlaying) {
+      audio.play().catch(error => console.error('Error playing audio:', error));
+      setIsPlaying(true);
+    } else if (!isGloballyPlaying && isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  }, [isGloballyPlaying, isPlaying]);
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current;

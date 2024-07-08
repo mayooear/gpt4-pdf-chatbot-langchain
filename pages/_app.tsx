@@ -7,6 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { useEffect } from 'react';
 import { initGA, logPageView } from '@/utils/client/analytics';
 import { useRouter } from 'next/router';
+import { AudioProvider } from '@/contexts/AudioContext';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -36,12 +37,12 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, [router]);
 
   return (
-    <>
+    <AudioProvider>
       <main className={inter.variable}>
         <Component {...pageProps} />
       </main>
       <ToastContainer />
-    </>
+    </AudioProvider>
   );
 }
 

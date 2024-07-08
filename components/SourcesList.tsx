@@ -15,16 +15,6 @@ interface SourcesListProps {
 }
 
 const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
-  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-
-  const handleAudioPlay = useCallback((id: string) => {
-    setCurrentlyPlayingId(id);
-  }, []);
-
-  const handleAudioPause = useCallback(() => {
-    setCurrentlyPlayingId(null);
-  }, []);
-
   const renderAudioPlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
     if (doc.metadata.type === 'audio') {
       const audioId = `audio_${doc.metadata.file_hash}_${index}`;
@@ -34,13 +24,12 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
           src={`/api/audio/${doc.metadata.file_name}`}
           startTime={doc.metadata.start_time}
           endTime={doc.metadata.end_time}
-          onPlay={() => handleAudioPlay(audioId)}
-          onPause={handleAudioPause}
+          audioId={audioId}
         />
       );
     }
     return null;
-  }, [handleAudioPlay, handleAudioPause]);
+  }, []);
 
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
