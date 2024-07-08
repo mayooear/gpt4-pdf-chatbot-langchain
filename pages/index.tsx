@@ -368,13 +368,11 @@ export default function Home() {
           startTime={source.metadata.start_time}
           endTime={source.metadata.end_time}
           audioId={audioId}
-          onPlay={() => setCurrentlyPlayingId(audioId)}
-          onPause={() => setCurrentlyPlayingId(null)}
         />
       );
     }
     return null;
-  }, [setCurrentlyPlayingId]);
+  }, []);
 
   return (
     <>

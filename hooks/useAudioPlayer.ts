@@ -41,6 +41,7 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
 
     const handleEnded = () => {
       setIsPlaying(false);
+      // Don't reset the currentTime here
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -72,10 +73,14 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     if (isPlaying) {
       audio.pause();
     } else {
+      // If at the end, start from the beginning
+      if (audio.currentTime >= (endTime || audio.duration)) {
+        audio.currentTime = startTime;
+      }
       audio.play().catch(error => console.error('Error playing audio:', error));
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, startTime, endTime]);
 
   const setAudioTime = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -84,6 +89,17 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     }
   }, []);
 
+  const resetAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = startTime;
+      setCurrentTime(startTime);
+      if (isPlaying) {
+        audio.play().catch(error => console.error('Error playing audio:', error));
+      }
+    }
+  }, [startTime, isPlaying]);
+
   return {
     audioRef,
     isPlaying,
@@ -91,5 +107,6 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     duration,
     togglePlayPause,
     setAudioTime,
+    resetAudio,
   };
 }
