@@ -137,7 +137,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                       }`}
                     >
-                      Text
+                      Written
                     </button>
                     <button
                       type="button"
@@ -146,7 +146,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                       }`}
                     >
-                      Audio
+                      Spoken
                     </button>
                   </div>
                   <div className="sm:w-40">
