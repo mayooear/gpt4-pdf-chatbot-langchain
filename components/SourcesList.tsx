@@ -21,15 +21,17 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     if (doc.metadata.type === 'audio') {
       const audioId = `audio_${doc.metadata.file_hash}_${index}`;
       return (
-        <AudioPlayer
-          key={audioId}
-          src={`/api/audio/${doc.metadata.file_name}`}
-          startTime={doc.metadata.start_time}
-          endTime={doc.metadata.end_time}
-          audioId={audioId}
-          lazyLoad={true}
-          isExpanded={expandedSources.has(index)}
-        />
+        <div className="pt-1 pb-2">
+          <AudioPlayer
+            key={audioId}
+            src={`/api/audio/${doc.metadata.file_name}`}
+            startTime={doc.metadata.start_time}
+            endTime={doc.metadata.end_time}
+            audioId={audioId}
+            lazyLoad={true}
+            isExpanded={expandedSources.has(index)}
+          />
+        </div>
       );
     }
     return null;
@@ -181,7 +183,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                 </span>
               )}
             </summary>
-            <div className={styles.sourceDocContent}>
+            <div className={`${styles.sourceDocContent}`}>
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                 {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 50)}"` : `*${doc.pageContent}*`}
               </ReactMarkdown>

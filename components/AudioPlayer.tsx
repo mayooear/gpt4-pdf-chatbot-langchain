@@ -94,24 +94,24 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
   };
 
   return (
-    <div className="audio-player bg-gray-100 p-4 rounded-lg">
+    <div className="audio-player bg-gray-100 rounded-lg">
       <audio ref={audioRef} preload="metadata" />
-      {error && <div className="text-red-500 mb-2">{error}</div>}
-      {audioError && <div className="text-red-500 mb-2">{audioError}</div>}
-      <div className="flex items-center justify-between">
+      {error && <div className="text-red-500 mb-1 text-sm px-2">{error}</div>}
+      {audioError && <div className="text-red-500 mb-1 text-sm px-2">{audioError}</div>}
+      <div className="flex items-center justify-between px-2">
         <button
           onClick={handleTogglePlayPause}
-          className={`text-blue-500 p-2 rounded-full hover:bg-blue-100 focus:outline-none ${!isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`text-blue-500 p-1 rounded-full hover:bg-blue-100 focus:outline-none ${!isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={!isLoaded || !!error || !!audioError || isSeeking}
           aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
         >
-          <span className="material-icons text-3xl">{isPlaying ? 'pause' : 'play_arrow'}</span>
+          <span className="material-icons text-2xl">{isPlaying ? 'pause' : 'play_arrow'}</span>
         </button>
-        <div className="text-sm">
+        <div className="text-xs">
           {formatTime(currentTime)} / {formatTime(endTime || duration)}
         </div>
       </div>
-      <div className="mt-2">
+      <div className="px-2 pb-2">
         <input
           type="range"
           min={0}
