@@ -7,14 +7,17 @@ interface AudioPlayerProps {
   startTime: number;
   endTime?: number;
   audioId: string;
+  lazyLoad?: boolean;
+  isExpanded?: boolean;
 }
 
-export function AudioPlayer({ src, startTime, endTime, audioId }: AudioPlayerProps) {
+export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false, isExpanded = false }: AudioPlayerProps) {
+  const [isLoaded, setIsLoaded] = useState(!lazyLoad);
   const { currentlyPlayingId, setCurrentlyPlayingId } = useAudioContext();
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
-  const { audioRef, isPlaying, currentTime, duration, togglePlayPause, setAudioTime, isLoaded } = useAudioPlayer({
+  const { audioRef, isPlaying, currentTime, duration, togglePlayPause, setAudioTime, error: audioError } = useAudioPlayer({
     src: audioUrl,
     startTime,
     endTime,
@@ -23,29 +26,32 @@ export function AudioPlayer({ src, startTime, endTime, audioId }: AudioPlayerPro
   });
 
   useEffect(() => {
-    const fetchAudioUrl = async () => {
-      try {
-        const filename = src.split('/').pop();
-        if (!filename) {
-          throw new Error('Invalid audio source');
-        }
-        
-        const response = await fetch(`/api/audio/${encodeURIComponent(filename)}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch audio URL');
-        }
-        const data = await response.json();
-        setAudioUrl(data.url);
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching audio URL:', error);
-        setError('Failed to load audio. Please try again.');
-        setAudioUrl(null);
-      }
-    };
+    if ((!lazyLoad || isExpanded) && !isLoaded) {
+      fetchAudioUrl();
+    }
+  }, [lazyLoad, isExpanded, isLoaded, src]);
 
-    fetchAudioUrl();
-  }, [src]);
+  const fetchAudioUrl = async () => {
+    try {
+      const filename = src.split('/').pop();
+      if (!filename) {
+        throw new Error('Invalid audio source');
+      }
+      
+      const response = await fetch(`/api/audio/${encodeURIComponent(filename)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio URL');
+      }
+      const data = await response.json();
+      setAudioUrl(data.url);
+      setError(null);
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('Error fetching audio URL:', error);
+      setError('Failed to load audio. Please try again.');
+      setAudioUrl(null);
+    }
+  };
 
   useEffect(() => {
     if (currentlyPlayingId && currentlyPlayingId !== audioId && isPlaying) {
@@ -60,23 +66,28 @@ export function AudioPlayer({ src, startTime, endTime, audioId }: AudioPlayerPro
   };
 
   const handleTogglePlayPause = () => {
-    if (!isPlaying) {
-      setCurrentlyPlayingId(audioId);
+    if (!isLoaded) {
+      setIsLoaded(true);
     } else {
-      setCurrentlyPlayingId(null);
+      if (!isPlaying) {
+        setCurrentlyPlayingId(audioId);
+      } else {
+        setCurrentlyPlayingId(null);
+      }
+      togglePlayPause();
     }
-    togglePlayPause();
   };
 
   return (
     <div className="audio-player bg-gray-100 p-4 rounded-lg">
       <audio ref={audioRef} preload="metadata" />
       {error && <div className="text-red-500 mb-2">{error}</div>}
+      {audioError && <div className="text-red-500 mb-2">{audioError}</div>}
       <div className="flex items-center justify-between">
         <button
           onClick={handleTogglePlayPause}
           className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none ${!isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!isLoaded || !!error}
+          disabled={!isLoaded || !!error || !!audioError}
         >
           {isPlaying ? 'Pause' : 'Play'}
         </button>
@@ -92,7 +103,7 @@ export function AudioPlayer({ src, startTime, endTime, audioId }: AudioPlayerPro
           value={currentTime}
           onChange={(e) => setAudioTime(parseFloat(e.target.value))}
           className="w-full"
-          disabled={!isLoaded || !!error}
+          disabled={!isLoaded || !!error || !!audioError}
         />
       </div>
     </div>

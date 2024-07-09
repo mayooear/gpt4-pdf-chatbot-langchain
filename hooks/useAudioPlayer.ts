@@ -14,6 +14,7 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
   const [currentTime, setCurrentTime] = useState(startTime);
   const [duration, setDuration] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -64,15 +65,21 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !src) return;
 
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
     } else {
-      audio.play().catch(error => console.error('Error playing audio:', error));
+      setError(null); // Clear any previous errors
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        setError('Failed to play audio. Please try again.');
+        setIsPlaying(false);
+      });
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, src]);
 
   const setAudioTime = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -89,5 +96,6 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     togglePlayPause,
     setAudioTime,
     isLoaded,
+    error,
   };
 }

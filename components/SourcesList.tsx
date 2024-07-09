@@ -27,11 +27,13 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
           startTime={doc.metadata.start_time}
           endTime={doc.metadata.end_time}
           audioId={audioId}
+          lazyLoad={true}
+          isExpanded={expandedSources.has(index)}
         />
       );
     }
     return null;
-  }, []);
+  }, [expandedSources]);
 
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
@@ -184,7 +186,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                 {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 30)}"` : `*${doc.pageContent}*`}
               </ReactMarkdown>
             </div>
-            {doc.metadata && doc.metadata.type === 'audio' && (
+            {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
               renderAudioPlayer(doc, index)
             )}
           </details>

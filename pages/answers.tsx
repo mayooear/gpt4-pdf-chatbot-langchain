@@ -47,9 +47,16 @@ const AllAnswers = () => {
 
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
-  const expandQuestion = (answerId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    setExpandedQuestions(prev => new Set(prev).add(answerId));
+  const handleExpandQuestion = (answerId: string) => {
+    setExpandedQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(answerId)) {
+        newSet.delete(answerId);
+      } else {
+        newSet.add(answerId);
+      }
+      return newSet;
+    });
   };
 
   useEffect(() => {
@@ -321,8 +328,11 @@ const AllAnswers = () => {
                         </a>
                       </Link>
                       {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
-                                               <button 
-                          onClick={(e) => expandQuestion(answer.id, e)}
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleExpandQuestion(answer.id);
+                          }}
                           className="text-black hover:underline ml-2"
                         >
                           <b>See More</b>
@@ -340,7 +350,11 @@ const AllAnswers = () => {
                     <div className="markdownanswer">
                       <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
                       {answer.sources && (
-                        <SourcesList sources={answer.sources} useAccordion={false} />
+                        <SourcesList
+                          sources={answer.sources}
+                          useAccordion={false}
+                          collectionName={answer.collection}
+                        />
                       )}
                       <div className="flex items-center">
                         <CopyButton
