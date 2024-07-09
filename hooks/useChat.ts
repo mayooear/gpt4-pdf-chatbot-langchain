@@ -4,7 +4,7 @@ import { Document } from 'langchain/document';
 import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
 
-export const useChat = (collection: string, history: [string, string][], privateSession: boolean) => {
+export const useChat = (collection: string, history: [string, string][], privateSession: boolean, mediaTypes: { text: boolean; audio: boolean }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [messageState, setMessageState] = useState<{
@@ -56,7 +56,8 @@ export const useChat = (collection: string, history: [string, string][], private
           collection,
           question: query,
           history,
-          privateSession: privateSession,
+          privateSession,
+          mediaTypes,
         }),
       });
       const data = await response.json();

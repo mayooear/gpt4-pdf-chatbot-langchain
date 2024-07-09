@@ -19,6 +19,8 @@ interface ChatInputProps {
   clearQuery: () => void;
   messageListRef: React.RefObject<HTMLDivElement>;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
+  mediaTypes: { text: boolean; audio: boolean };
+  handleMediaTypeChange: (type: 'text' | 'audio') => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -36,6 +38,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   clearQuery,
   textAreaRef,
   messageListRef,
+  mediaTypes,
+  handleMediaTypeChange,
 }) => {
   const [localQuery, setLocalQuery] = useState<string>('');
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
@@ -116,15 +120,33 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 handleClick(q);
               }} isLoading={loading} shuffleQueries={shuffleQueries} />
             </div>
-            <div className="flex flex-col items-end">
-              <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-              <button
-                type="button"
-                onClick={handlePrivateSessionChange}
-                className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} mt-2`}
-              >
-                {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-              </button>
+            <div className="flex items-start space-x-2">
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleMediaTypeChange('text')}
+                  className={`px-3 py-2 rounded ${mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                >
+                  Text
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMediaTypeChange('audio')}
+                  className={`px-3 py-2 rounded ${mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                >
+                  Audio
+                </button>
+              </div>
+              <div className="flex flex-col items-end">
+                <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+                <button
+                  type="button"
+                  onClick={handlePrivateSessionChange}
+                  className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} mt-2`}
+                >
+                  {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                </button>
+              </div>
             </div>
           </div>
           {error && (

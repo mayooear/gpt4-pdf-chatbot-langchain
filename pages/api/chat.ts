@@ -15,7 +15,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { collection, question, history, privateSession } = req.body;
+  const { collection, question, history, privateSession, mediaTypes } = req.body;
   
   if (req.method == 'POST') {
     if (typeof collection !== 'string' || !['master_swami', 'whole_library'].includes(collection)) {
@@ -41,10 +41,21 @@ export default async function handler(
       const pinecone = await getPineconeClient();
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
-      const filter = {
-        // 'library': { $in: ['Ananda Library', 'Treasures'] },
-        ...(collection === 'master_swami' && { 'author': { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
+      const filter: {
+        type: { $in: string[] };
+        author?: { $in: string[] };
+      } = {
+        type: { $in: [] },
+        ...(collection === 'master_swami' && { author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
       };
+
+      // require at least one media type to be selected or set both to true
+      if (!mediaTypes.text && !mediaTypes.audio) {
+        mediaTypes.text = true;
+        mediaTypes.audio = true;
+      }
+      if (mediaTypes.text) filter.type.$in.push('text');
+      if (mediaTypes.audio) filter.type.$in.push('audio');
 
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({}),

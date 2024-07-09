@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface UseAudioPlayerProps {
-  src: string;
+  src: string | null;
   startTime: number;
   endTime?: number;
   audioId: string;
@@ -13,58 +13,54 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
   const [duration, setDuration] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleLoadedMetadata = () => {
+      console.log('Audio metadata loaded');
       setDuration(audio.duration);
+      setIsLoaded(true);
       audio.currentTime = startTime;
     };
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    return () => audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-  }, [startTime]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const handleCanPlayThrough = () => {
+      console.log('Audio can play through');
+      setIsLoaded(true);
+    };
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      if (endTime && audio.currentTime >= endTime) {
-        audio.pause();
-        setIsPlaying(false);
-      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
-      // Don't reset the currentTime here
+      audio.currentTime = startTime;
     };
 
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [endTime]);
+  }, [startTime]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !src) return;
 
-    if (isGloballyPlaying && !isPlaying) {
-      audio.play().catch(error => console.error('Error playing audio:', error));
-      setIsPlaying(true);
-    } else if (!isGloballyPlaying && isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    }
-  }, [isGloballyPlaying, isPlaying]);
+    setIsLoaded(false); // Reset isLoaded when src changes
+    audio.src = src;
+    audio.load(); // This triggers the loading of the audio file
+  }, [src]);
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current;
@@ -73,14 +69,10 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     if (isPlaying) {
       audio.pause();
     } else {
-      // If at the end, start from the beginning
-      if (audio.currentTime >= (endTime || audio.duration)) {
-        audio.currentTime = startTime;
-      }
       audio.play().catch(error => console.error('Error playing audio:', error));
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying, startTime, endTime]);
+  }, [isPlaying]);
 
   const setAudioTime = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -89,17 +81,6 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     }
   }, []);
 
-  const resetAudio = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.currentTime = startTime;
-      setCurrentTime(startTime);
-      if (isPlaying) {
-        audio.play().catch(error => console.error('Error playing audio:', error));
-      }
-    }
-  }, [startTime, isPlaying]);
-
   return {
     audioRef,
     isPlaying,
@@ -107,6 +88,6 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     duration,
     togglePlayPause,
     setAudioTime,
-    resetAudio,
+    isLoaded,
   };
 }
