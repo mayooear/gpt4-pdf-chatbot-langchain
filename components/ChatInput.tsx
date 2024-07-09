@@ -125,14 +125,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <button
                   type="button"
                   onClick={() => handleMediaTypeChange('text')}
-                  className={`px-3 py-2 rounded ${mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2.5 py-1.5 text-sm rounded ${mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Text
                 </button>
                 <button
                   type="button"
                   onClick={() => handleMediaTypeChange('audio')}
-                  className={`px-3 py-2 rounded ${mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-2.5 py-1.5 text-sm rounded ${mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   Audio
                 </button>
