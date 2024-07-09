@@ -81,11 +81,21 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : text;
   };
 
+  const renderSourceTitle = (doc: Document<Record<string, any>>) => {
+    const isNonAnandaLibrary = doc.metadata.library && doc.metadata.library !== 'Ananda Library';
+    return (
+      <span className={`${isNonAnandaLibrary ? 'text-black-600 font-medium' : ''}`}>
+        {formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source')}
+        {isNonAnandaLibrary && <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>}
+      </span>
+    );
+  };
+
   if (useAccordion) {
     return (
       <>
       {sources.length > 0 && (
-        <div>
+        <div className="bg-gray-200 p-3 rounded-lg">
           <Accordion type="single" collapsible onValueChange={(value) => handleAccordionExpand(!!value)}>
             <AccordionItem value="sources">
               <AccordionTrigger className="text-base font-semibold text-blue-500">
@@ -102,8 +112,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         className="hover:underline"
                         onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                       >
-                        {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
-                        {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
+                        {renderSourceTitle(doc)}
                       </a>
                       {doc.metadata.type === 'audio' && (
                         <p>{truncateText(doc.pageContent, 30)}</p>
@@ -124,19 +133,20 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   }
 
   return (
-    <>
+    <div className="bg-gray-200 p-3 rounded-lg"> 
       {sources.length > 0 && (
         <div className="flex justify-between items-start w-full"> 
-          <div className="flex-grow">
-            <h3 className={styles.sourceDocsHeading}>
-              Sources <a href="#" onClick={(e) => {
-                  e.preventDefault();
-                  handleExpandAll();
-                }}
-                className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
-                {expandedSources.size === 0 ? ' (expand all)' : ' (collapse all)'}
-              </a>
+          <div className="flex-grow mt-4">
+            <h3 className="text-lg !font-bold inline">
+              Sources
             </h3>
+            <a href="#" onClick={(e) => {
+                e.preventDefault();
+                handleExpandAll();
+              }}
+              className="text-sm text-blue-500 hover:underline ml-2">
+              {expandedSources.size === 0 ? '(expand all)' : '(collapse all)'}
+            </a>
           </div>
           {displayCollectionName && (
             <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
@@ -164,18 +174,15 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                   style={{ color: 'blue' }}
                   onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                 >
-                  {doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : 'Unknown source'}
-                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
+                  {renderSourceTitle(doc)}
                 </a>
               ) : doc.metadata.title ? (
                 <span>
-                  {formatTitle(doc.metadata.title)}
-                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
+                  {renderSourceTitle(doc)}
                 </span>
               ) : doc.metadata['pdf.info.Title'] ? (
                 <span style={{ color: 'blue' }}>
-                  {formatTitle(doc.metadata['pdf.info.Title'])}
-                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
+                  {renderSourceTitle(doc)}
                 </span>
               ) : (
                 <span style={{ color: 'blue' }}>
@@ -194,7 +201,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
           </details>
         );
       })}
-    </>
+    </div>
   );
 };
 

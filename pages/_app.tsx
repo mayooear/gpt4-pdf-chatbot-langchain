@@ -5,7 +5,7 @@ import type { AppProps } from 'next/app';
 import { Inter } from 'next/font/google';
 import { ToastContainer, toast } from 'react-toastify';
 import { useEffect } from 'react';
-import { initGA, logPageView } from '@/utils/client/analytics';
+import { initGA, logPageView, logEvent } from '@/utils/client/analytics';
 import { useRouter } from 'next/router';
 import { AudioProvider } from '@/contexts/AudioContext';
 
@@ -51,7 +51,15 @@ function MyApp({ Component, pageProps }: AppProps) {
 }
 
 export function reportWebVitals(metric: any) {
-  console.log(metric);
+  if (process.env.NODE_ENV === 'production') {
+    const { id, name, label, value } = metric;
+    logEvent(
+      name,
+      label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
+      id,
+      Math.round(name === 'CLS' ? value * 1000 : value)
+    );
+  }
 }
 
 export default MyApp;

@@ -38,7 +38,7 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
 
   return (
     <div className="text-left w-full px-0">
-      <div className="bg-gray-100 p-4 rounded-lg w-[35vw] min-w-[300px]">
+      <div className="bg-gray-100 p-4 rounded-lg w-[90%] sm:w-[35vw] min-w-[280px] max-w-[400px]">
         <div className="flex justify-between items-center mb-3">
           <p className="font-semibold">{displayCount > 1 ? 'Suggested Queries:' : 'Suggested Query:'}</p>
           <button

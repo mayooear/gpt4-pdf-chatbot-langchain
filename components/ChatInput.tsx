@@ -121,7 +121,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               }} isLoading={loading} shuffleQueries={shuffleQueries} />
             </div>
             <div className="flex items-start space-x-2">
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 mr-2">
                 <button
                   type="button"
                   onClick={() => handleMediaTypeChange('text')}
