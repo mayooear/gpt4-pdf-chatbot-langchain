@@ -15,6 +15,8 @@ interface SourcesListProps {
 }
 
 const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
+  const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
+
   const renderAudioPlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
     if (doc.metadata.type === 'audio') {
       const audioId = `audio_${doc.metadata.file_hash}_${index}`;
@@ -39,7 +41,25 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   const displayCollectionName = collectionName ? collectionsConfig[collectionName as CollectionKey] : '';
 
   const handleExpandAll = () => {
+    if (expandedSources.size === sources.length) {
+      setExpandedSources(new Set());
+    } else {
+      setExpandedSources(new Set(sources.map((_, index) => index)));
+    }
     logEvent('expand_all_sources', 'UI', 'accordion');
+  };
+
+  const handleSourceToggle = (index: number) => {
+    setExpandedSources(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+    logEvent('expand_source', 'UI', expandedSources.has(index) ? 'collapsed' : 'expanded');
   };
 
   const handleAccordionExpand = (expanded: boolean) => {
@@ -102,43 +122,36 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   return (
     <>
       {sources.length > 0 && (
-      <div className="flex justify-between items-start w-full"> 
-        <div className="flex-grow">
-          <h3 className={styles.sourceDocsHeading}>
-            Sources <a href="#" onClick={(e) => {
-                e.preventDefault();
-                const detailsElements = document.querySelectorAll('details');
-                const areAllExpanded = Array.from(detailsElements).every(detail => detail.open);
-                detailsElements.forEach(detail => { detail.open = !areAllExpanded; });
-                if (e.target instanceof HTMLElement) {
-                  e.target.textContent = areAllExpanded ? ' (expand all)' : ' (collapse all)';
-                }
-                handleExpandAll();
-              }}
-              className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
-              {document.querySelectorAll('details[open]').length === 0 ? ' (expand all)' : ' (collapse all)'}
-            </a>
-          </h3>
+        <div className="flex justify-between items-start w-full"> 
+          <div className="flex-grow">
+            <h3 className={styles.sourceDocsHeading}>
+              Sources <a href="#" onClick={(e) => {
+                  e.preventDefault();
+                  handleExpandAll();
+                }}
+                className={styles.expandAllLink} style={{ fontSize: 'smaller', color: 'blue' }}>
+                {expandedSources.size === 0 ? ' (expand all)' : ' (collapse all)'}
+              </a>
+            </h3>
+          </div>
+          {displayCollectionName && (
+            <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
+              {displayCollectionName}
+            </span>
+          )}
         </div>
-        {displayCollectionName && (
-          <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
-            {displayCollectionName}
-          </span>
-        )}
-      </div>
       )}
       {sources.map((doc, index) => {
         return (
           <details 
             key={index} 
             className={styles.sourceDocsContainer}
-            onToggle={(e) => {
-              if (e.currentTarget instanceof HTMLDetailsElement) {
-                logEvent('expand_source', 'UI', e.currentTarget.open ? 'expanded' : 'collapsed');
-              }
-            }}
+            open={expandedSources.has(index)}
           >
-            <summary title="Click the triangle to see details or title to go to library source">
+            <summary onClick={(e) => {
+              e.preventDefault();
+              handleSourceToggle(index);
+            }}>
               {doc.metadata && doc.metadata.source ? (
                 <a 
                   href={doc.metadata.source} 
@@ -147,12 +160,17 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                   style={{ color: 'blue' }}
                   onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                 >
-                  {doc.metadata.title ? formatTitle(doc.metadata.title) : 'Unknown source'}
+                  {doc.metadata.title ? formatTitle(doc.metadata.title) : doc.metadata['pdf.info.Title'] ? formatTitle(doc.metadata['pdf.info.Title']) : 'Unknown source'}
                   {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </a>
               ) : doc.metadata.title ? (
                 <span style={{ color: 'blue' }}>
                   {formatTitle(doc.metadata.title)}
+                  {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
+                </span>
+              ) : doc.metadata['pdf.info.Title'] ? (
+                <span style={{ color: 'blue' }}>
+                  {formatTitle(doc.metadata['pdf.info.Title'])}
                   {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </span>
               ) : (

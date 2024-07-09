@@ -36,18 +36,14 @@ export default function Layout({ children }: LayoutProps) {
         <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center">
           <nav className="ml-2 pl-1">
             <div className="space-x-10">
-              <a href="https://www.anandalibrary.org/" className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer" onClick={handleBackToLibrary}>
+              <Link href="https://www.anandalibrary.org/" className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer" onClick={handleBackToLibrary}>
                 ← Back to Ananda Library
-              </a>
-              <Link legacyBehavior href="/">
-                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/') ? 'text-slate-800 font-bold' : ''}`}>
-                  Ask
-                </a>
               </Link>
-              <Link legacyBehavior href="/answers">
-                <a className={`hover:text-slate-600 cursor-pointer ${isActive('/answers') ? 'text-slate-800 font-bold' : ''}`}>
-                  All&nbsp;Answers
-                </a>
+              <Link href="/" className={`hover:text-slate-600 cursor-pointer ${isActive('/') ? 'text-slate-800 font-bold' : ''}`}>
+                Ask
+              </Link>
+              <Link href="/answers" className={`hover:text-slate-600 cursor-pointer ${isActive('/answers') ? 'text-slate-800 font-bold' : ''}`}>
+                All&nbsp;Answers
               </Link>
             </div>
           </nav>

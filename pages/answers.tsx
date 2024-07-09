@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import { initGA, logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import Link from 'next/link';
+import { GetServerSideProps } from 'next';
 
 const AllAnswers = () => {
   const router = useRouter();
@@ -52,13 +53,20 @@ const AllAnswers = () => {
   };
 
   useEffect(() => {
-    initGA();
-  }, []);
+    if (router.isReady) {
+      initGA();
+      if (isSortByInitialized) {
+        fetchAnswers();
+      }
+    }
+  }, [router.isReady, isSortByInitialized]);
 
   const fetchAnswers = useCallback(async () => {
+    if (!router.isReady) return;
+
     setIsLoading(true);
-    setError(null); 
-    setShowErrorPopup(false); 
+    setError(null);
+    setShowErrorPopup(false);
 
     let newAnswers: Answer[] = [];
     try {
@@ -77,12 +85,12 @@ const AllAnswers = () => {
       } else {
         setError('Failed to fetch answers. Please try again.');
       }
-      setShowErrorPopup(true); 
+      setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
       setInitialLoadComplete(true);
     }
-  
+
     if (newAnswers.length === 0) {
       setHasMore(false);
     } else {
@@ -94,7 +102,7 @@ const AllAnswers = () => {
         return updatedAnswers;
       });
     }
-  }, [page, sortBy]);
+  }, [page, sortBy, router.isReady]);
 
   useEffect(() => {
     if (page === 0 || Object.keys(answers).length > 0) {
@@ -332,7 +340,7 @@ const AllAnswers = () => {
                     <div className="markdownanswer">
                       <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
                       {answer.sources && (
-                        <SourcesList sources={answer.sources} useAccordion={true} />
+                        <SourcesList sources={answer.sources} useAccordion={false} />
                       )}
                       <div className="flex items-center">
                         <CopyButton
@@ -377,6 +385,13 @@ const AllAnswers = () => {
       </div>
     </Layout>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  // You can perform initial data fetching here if needed
+  return {
+    props: {}, // will be passed to the page component as props
+  };
 };
 
 export default AllAnswers;
