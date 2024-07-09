@@ -113,36 +113,51 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               )}
             </button>     
           </div>       
-          <div className="flex justify-between items-start mt-1">
-            <div className="w-[40vw] min-w-[300px]">
-              <RandomQueries queries={randomQueries} onQueryClick={(q) => {
-                setLocalQuery(q);
-                handleClick(q);
-              }} isLoading={loading} shuffleQueries={shuffleQueries} />
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mt-1 space-y-2 sm:space-y-0">
+            <div className="w-full sm:w-1/2 sm:pr-2 order-2 sm:order-1">
+              <RandomQueries
+                queries={randomQueries}
+                onQueryClick={(q) => {
+                  setLocalQuery(q);
+                  handleClick(q);
+                }}
+                isLoading={loading}
+                shuffleQueries={shuffleQueries}
+              />
             </div>
-            <div className="flex items-start space-x-2">
-              <div className="flex space-x-2 mr-2">
-                <button
-                  type="button"
-                  onClick={() => handleMediaTypeChange('text')}
-                  className={`px-2.5 py-1.5 text-sm rounded ${mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                >
-                  Text
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMediaTypeChange('audio')}
-                  className={`px-2.5 py-1.5 text-sm rounded ${mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                >
-                  Audio
-                </button>
-              </div>
-              <div className="flex flex-col items-end">
-                <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+
+            <div className="w-full sm:w-1/2 sm:pl-2 order-1 sm:order-2">
+              <div className="flex flex-col sm:items-end">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 w-full">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange('text')}
+                      className={`px-2.5 py-1.5 text-sm rounded w-full sm:w-auto ${
+                        mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange('audio')}
+                      className={`px-2.5 py-1.5 text-sm rounded w-full sm:w-auto ${
+                        mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Audio
+                    </button>
+                  </div>
+                  <div className="sm:w-40">
+                    <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={handlePrivateSessionChange}
-                  className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} mt-2`}
+                  className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} w-full sm:w-auto mt-2 sm:mt-1`}
                 >
                   {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
                 </button>

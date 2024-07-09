@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { isSudo } from '../utils/client/cookieUtils';
 import Link from 'next/link';
 
@@ -9,6 +9,12 @@ interface SudoPageProps {
 const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
   const [password, setPassword] = useState('');
   const [sudoStatus, setSudoStatus] = useState('');
+
+  const checkSudoStatus = useCallback(async () => {
+    const cookies = document.cookie;
+    const isSudoUser = await isSudo(cookies);
+    setSudoStatus(isSudoUser ? 'You are Blessed!' : 'You are not blessed');
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -21,6 +27,7 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
     });
     const data = await response.json();
     setSudoStatus(data.message);
+    checkSudoStatus();
   };
 
   const handleRemoveBlessed = async () => {
@@ -32,17 +39,12 @@ const SudoPage: React.FC<SudoPageProps> = ({ pageName }) => {
     });
     const data = await response.json();
     setSudoStatus(data.message);
+    checkSudoStatus();
   };
 
   useEffect(() => {
-    const checkSudoStatus = async () => {
-      const cookies = document.cookie;
-      const isSudoUser = await isSudo(cookies);
-      setSudoStatus(isSudoUser ? 'You are Blessed!' : 'You are not blessed');
-    };
-
     checkSudoStatus();
-  }, []);
+  }, [checkSudoStatus]);
 
   return (
     <div className="flex flex-col justify-center items-center h-screen">
