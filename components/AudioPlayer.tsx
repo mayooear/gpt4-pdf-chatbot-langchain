@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAudioContext } from '@/contexts/AudioContext';
 
@@ -35,13 +35,7 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
     isGloballyPlaying: currentlyPlayingId === audioId,
   });
 
-  useEffect(() => {
-    if ((!lazyLoad || isExpanded) && !isLoaded) {
-      fetchAudioUrl();
-    }
-  }, [lazyLoad, isExpanded, isLoaded, src]);
-
-  const fetchAudioUrl = async () => {
+  const fetchAudioUrl = useCallback(async () => {
     try {
       const filename = src.split('/').pop();
       if (!filename) {
@@ -61,7 +55,13 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
       setError('Failed to load audio. Please try again.');
       setAudioUrl(null);
     }
-  };
+  }, [src]);
+
+  useEffect(() => {
+    if ((!lazyLoad || isExpanded) && !isLoaded) {
+      fetchAudioUrl();
+    }
+  }, [lazyLoad, isExpanded, isLoaded, fetchAudioUrl]);
 
   useEffect(() => {
     if (currentlyPlayingId && currentlyPlayingId !== audioId && isPlaying) {
