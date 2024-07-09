@@ -168,7 +168,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                   {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </a>
               ) : doc.metadata.title ? (
-                <span style={{ color: 'blue' }}>
+                <span>
                   {formatTitle(doc.metadata.title)}
                   {doc.metadata.library && doc.metadata.library !== 'Ananda Library' && ` (${doc.metadata.library})`}
                 </span>
