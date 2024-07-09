@@ -17,7 +17,17 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
-  const { audioRef, isPlaying, currentTime, duration, togglePlayPause, setAudioTime, error: audioError } = useAudioPlayer({
+  const { 
+    audioRef, 
+    isPlaying, 
+    currentTime, 
+    duration, 
+    togglePlayPause, 
+    setAudioTime, 
+    isLoaded: isAudioLoaded,
+    error: audioError,
+    isSeeking
+  } = useAudioPlayer({
     src: audioUrl,
     startTime,
     endTime,
@@ -78,6 +88,11 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
     }
   };
 
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setAudioTime(newTime);
+  };
+
   return (
     <div className="audio-player bg-gray-100 p-4 rounded-lg">
       <audio ref={audioRef} preload="metadata" />
@@ -86,10 +101,11 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
       <div className="flex items-center justify-between">
         <button
           onClick={handleTogglePlayPause}
-          className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none ${!isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!isLoaded || !!error || !!audioError}
+          className={`text-blue-500 p-2 rounded-full hover:bg-blue-100 focus:outline-none ${!isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!isLoaded || !!error || !!audioError || isSeeking}
+          aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
         >
-          {isPlaying ? 'Pause' : 'Play'}
+          <span className="material-icons text-3xl">{isPlaying ? 'pause' : 'play_arrow'}</span>
         </button>
         <div className="text-sm">
           {formatTime(currentTime)} / {formatTime(endTime || duration)}
@@ -101,7 +117,7 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
           min={0}
           max={endTime || duration}
           value={currentTime}
-          onChange={(e) => setAudioTime(parseFloat(e.target.value))}
+          onChange={handleSeek}
           className="w-full"
           disabled={!isLoaded || !!error || !!audioError}
         />

@@ -183,7 +183,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             </summary>
             <div className={styles.sourceDocContent}>
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 30)}"` : `*${doc.pageContent}*`}
+                {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 50)}"` : `*${doc.pageContent}*`}
               </ReactMarkdown>
             </div>
             {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
