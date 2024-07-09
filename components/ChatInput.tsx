@@ -149,7 +149,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       Spoken
                     </button>
                   </div>
-                  <div className="sm:w-40">
+                  <div className="sm:w-auto sm:min-w-[160px]">
                     <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
                   </div>
                 </div>
