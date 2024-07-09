@@ -192,16 +192,6 @@ export default function Home() {
     if (window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
-
-    // Add this effect to update the Content-Security-Policy
-    const meta = document.createElement('meta');
-    meta.httpEquiv = "Content-Security-Policy";
-    meta.content = "default-src 'self'; media-src 'self' https://ananda-chatbot.s3.us-west-1.amazonaws.com";
-    document.head.appendChild(meta);
-
-    return () => {
-      document.head.removeChild(meta);
-    };
   }, []);
 
   const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>, query: string) => {
