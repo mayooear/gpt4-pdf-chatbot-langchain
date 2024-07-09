@@ -133,23 +133,21 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   }
 
   return (
-    <div className="bg-gray-200 p-3 rounded-lg"> 
+    <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg"> 
       {sources.length > 0 && (
-        <div className="flex justify-between items-start w-full"> 
-          <div className="flex-grow mt-4">
-            <h3 className="text-lg !font-bold inline">
-              Sources
-            </h3>
+        <div className="flex justify-between items-end w-full mb-2"> 
+          <div className="flex items-baseline">
+            <h3 className="text-lg !font-bold mr-2">Sources</h3>
             <a href="#" onClick={(e) => {
                 e.preventDefault();
                 handleExpandAll();
               }}
-              className="text-sm text-blue-500 hover:underline ml-2">
+              className="text-sm text-blue-500 hover:underline">
               {expandedSources.size === 0 ? '(expand all)' : '(collapse all)'}
             </a>
           </div>
           {displayCollectionName && (
-            <span className="text-right text-gray-400 text-sm" style={{ alignSelf: 'flex-start' }}>
+            <span className="text-sm text-gray-400">
               {displayCollectionName}
             </span>
           )}
