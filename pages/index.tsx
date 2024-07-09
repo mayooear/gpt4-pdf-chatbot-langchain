@@ -1,28 +1,23 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import Popup from '@/components/popup'; 
 import usePopup from '@/hooks/usePopup';
 import Link from 'next/link';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
-import { Message } from '@/types/chat';
 import Image from 'next/image';
 import { Fragment } from 'react';
 import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import LoadingDots from '@/components/ui/LoadingDots';
-import { Document } from 'langchain/document';
 import ShareDialog from '@/components/ShareDialog';
 import CopyButton from '@/components/CopyButton';
 import SourcesList from '@/components/SourcesList';
-import CollectionSelector from '@/components/CollectionSelector';
 import { useRandomQueries } from '@/hooks/useRandomQueries';
-import RandomQueries from '@/components/RandomQueries';
 import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
-import { AudioPlayer } from '@/components/AudioPlayer';
 import { ChatInput } from '@/components/ChatInput';
 import { useChat } from '@/hooks/useChat';
 
@@ -34,7 +29,8 @@ export default function Home() {
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [privateSession, setPrivateSession] = useState<boolean>(false);
-  const { messageState, loading, error, handleSubmit } = useChat(collection, [], privateSession);
+  const [mediaTypes, setMediaTypes] = useState<{ text: boolean; audio: boolean }>({ text: true, audio: true });
+  const { messageState, loading, error, handleSubmit } = useChat(collection, [], privateSession, mediaTypes);
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
@@ -42,6 +38,10 @@ export default function Home() {
 
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleMediaTypeChange = (type: 'text' | 'audio') => {
+    setMediaTypes(prev => ({ ...prev, [type]: !prev[type] }));
+  };
 
   // popup message for new users
   const { showPopup, closePopup, popupMessage } = 
@@ -383,6 +383,8 @@ export default function Home() {
                   clearQuery={clearQuery}
                   messageListRef={messageListRef}
                   textAreaRef={textAreaRef}
+                  mediaTypes={mediaTypes}
+                  handleMediaTypeChange={handleMediaTypeChange}
                 />
               </div>
             </div>

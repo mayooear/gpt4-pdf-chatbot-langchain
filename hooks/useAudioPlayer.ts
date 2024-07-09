@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface UseAudioPlayerProps {
-  src: string;
+  src: string | null;
   startTime: number;
   endTime?: number;
   audioId: string;
@@ -13,6 +13,9 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
   const [duration, setDuration] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -20,85 +23,79 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
 
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
+      setIsLoaded(true);
       audio.currentTime = startTime;
     };
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    return () => audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-  }, [startTime]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const handleCanPlayThrough = () => {
+      setIsLoaded(true);
+    };
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      if (endTime && audio.currentTime >= endTime) {
-        audio.pause();
-        setIsPlaying(false);
-      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
-      // Don't reset the currentTime here
+      audio.currentTime = startTime;
     };
 
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [endTime]);
+  }, [startTime]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !src) return;
 
-    if (isGloballyPlaying && !isPlaying) {
-      audio.play().catch(error => console.error('Error playing audio:', error));
-      setIsPlaying(true);
-    } else if (!isGloballyPlaying && isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    }
-  }, [isGloballyPlaying, isPlaying]);
+    setIsLoaded(false); // Reset isLoaded when src changes
+    audio.src = src;
+    audio.load(); // This triggers the loading of the audio file
+  }, [src]);
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !src) return;
 
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
     } else {
-      // If at the end, start from the beginning
-      if (audio.currentTime >= (endTime || audio.duration)) {
-        audio.currentTime = startTime;
-      }
-      audio.play().catch(error => console.error('Error playing audio:', error));
+      setError(null);
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        setError('Failed to play audio. Please try again.');
+        setIsPlaying(false);
+      });
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
-  }, [isPlaying, startTime, endTime]);
+  }, [isPlaying, src]);
 
   const setAudioTime = useCallback((time: number) => {
     const audio = audioRef.current;
     if (audio) {
+      setIsSeeking(true);
       audio.currentTime = time;
-    }
-  }, []);
-
-  const resetAudio = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.currentTime = startTime;
-      setCurrentTime(startTime);
+      setCurrentTime(time);
       if (isPlaying) {
-        audio.play().catch(error => console.error('Error playing audio:', error));
+        audio.play().catch(error => {
+          console.error('Error playing audio after seeking:', error);
+          setError('Failed to play audio after seeking. Please try again.');
+          setIsPlaying(false);
+        });
       }
+      setIsSeeking(false);
     }
-  }, [startTime, isPlaying]);
+  }, [isPlaying]);
 
   return {
     audioRef,
@@ -107,6 +104,8 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     duration,
     togglePlayPause,
     setAudioTime,
-    resetAudio,
+    isLoaded,
+    error,
+    isSeeking,
   };
 }
