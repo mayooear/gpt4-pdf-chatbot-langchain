@@ -385,6 +385,14 @@ const AllAnswers = () => {
                               <span className="material-icons">delete</span>
                             </button>
                             <span className="ml-6">IP: ({answer.ip})</span>
+                            {answer.vote === -1 && (
+                              <button
+                                className="ml-4 text-red-600"
+                                title="Downvote"
+                              >
+                                <span className="material-icons">thumb_down</span>
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

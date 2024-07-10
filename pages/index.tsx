@@ -20,6 +20,7 @@ import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 import { ChatInput } from '@/components/ChatInput';
 import { useChat } from '@/hooks/useChat';
+import { handleVote as handleVoteUtil } from '@/utils/client/voteHandler';
 
 export default function Home() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false); 
@@ -111,48 +112,11 @@ export default function Home() {
   };
 
   const [votes, setVotes] = useState<Record<string, number>>({});
-  const handleVote = async (docId: string, isUpvote: boolean) => {
-    if (!docId) {
-      console.error('Vote error: Missing document ID');
-      return;
-    }
-    
-    const currentVote = votes[docId] || 0;
-    let vote: number;
-  
-    if ((isUpvote && currentVote === 1) || (!isUpvote && currentVote === -1)) {
-      // If the current vote is the same as the new vote, it's a reversal
-      vote = 0;
-    } else {
-      // Set the new vote
-      vote = isUpvote ? 1 : -1;
-    }
-  
-    // Update the local state to reflect the new vote
-    setVotes((prevVotes) => {
-      const updatedVotes = { ...prevVotes, [docId]: vote };
-      return updatedVotes;
-    });
 
-    logEvent(isUpvote ? 'upvote_answer' : 'downvote_answer', 'Engagement', docId, vote);
-
-    try {
-      const response = await fetch('/api/vote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ docId, vote }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error('Vote error:', error);
-    }
+  const handleVote = (docId: string, isUpvote: boolean) => {
+    handleVoteUtil(docId, isUpvote, votes, setVotes);
   };
-    
+
   const handleCopyLink = (answerId: string) => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -214,9 +178,6 @@ export default function Home() {
       const lastMessage = lastMessageRef.current;
       const rect = lastMessage.getBoundingClientRect();
       
-      console.log('lastMessageRef is set:', lastMessage);
-      console.log('Bounding rect:', rect);
-
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const clientHeight = document.documentElement.clientHeight;
 
@@ -226,11 +187,7 @@ export default function Home() {
           top: scrollTop + rect.top - clientHeight + 100, 
           behavior: 'smooth'
         });
-      } else {
-        console.log('No need to scroll, last message is in view');
       }
-    } else {
-      console.log('lastMessageRef is not set');
     }
   }, [messages]);
 
