@@ -36,6 +36,7 @@ export default function Home() {
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
   const [answerCount, setAnswerCount] = useState(0);
 
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -209,16 +210,27 @@ export default function Home() {
 
   // Add this effect to scroll when messages change
   useEffect(() => {
-    if (messageListRef.current) {
-      const scrollToBottom = () => {
-        messageListRef.current!.scrollTop = messageListRef.current!.scrollHeight;
-      };
+    if (lastMessageRef.current) {
+      const lastMessage = lastMessageRef.current;
+      const rect = lastMessage.getBoundingClientRect();
+      
+      console.log('lastMessageRef is set:', lastMessage);
+      console.log('Bounding rect:', rect);
 
-      // Scroll immediately
-      scrollToBottom();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = document.documentElement.clientHeight;
 
-      // Scroll again after a short delay to ensure all content has rendered
-      setTimeout(scrollToBottom, 100);
+      if (rect.top > clientHeight - 100) { 
+        console.log('Scrolling to last message');
+        window.scrollTo({
+          top: scrollTop + rect.top - clientHeight + 100, 
+          behavior: 'smooth'
+        });
+      } else {
+        console.log('No need to scroll, last message is in view');
+      }
+    } else {
+      console.log('lastMessageRef is not set');
     }
   }, [messages]);
 
@@ -247,70 +259,73 @@ export default function Home() {
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
         <LikePrompt show={showLikePrompt} />
-        <div className="w-3/4 mx-auto flex flex-col">
-          <main className="flex flex-col justify-between items-center p-4">
-            <div className={styles.cloud}>
-              <div ref={messageListRef} className={styles.messagelist}>
-                {messages.map((message, index) => {
-                  let icon;
-                  let className;
-                  if (message.type === 'apiMessage') {
-                    icon = (
-                      <Image
-                        key={index}
-                        src="/bot-image.png"
-                        alt="AI"
-                        width="40"
-                        height="40"
-                        className={styles.boticon}
-                        priority
-                      />
-                    );
-                    className = styles.apimessage;
-                  } else {
-                    icon = (
-                      <Image
-                        key={index}
-                        src="/usericon.png"
-                        alt="Me"
-                        width="30"
-                        height="30"
-                        className={styles.usericon}
-                        priority
-                      />
-                    );
-                    // The latest message sent by the user will be animated while waiting for a response
-                    className =
-                      loading && index === messages.length - 1
-                        ? styles.usermessagewaiting
-                        : styles.usermessage;
-                  }
-                  return (
-                    <Fragment key={`message-${index}`}>
-                      {message.type === 'apiMessage' && index > 0 && <hr />}
-                      <div key={`chatMessage-${index}`} className={className}>
-                        {icon}
-                        <div className="markdownanswer">
-                          {message.sourceDocs && (
-                            <SourcesList 
-                            sources={message.sourceDocs} 
-                            useAccordion={false} 
-                            collectionName={collectionChanged ? message.collection : undefined}
-                            />
-                          )}
-                          <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
-                            {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
-                          </ReactMarkdown>
+        <div className={styles.main}>
+          <div className={styles.cloud}>
+            <div ref={messageListRef} className={styles.messagelist}>
+              {messages.map((message, index) => {
+                let icon;
+                let className;
+                if (message.type === 'apiMessage') {
+                  icon = (
+                    <Image
+                      src="/bot-image.png"
+                      alt="AI"
+                      width={40}
+                      height={40}
+                      className={styles.boticon}
+                      priority
+                    />
+                  );
+                  className = styles.apimessage;
+                } else {
+                  icon = (
+                    <Image
+                      src="/usericon.png"
+                      alt="Me"
+                      width={30}
+                      height={30}
+                      className={styles.usericon}
+                      priority
+                    />
+                  );
+                  // The latest message sent by the user will be animated while waiting for a response
+                  className = loading && index === messages.length - 1
+                    ? styles.usermessagewaiting
+                    : styles.usermessage;
+                }
+                return (
+                  <Fragment key={`message-${index}`}>
+                    {message.type === 'apiMessage' && index > 0 && <hr />}
+                    <div
+                      key={`chatMessage-${index}`}
+                      className={`${className} w-full`}
+                      ref={index === messages.length - 1 ? lastMessageRef : null}
+                    >
+                      {/* Message content container */}
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 pt-1">
+                          {icon}
                         </div>
-                      </div>
-                      <div className="text-left" style={{ backgroundColor: '#f9fafb' }}>
-                        <div className="text-left ml-[75px]">
-                          {message.docId && (
-                            <div className="flex space-x-2">
-                              <CopyButton markdown={message.message} answerId={message.docId as string} />
+                        <div className="flex-grow ml-4">
+                          <div className="markdownanswer">
+                            {message.sourceDocs && (
+                              <SourcesList 
+                                sources={message.sourceDocs} 
+                                useAccordion={false} 
+                                collectionName={collectionChanged ? message.collection : undefined}
+                              />
+                            )}
+                            <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                              {message.message.replace(/\n/g, '  \n').replace(/\n\n/g, '\n\n')}
+                            </ReactMarkdown>
+                          </div>
+                          {/* Action icons container */}
+                          {message.type === 'apiMessage' && message.docId && (
+                            <div className="mt-4 flex gap-2">
+                              <CopyButton markdown={message.message} answerId={message.docId ?? ''} />
                               <button
-                                onClick={() => handleCopyLink(message.docId as string)}
-                                className="ml-4 text-black-600 hover:underline flex items-center"
+                                onClick={() => handleCopyLink(message.docId ?? '')}
+                                className="text-black-600 hover:underline flex items-center"
                                 title="Copy link to clipboard"
                               >
                                 <span className="material-icons">
@@ -318,67 +333,51 @@ export default function Home() {
                                 </span>
                               </button>
                               <LikeButton
-                                answerId={message.docId as string}
-                                initialLiked={likeStatuses[message.docId] || false}
+                                answerId={message.docId ?? ''}
+                                initialLiked={likeStatuses[message.docId ?? ''] || false}
                                 likeCount={0}
                                 onLikeCountChange={(answerId, newLikeCount) => handleLikeCountChange(answerId, newLikeCount > 0)}
                                 showLikeCount={false} 
                               />
                               <button
-                                onClick={() => handleVote(message.docId as string, false)}
-                                className={`${styles.voteButton} ${votes[message.docId] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
+                                onClick={() => handleVote(message.docId ?? '', false)}
+                                className={`${styles.voteButton} ${votes[message.docId ?? ''] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
                                 title="Downvote (private) for system training"
                               >
                                 <span className="material-icons text-black">
-                                  {votes[message.docId] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
+                                  {votes[message.docId ?? ''] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
                                 </span>
                               </button>
-                              {/* {!privateSession && (
-                                <button
-                                  onClick={() => handleShareClick(message.message, message.docId as string)}
-                                  className="shareButton hover:bg-gray-200"
-                                  title="Share"
-                                >
-                                  <span className="material-icons"> share </span>
-                                </button>
-                              )} */}
-                              {shareSuccess[message.docId] && (
-                                <div className={styles.successMessage} style={{ position: 'relative', paddingLeft: '20px' }}>
-                                  <p>Answer shared. <Link legacyBehavior href="/shared" passHref><a style={{ color: 'blue', textDecoration: 'underline' }}>See it here.</a></Link></p>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
                       </div>
-                    </Fragment>
-                  );
-                })}
-              </div>
+                    </div>
+                  </Fragment>
+                );
+              })}
             </div>
-            <div className={styles.center}>
-              <div className="w-full">
-                <ChatInput
-                  loading={loading}
-                  handleSubmit={handleSubmit}
-                  handleEnter={handleEnter}
-                  handleClick={handleClick}
-                  handleCollectionChange={handleCollectionChange}
-                  handlePrivateSessionChange={handlePrivateSessionChange}
-                  collection={collection}
-                  error={error}
-                  randomQueries={randomQueries}
-                  shuffleQueries={shuffleQueries}
-                  privateSession={privateSession}
-                  clearQuery={clearQuery}
-                  messageListRef={messageListRef}
-                  textAreaRef={textAreaRef}
-                  mediaTypes={mediaTypes}
-                  handleMediaTypeChange={handleMediaTypeChange}
-                />
-              </div>
-            </div>
-          </main>
+          </div>
+          <div className={styles.center}>
+            <ChatInput
+              loading={loading}
+              handleSubmit={handleSubmit}
+              handleEnter={handleEnter}
+              handleClick={handleClick}
+              handleCollectionChange={handleCollectionChange}
+              handlePrivateSessionChange={handlePrivateSessionChange}
+              collection={collection}
+              error={error}
+              randomQueries={randomQueries}
+              shuffleQueries={shuffleQueries}
+              privateSession={privateSession}
+              clearQuery={clearQuery}
+              messageListRef={messageListRef}
+              textAreaRef={textAreaRef}
+              mediaTypes={mediaTypes}
+              handleMediaTypeChange={handleMediaTypeChange}
+            />
+          </div>
         </div>
         {showShareDialog && (
           <div className={styles.shareDialogBackdrop}>

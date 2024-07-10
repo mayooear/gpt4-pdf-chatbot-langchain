@@ -63,7 +63,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className={styles.center}>
+    <div className={`${styles.center} w-full`}>
       <div className="w-full">
         <form onSubmit={onSubmit}>
           <div className="flex items-center space-x-2">
@@ -91,7 +91,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   ? 'How can I think of God more?'
                   : ''
               }
-              className={styles.textarea}
+              className={`${styles.textarea} w-full`}
             />
             <button
               type="submit"

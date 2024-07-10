@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: center;
+  min-height: calc(100vh - 100px); /* Adjust based on your header/footer height */
   padding: 1rem;
 }
 
@@ -23,10 +23,8 @@
   resize: none;
   font-size: 1.1rem;
   padding: 1rem 2rem 1rem 2rem;
-  width: 75vw;
-  /* max-width: 75vw;
-  min-width: 400px;
-  margin: auto; */
+  width: 100%;
+  max-width: 100%;
   border-radius: 0.5rem;
   border: 1px solid #d9d9e3;
   background: #ffffff;
@@ -84,9 +82,7 @@
 
 .messagelist {
   width: 100%;
-  height: 100%;
-  overflow-y: scroll;
-  border-radius: 0.5rem;
+  max-width: 100%;
 }
 
 .messagelistloading {
@@ -100,6 +96,13 @@
   background: #ffffff;
   padding: 1.5rem;
   color: #000;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.usermessage > div {
+  flex-grow: 1;
 }
 
 .usermessagewaiting {
@@ -111,6 +114,9 @@
   animation: loading-gradient 2s ease-in-out infinite;
   animation-direction: alternate;
   animation-name: loading-gradient;
+  width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 @keyframes loading-gradient {
@@ -127,6 +133,11 @@
   padding: 1.5rem;
   color: #000;
   animation: fadein 0.5s;
+  width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes fadein {
@@ -148,7 +159,12 @@
 .usericon {
   margin-right: 1rem;
   border-radius: 0.1rem;
+  object-fit: contain;
   height: 100%;
+}
+
+.boticon {
+  padding-top: 0.25rem;
 }
 
 .center {
@@ -161,14 +177,15 @@
 }
 
 .cloud {
-  width: 75vw;
-  height: 56vh;
+  width: 100%;
+  max-width: 100%;
   background: #ffffff;
   border-radius: 0.5rem;
   border: 1px solid #d9d9e3;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .pointsnormal {
@@ -439,4 +456,28 @@
   border: none;
   background: none;
   cursor: pointer;
+}
+
+.markdownanswer {
+  line-height: 1.75;
+}
+
+.markdownanswer a:hover {
+  opacity: 0.8;
+}
+
+.markdownanswer a {
+  color: #b13a3a;
+  font-weight: 500;
+}
+
+.markdownanswer code {
+  color: #15cb19;
+  font-weight: 500;
+  white-space: pre-wrap !important;
+}
+
+.markdownanswer ol,
+.markdownanswer ul {
+  margin: 1rem;
 }
