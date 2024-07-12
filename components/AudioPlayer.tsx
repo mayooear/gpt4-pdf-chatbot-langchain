@@ -16,7 +16,8 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
   const { currentlyPlayingId, setCurrentlyPlayingId } = useAudioContext();
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  
+  const [volume, setVolume] = useState(1);
+
   const { 
     audioRef, 
     isPlaying, 
@@ -93,8 +94,22 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
     setAudioTime(newTime);
   };
 
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [audioRef, volume]);
+
   return (
-    <div className="audio-player bg-gray-100 rounded-lg">
+    <div className="audio-player bg-gray-100 rounded-lg w-full md:w-1/2">
       <audio ref={audioRef} preload="metadata" />
       {error && <div className="text-red-500 mb-1 text-sm px-2">{error}</div>}
       {audioError && <div className="text-red-500 mb-1 text-sm px-2">{audioError}</div>}
@@ -109,6 +124,19 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
         </button>
         <div className="text-xs">
           {formatTime(currentTime)} / {formatTime(endTime || duration)}
+        </div>
+        <div className="flex items-center ml-2">
+          <span className="material-icons text-sm mr-1">volume_up</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-16"
+            aria-label="Volume control"
+          />
         </div>
       </div>
       <div className="px-2 pb-2">
