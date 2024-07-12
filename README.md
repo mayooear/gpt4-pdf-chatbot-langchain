@@ -99,6 +99,12 @@ yarn run ingest -- --dryrun
 
 1. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
+## Transcribe MP3 files and convert to embeddings
+
+Put your MP3 files in audio/media, in subfolders.
+
+Run `python scripts/transcribe-and-ingest-audio.py` to transcribe and embed your audio files!
+
 ## Run the app
 
 Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can run the app `npm run dev` to launch the local dev environment, and then type a question in the chat interface.
