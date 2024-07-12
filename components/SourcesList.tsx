@@ -95,7 +95,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     return (
       <>
       {sources.length > 0 && (
-        <div className="bg-gray-200 p-3 rounded-lg">
+        <div className="bg-gray-200 p-3 rounded-lg mt-2 mb-2">
           <Accordion type="single" collapsible onValueChange={(value) => handleAccordionExpand(!!value)}>
             <AccordionItem value="sources">
               <AccordionTrigger className="text-base font-semibold text-blue-500">
@@ -133,7 +133,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   }
 
   return (
-    <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg"> 
+    <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2 sourcesContainer"> 
       {sources.length > 0 && (
         <div className="flex justify-between items-end w-full mb-2"> 
           <div className="flex items-baseline">
