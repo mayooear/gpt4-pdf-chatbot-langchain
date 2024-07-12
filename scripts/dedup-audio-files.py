@@ -65,8 +65,12 @@ def compare_folders(treasures_folder, comparison_folder, destination_folder):
 
     # Process treasures folder
     print("Processing treasures folder...")
+    if not os.path.exists(treasures_folder) or not os.access(treasures_folder, os.R_OK):
+        print(f"Error: Cannot access treasures folder: {treasures_folder}")
+        sys.exit(1)
+    
     treasures_files = [os.path.join(root, file) for root, _, files in os.walk(treasures_folder) 
-                       for file in files if file.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac'))]
+                                             for file in files if file.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac'))]
     for file_path in tqdm(treasures_files, desc="Hashing treasures"):
         file_hash = get_audio_hash(file_path)
         if file_hash:
@@ -75,7 +79,10 @@ def compare_folders(treasures_folder, comparison_folder, destination_folder):
     print(f"Processed {len(treasures_hashes)} files in treasures folder.")
 
     # Process comparison folder
-    print("\nProcessing comparison folder...")
+    print(f"\nProcessing comparison folder {comparison_folder}...")
+    if not os.path.exists(comparison_folder) or not os.access(comparison_folder, os.R_OK):
+        print(f"Error: Cannot access comparison folder: {comparison_folder}")
+        sys.exit(1)
     comparison_files = [os.path.join(root, file) for root, _, files in os.walk(comparison_folder) 
                         for file in files if file.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac'))]
     print(f"Found {len(comparison_files)} files in comparison folder.")
