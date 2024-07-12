@@ -217,8 +217,8 @@ export default function Home() {
       <Layout>
         <LikePrompt show={showLikePrompt} />
         <div className={styles.main}>
-          <div className={styles.cloud}>
-            <div ref={messageListRef} className={styles.messagelist}>
+          <div className={styles.cloud} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <div ref={messageListRef} className={`${styles.messagelist} w-full overflow-y-auto`}>
               {messages.map((message, index) => {
                 let icon;
                 let className;

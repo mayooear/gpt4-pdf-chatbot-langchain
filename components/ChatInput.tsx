@@ -66,7 +66,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className={`${styles.center} w-full`}>
       <div className="w-full">
         <form onSubmit={onSubmit}>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 w-full">
             <textarea
               disabled={loading}
               onKeyDown={onEnter}
@@ -92,6 +92,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   : ''
               }
               className={`${styles.textarea} w-full`}
+              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
             />
             <button
               type="submit"
