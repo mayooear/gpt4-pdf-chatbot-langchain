@@ -245,6 +245,13 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0)
         print("\n*** ERROR *** OpenAI API request timed out. Retrying...")
         raise
     except APIError as e:
+        if e.code == 429:
+            print(f"\n*** ERROR *** OpenAI API error: {e}. Exiting script due to rate limit.")
+            interrupt_requested.value = True
+            return None
+        elif e.code == 400:
+            print(f"\n*** ERROR *** OpenAI API error: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
+            return None
         print(f"\n*** ERROR *** OpenAI API error: {e}")
         raise
     except Exception as e:
@@ -604,6 +611,8 @@ def process_file(file_path, index, client, force=False, current_file=None, total
 
     try:
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc=f"Processing transcripts for {file_name}"):
+            if check_interrupt():
+                break
             chunks = process_transcription(transcript)
             embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
