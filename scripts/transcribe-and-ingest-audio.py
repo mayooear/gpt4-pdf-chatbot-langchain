@@ -23,6 +23,10 @@ from progress.bar import Bar
 import signal
 import mutagen
 from mutagen.mp3 import MP3
+from mutagen.id3 import ID3NoHeaderError
+from collections import defaultdict
+import boto3
+from botocore.exceptions import ClientError
 
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -366,7 +370,7 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     else:
         error_msg = f"No transcripts generated for {file_name}"
         print(f"\n*** ERROR *** {error_msg}")
-        return None, error_msg  # Return None and the error message
+        return None  # Return None instead of a tuple
 
 def create_embeddings(chunks, client):
     texts = [chunk['text'] for chunk in chunks]
@@ -381,11 +385,20 @@ def load_pinecone(index_name):
 def get_audio_metadata(file_path):
     try:
         audio = MP3(file_path)
-        title = audio.tags.get('TIT2', [os.path.splitext(os.path.basename(file_path))[0]])[0]
-        author = audio.tags.get('TPE1', ['Swami Kriyananda'])[0]
+        if audio.tags:
+            title = audio.tags.get('TIT2', [os.path.splitext(os.path.basename(file_path))[0]])[0]
+            author = audio.tags.get('TPE1', ['Swami Kriyananda'])[0]
+        else:
+            # If there are no tags, use the filename as the title
+            title = os.path.splitext(os.path.basename(file_path))[0]
+            author = 'Swami Kriyananda'  # Default author
         return title, author
+    except ID3NoHeaderError:
+        # Handle files with no ID3 header
+        print(f"Warning: No ID3 header found for {file_path}")
+        return os.path.splitext(os.path.basename(file_path))[0], 'Swami Kriyananda'
     except Exception as e:
-        print(f"Error reading MP3 metadata: {e}")
+        print(f"Error reading MP3 metadata for {file_path}: {e}")
         return os.path.splitext(os.path.basename(file_path))[0], 'Swami Kriyananda'
 
 def store_in_pinecone(index, chunks, embeddings, file_path):
@@ -552,7 +565,7 @@ def process_file_wrapper(args):
     return process_file(file_path, index, client, force, current_file, total_files)
 
 def process_file(file_path, index, client, force=False, current_file=None, total_files=None):
-    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': []}
+    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': []}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -560,6 +573,12 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         if is_file_fully_indexed(index, file_path):
             print(f"\nFile already fully transcribed and indexed: {file_name}{file_info}")
             local_report['skipped'] += 1
+
+            # Still attempt to upload to S3 even if skipped
+            s3_warning = upload_to_s3(file_path)
+            if s3_warning:
+                local_report['warnings'].append(s3_warning)
+
             return local_report
         else:
             print(f"\nFile transcribed but not fully indexed. Re-processing: {file_name}{file_info}")
@@ -567,10 +586,12 @@ def process_file(file_path, index, client, force=False, current_file=None, total
     else:
         print(f"\nTranscribing audio for {file_name}{file_info}")
         try:
-            transcripts, error_msg = transcribe_audio(file_path, force, current_file, total_files)
+            transcripts = transcribe_audio(file_path, force, current_file, total_files)
             if transcripts:
                 local_report['processed'] += 1
             else:
+                error_msg = f"Error transcribing file {file_name}: No transcripts generated"
+                print(f"\n*** ERROR *** {error_msg}")
                 local_report['errors'] += 1
                 local_report['error_details'].append(error_msg)
                 return local_report
@@ -586,6 +607,11 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             chunks = process_transcription(transcript)
             embeddings = create_embeddings(chunks, client)
             store_in_pinecone(index, chunks, embeddings, file_path)
+        
+        # After successful processing, upload to S3
+        s3_warning = upload_to_s3(file_path)
+        if s3_warning:
+            local_report['warnings'].append(s3_warning)
     except Exception as e:
         error_msg = f"Error processing file {file_name}: {str(e)}"
         print(f"\n*** ERROR *** {error_msg}")
@@ -594,12 +620,73 @@ def process_file(file_path, index, client, force=False, current_file=None, total
 
     return local_report
 
+def upload_to_s3(file_path):
+    s3_client = boto3.client('s3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION')
+    )
+    bucket_name = os.getenv('S3_BUCKET_NAME')
+    file_name = os.path.basename(file_path)
+    s3_key = f'public/audio/{file_name}'
+
+    try:
+        # Check if file already exists in S3
+        try:
+            s3_obj = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+            s3_size = s3_obj['ContentLength']
+            local_size = os.path.getsize(file_path)
+
+            if s3_size == local_size:
+                print(f"File {file_name} already exists in S3 with the same size. Skipping upload.")
+                return None
+            else:
+                warning_msg = f"WARNING: File {file_name} exists in S3 but has a different size. S3 size: {s3_size} bytes, Local size: {local_size} bytes. Skipping upload to prevent data loss. Please review and handle manually if needed."
+                print(warning_msg)
+                return warning_msg
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                # File doesn't exist in S3, proceed with upload
+                pass
+            else:
+                raise
+
+        # Upload file to S3
+        s3_client.upload_file(file_path, bucket_name, s3_key)
+        print(f"Successfully uploaded {file_name} to S3")
+        return None
+    except Exception as e:
+        error_msg = f"Error uploading {file_name} to S3: {str(e)}"
+        print(error_msg)
+        return error_msg
+
+def get_file_hash(file_path):
+    """Calculate MD5 hash of file content, excluding metadata."""
+    hasher = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        # Read and update hash in chunks of 4K
+        for chunk in iter(lambda: f.read(4096), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
 def process_directory(directory_path, force=False):
     audio_files = []
+    processed_hashes = set()
+    skipped_files = []
+
     for root, dirs, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith(('.mp3', '.wav', '.flac')):
-                audio_files.append(os.path.join(root, file))
+                file_path = os.path.join(root, file)
+                file_hash = get_file_hash(file_path)
+                
+                if file_hash in processed_hashes:
+                    print(f"Skipping duplicate content: {file_path}")
+                    skipped_files.append(file_path)
+                    continue
+                
+                audio_files.append(file_path)
+                processed_hashes.add(file_hash)
     
     total_files = len(audio_files)
     
@@ -631,12 +718,16 @@ def process_directory(directory_path, force=False):
             pool.join()
     
     # Aggregate results from all processes
-    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': []}
+    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': []}
     for result in results:
         report['processed'] += result['processed']
         report['skipped'] += result['skipped']
         report['errors'] += result['errors']
         report['error_details'].extend(result.get('error_details', []))
+        report['warnings'].extend(result.get('warnings', []))
+    
+    # Add skipped files due to duplicate content
+    report['skipped'] += len(skipped_files)
     
     print(f"\nFinal Report:")
     print(f"Files processed: {report['processed']}")
@@ -647,8 +738,18 @@ def process_directory(directory_path, force=False):
         print("\nError details:")
         for error in report['error_details']:
             print(f"- {error}")
+    
+    if report['warnings']:
+        print("\nWarnings:")
+        for warning in report['warnings']:
+            print(f"- {warning}")
+    
+    if skipped_files:
+        print("\nSkipped files due to duplicate content:")
+        for file in skipped_files:
+            print(f"- {file}")
 
-    return report  # Return the report for use in the main function
+    return report
 
 def signal_handler(sig, frame):
     global interrupt_requested, force_exit
@@ -666,18 +767,47 @@ def check_interrupt():
         sys.exit(0)
     return interrupt_requested.value
 
+def check_unique_filenames(directory_path, s3_client, bucket_name):
+    local_files = defaultdict(list)
+    s3_files = set()
+    conflicts = defaultdict(list)
+
+    # Collect local files
+    for root, _, files in os.walk(directory_path):
+        for file in files:
+            if file.lower().endswith(('.mp3', '.wav', '.flac')):
+                local_files[file].append(os.path.join(root, file))
+
+    # Collect S3 files
+    try:
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=bucket_name, Prefix='public/audio/'):
+            for obj in page.get('Contents', []):
+                s3_files.add(os.path.basename(obj['Key']))
+    except ClientError as e:
+        print(f"Error accessing S3 bucket: {e}")
+        return []
+
+    # Check for conflicts with S3
+    for file in local_files:
+        if file in s3_files:
+            conflicts[file].append(f"S3: public/audio/{file}")
+
+    return conflicts
+
 if __name__ == "__main__":
     def usage():
-        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t] [--force] [-c]")
+        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t] [--force] [-c] [--override-conflicts]")
         print("  -f, --file: Path to audio file or directory")
         print("  -q, --query: Query for similar chunks")
         print("  -t, --transcribe-only: Only transcribe the audio, don't process or store in Chroma")
         print("  --force: Force re-transcription even if a transcription already exists")
         print("  -c, --clear-treasures-vectors: Clear existing Treasures vectors from Pinecone before processing")
+        print("  --override-conflicts: Continue processing even if filename conflicts are found")
         sys.exit(1)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear-treasures-vectors"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear-treasures-vectors", "override-conflicts"])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -687,6 +817,7 @@ if __name__ == "__main__":
     transcribe_only = False
     force_transcribe = False
     clear_vectors = False
+    override_conflicts = False
 
     for opt, arg in opts:
         if opt in ("-f", "--file"):
@@ -699,6 +830,8 @@ if __name__ == "__main__":
             force_transcribe = True
         elif opt in ("-c", "--clear-treasures-vectors"):
             clear_vectors = True
+        elif opt == "--override-conflicts":
+            override_conflicts = True
 
     if not file_path and not query:
         usage()
@@ -714,6 +847,24 @@ if __name__ == "__main__":
 
         index = load_pinecone(os.getenv('PINECONE_INDEX_NAME'))
 
+        # Check for unique filenames
+        if file_path and os.path.isdir(file_path):
+            s3_client = boto3.client('s3',
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('AWS_REGION')
+            )
+            bucket_name = os.getenv('S3_BUCKET_NAME')
+            conflicts = check_unique_filenames(file_path, s3_client, bucket_name)
+            if conflicts and not override_conflicts:
+                print("Filename conflicts found:")
+                for file, locations in conflicts.items():
+                    print(f"\n{file}:")
+                    for location in locations:
+                        print(f"  - {location}")
+                print("Exiting due to filename conflicts. Use --override-conflicts to continue processing.")
+                sys.exit(1)
+        
         if clear_vectors:
             clear_treasures_vectors(index)
 
@@ -743,11 +894,18 @@ if __name__ == "__main__":
                     pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
                     index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
                     report = process_file(file_path, index, client, force_transcribe)
-                    print(f"\nReport:\nFiles processed: {report['processed']}\nFiles skipped: {report['skipped']}\nFiles with errors: {report['errors']}")
+                    print(f"\nReport:")
+                    print(f"Files processed: {report['processed']}")
+                    print(f"Files skipped: {report['skipped']}")
+                    print(f"Files with errors: {report['errors']}")
                     if report['errors'] > 0:
                         print("\nError details:")
                         for error in report['error_details']:
                             print(f"- {error}")
+                    if report['warnings']:
+                        print("\nWarnings:")
+                        for warning in report['warnings']:
+                            print(f"- {warning}")
 
         if query and not transcribe_only:
             query_similar_chunks(index, client, query)
