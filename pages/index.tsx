@@ -36,6 +36,7 @@ export default function Home() {
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
   const [answerCount, setAnswerCount] = useState(0);
+  const [isControlsMenuOpen, setIsControlsMenuOpen] = useState<boolean>(false);
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
@@ -174,19 +175,31 @@ export default function Home() {
 
   // Add this effect to scroll when messages change
   useEffect(() => {
-    if (lastMessageRef.current) {
+    if (lastMessageRef.current && messageListRef.current) {
       const lastMessage = lastMessageRef.current;
+      const messageList = messageListRef.current;
       const rect = lastMessage.getBoundingClientRect();
       
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const clientHeight = document.documentElement.clientHeight;
+      const scrollTop = messageList.scrollTop;
+      const clientHeight = messageList.clientHeight;
 
-      if (rect.top > clientHeight - 100) { 
+      if (rect.top > clientHeight - 100) {
         console.log('Scrolling to last message');
-        window.scrollTo({
-          top: scrollTop + rect.top - clientHeight + 100, 
+        messageList.scrollTo({
+          top: scrollTop + rect.top - clientHeight + 100,
           behavior: 'smooth'
         });
+      } else {
+        // For mobile, scroll a bit more smoothly
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          messageList.scrollTo({
+            top: scrollTop + rect.top - clientHeight + 50,
+            behavior: 'smooth'
+          });
+        } else {
+          lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
       }
     }
   }, [messages]);
@@ -333,6 +346,8 @@ export default function Home() {
               textAreaRef={textAreaRef}
               mediaTypes={mediaTypes}
               handleMediaTypeChange={handleMediaTypeChange}
+              isControlsMenuOpen={isControlsMenuOpen}
+              setIsControlsMenuOpen={setIsControlsMenuOpen}
             />
           </div>
         </div>

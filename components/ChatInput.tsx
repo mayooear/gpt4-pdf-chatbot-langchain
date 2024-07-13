@@ -21,6 +21,8 @@ interface ChatInputProps {
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   mediaTypes: { text: boolean; audio: boolean };
   handleMediaTypeChange: (type: 'text' | 'audio') => void;
+  isControlsMenuOpen: boolean;
+  setIsControlsMenuOpen: (isOpen: boolean) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -40,9 +42,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   messageListRef,
   mediaTypes,
   handleMediaTypeChange,
+  isControlsMenuOpen,
+  setIsControlsMenuOpen,
 }) => {
   const [localQuery, setLocalQuery] = useState<string>('');
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize(); // Set initial value
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -111,9 +129,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
                 </svg>
               )}
-            </button>     
-          </div>       
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mt-1 space-y-2 sm:space-y-0">
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsControlsMenuOpen(!isControlsMenuOpen)}
+            className="w-full text-left text-sm text-blue-600 mt-2 sm:hidden"
+          >
+            {isControlsMenuOpen ? 'Hide options' : 'Show options'}
+          </button>
+          <div className="mt-2 flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
             <div className="w-full sm:w-1/2 sm:pr-2 order-2 sm:order-1">
               <RandomQueries
                 queries={randomQueries}
@@ -123,46 +148,47 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 }}
                 isLoading={loading}
                 shuffleQueries={shuffleQueries}
+                isMobile={isMobile}
               />
             </div>
-
-            <div className="w-full sm:w-1/2 sm:pl-2 order-1 sm:order-2">
-              <div className="flex flex-col sm:items-end">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 w-full">
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleMediaTypeChange('text')}
-                      className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
-                        mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Written
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMediaTypeChange('audio')}
-                      className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
-                        mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Spoken
-                    </button>
+            {(isControlsMenuOpen || !isMobile) && (
+              <div className="w-full sm:w-1/2 sm:pl-2 order-1 sm:order-2">
+                <div className="flex flex-col sm:items-end">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 w-full">
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMediaTypeChange('text')}
+                        className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
+                          mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        Written
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMediaTypeChange('audio')}
+                        className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
+                          mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        Spoken
+                      </button>
+                    </div>
+                    <div className="sm:w-auto sm:min-w-[160px]">
+                      <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
+                    </div>
                   </div>
-                  <div className="sm:w-auto sm:min-w-[160px]">
-                    <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePrivateSessionChange}
+                    className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} w-full sm:w-auto mt-2 sm:mt-1`}
+                  >
+                    {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handlePrivateSessionChange}
-                  className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} w-full sm:w-auto mt-2 sm:mt-1`}
-                >
-                  {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                </button>
               </div>
-            </div>
+            )}
           </div>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">

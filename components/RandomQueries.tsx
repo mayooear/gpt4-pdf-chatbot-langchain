@@ -6,22 +6,11 @@ interface RandomQueriesProps {
   onQueryClick: (query: string) => void;
   isLoading: boolean;
   shuffleQueries: () => void;
+  isMobile: boolean;
 }
 
-const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading, shuffleQueries }) => {
-  const [displayCount, setDisplayCount] = useState(3);
-
-  useEffect(() => {
-    setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
-
-    const handleResize = () => {
-      setDisplayCount(window.innerWidth >= 768 ? 3 : 1);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []); 
+const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading, shuffleQueries, isMobile }) => {
+  const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
 
   const handleQueryClick = (query: string) => {
     if (!isLoading) {
@@ -38,32 +27,44 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
 
   return (
     <div className="text-left w-full px-0">
-      <div className="bg-gray-100 p-4 rounded-lg w-[90%] sm:w-[35vw] min-w-[280px] max-w-[400px]">
+      <div className="bg-gray-100 p-4 rounded-lg w-full max-w-[400px]">
         <div className="flex justify-between items-center mb-3">
-          <p className="font-semibold">{displayCount > 1 ? 'Suggested Queries:' : 'Suggested Query:'}</p>
+          <p className="font-semibold">Suggested Query:</p>
           <button
             onClick={handleShuffleQueries}
             className="inline-flex justify-center items-center transform transition-transform duration-500 hover:rotate-180 flex-shrink-0 ml-2"
             aria-label="Refresh queries"
-            disabled={isLoading} 
+            disabled={isLoading}
           >
             <span className="material-icons text-blue-600 hover:text-blue-800">autorenew</span>
           </button>
         </div>
-        <ul className="list-none w-full">
-          {queries.slice(0, displayCount).map((query, index) => (
-            <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
-              <button
-                className={`focus:outline-none focus:underline w-full text-left break-words ${isLoading ? 'cursor-not-allowed' : ''}`}
-                onClick={() => handleQueryClick(query)}
-                aria-label={`Sample query: ${query}`}
-                disabled={isLoading} 
-              >
-                {query}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isMobile ? (
+          <div className="flex items-center">
+            <button
+              className={`flex-grow text-left break-words ${isLoading ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}
+              onClick={() => handleQueryClick(queries[currentQueryIndex])}
+              disabled={isLoading}
+            >
+              {queries[currentQueryIndex]}
+            </button>
+          </div>
+        ) : (
+          <ul className="list-none w-full">
+            {queries.slice(0, 3).map((query, index) => (
+              <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
+                <button
+                  className={`focus:outline-none focus:underline w-full text-left break-words ${isLoading ? 'cursor-not-allowed' : ''}`}
+                  onClick={() => handleQueryClick(query)}
+                  aria-label={`Sample query: ${query}`}
+                  disabled={isLoading}
+                >
+                  {query}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
