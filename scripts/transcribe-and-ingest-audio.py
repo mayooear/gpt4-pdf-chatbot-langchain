@@ -370,7 +370,7 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     else:
         error_msg = f"No transcripts generated for {file_name}"
         print(f"\n*** ERROR *** {error_msg}")
-        return None  # Return None instead of a tuple
+        return None  
 
 def create_embeddings(chunks, client):
     texts = [chunk['text'] for chunk in chunks]
