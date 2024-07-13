@@ -65,11 +65,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     if (!loading) {
       setLocalQuery('');
+      if (textAreaRef.current) {
+        textAreaRef.current.style.height = 'auto';
+      }
       if (isFirstQuery) {
         setIsFirstQuery(false);
       }
     }
-  }, [loading, isFirstQuery]);
+  }, [loading, isFirstQuery, textAreaRef]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
