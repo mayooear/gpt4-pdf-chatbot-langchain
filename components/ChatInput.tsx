@@ -66,7 +66,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className={`${styles.center} w-full`}>
       <div className="w-full">
         <form onSubmit={onSubmit}>
-          <div className="flex items-center space-x-2 w-full">
+          <div className="flex items-center space-x-2">
             <textarea
               disabled={loading}
               onKeyDown={onEnter}
@@ -92,7 +92,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   : ''
               }
               className={`${styles.textarea} w-full`}
-              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
             />
             <button
               type="submit"
@@ -130,11 +129,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <div className="w-full sm:w-1/2 sm:pl-2 order-1 sm:order-2">
               <div className="flex flex-col sm:items-end">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 w-full">
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  <div className="flex space-x-2">
                     <button
                       type="button"
                       onClick={() => handleMediaTypeChange('text')}
-                      className={`px-2.5 py-1.5 text-sm rounded w-full sm:w-auto ${
+                      className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
                         mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                       }`}
                     >
@@ -143,7 +142,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     <button
                       type="button"
                       onClick={() => handleMediaTypeChange('audio')}
-                      className={`px-2.5 py-1.5 text-sm rounded w-full sm:w-auto ${
+                      className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
                         mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                       }`}
                     >
