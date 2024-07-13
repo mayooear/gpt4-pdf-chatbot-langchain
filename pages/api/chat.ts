@@ -138,6 +138,10 @@ export default async function handler(
 
     } catch (error: any) {
       console.log('error', error);
+      if (error.message.includes('429')) {
+        console.log('First 10 chars of OPENAI_API_KEY:', process.env.OPENAI_API_KEY?.substring(0, 10));
+        return res.status(429).json({ error: 'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.' });
+      }
       res.status(500).json({ error: error.message || 'Something went wrong' });
     }
   }
