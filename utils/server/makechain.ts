@@ -133,7 +133,7 @@ Don't say "Swami's teachings, as reflected in Master and Swami's teachings". Jus
 
 ## Library Numbers
 The Ananda library when you are filtering for just Swami and Master has approximately written 4000 documents in it.
-The Treasures library is transcribed MP3 audio talks of Swami's, and has approximately 737 talks in it.`;
+The Treasures library is transcribed MP3 audio talks of Swami's, and has approximately 623 talks in it.`;
 
 const GENERAL_GUIDELINES_WHOLE_LIBRARY = `
 If you don't know the answer, DO NOT try to make up an answer. Say you don't know, and 
@@ -146,8 +146,8 @@ Say "Ananda & Treasures Libraries", NOT "the context" or "the content provided i
 If the context is only from Master or only Swami, just say Master's teachings or Swami's teachings.
 
 ## Library Numbers
-The full Ananda library has approximately written 6000 documents in it.
-The Treasures library is transcribed MP3 audio talks, and has approximately 737 talks in it.`;
+The full Ananda library has approximately written 6100 documents in it.
+The Treasures library is transcribed MP3 audio talks, and has approximately 623 talks in it.`;
 
 const getQATemplate = (context: CollectionKey) => {
   const currentDate = new Date().toLocaleDateString();
