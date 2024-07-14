@@ -27,6 +27,9 @@ from mutagen.id3 import ID3NoHeaderError
 from collections import defaultdict
 import boto3
 from botocore.exceptions import ClientError
+from audio_utils import get_file_hash, get_audio_metadata
+import statistics
+import argparse
 
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -155,20 +158,45 @@ Helpful answer:
 class UnsupportedAudioFormatError(Exception):
     pass
 
+TARGET_CHUNK_SIZE = 150
+
+# Global list to store chunk lengths
+chunk_lengths = []
+
+# Global flag for dry run
+dryrun = False
 
 # Process transcription into overlapping chunks with time codes
-def process_transcription(transcript, chunk_size=150, overlap=75):
+def process_transcription(transcript, target_chunk_size=TARGET_CHUNK_SIZE, overlap=TARGET_CHUNK_SIZE // 2):
+    global chunk_lengths  # Ensure we are using the global list
+    # Increase target chunk size to try to get avg size to the target
+    adjusted_target_chunk_size = int(target_chunk_size * 1.8)
     chunks = []
     words = transcript['words']
-    i = 0
+    total_words = len(words)
     
-    while i < len(words):
-        current_chunk = words[i:i + chunk_size]
+    # Calculate the number of chunks needed
+    num_chunks = (total_words + adjusted_target_chunk_size - 1) // adjusted_target_chunk_size
+    
+    # Adjust chunk size to ensure even distribution
+    adjusted_chunk_size = (total_words + num_chunks - 1) // num_chunks
+    
+    i = 0
+    while i < total_words:
+        end_index = i + adjusted_chunk_size
+        if end_index > total_words:
+            end_index = total_words
+        
+        current_chunk = words[i:end_index]
+        if not current_chunk: 
+            break
+        
         current_chunk_text = [item['word'] for item in current_chunk]
         
         chunk_text = " ".join(current_chunk_text)
         start_time = current_chunk[0]['start']
         end_time = current_chunk[-1]['end']
+        
         chunks.append({
             'text': chunk_text,
             'start_time': start_time,
@@ -176,11 +204,45 @@ def process_transcription(transcript, chunk_size=150, overlap=75):
             'words': current_chunk
         })
         
-        i += chunk_size - overlap
+        # Store the length of the current chunk
+        chunk_lengths.append(len(current_chunk))
+        
+        i += adjusted_chunk_size - overlap
     
+    # Combine the last two chunks with the previous ones if they are too small
+    if len(chunks) > 2 and len(chunks[-1]['words']) < target_chunk_size // 2:
+        last_chunk = chunks.pop()
+        chunks[-2]['text'] += " " + last_chunk['text']
+        chunks[-2]['end_time'] = last_chunk['end_time']
+        chunks[-2]['words'].extend(last_chunk['words'])
+    
+    if len(chunks) > 1 and len(chunks[-1]['words']) < target_chunk_size // 2:
+        last_chunk = chunks.pop()
+        chunks[-1]['text'] += " " + last_chunk['text']
+        chunks[-1]['end_time'] = last_chunk['end_time']
+        chunks[-1]['words'].extend(last_chunk['words'])
+    
+    for chunk in chunks:
+        if len(chunk['words']) < 30:
+            print(f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start_time']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..." + (" *****" if len(chunk['words']) < 15 else ""))
+            print(f"** Warning **: Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start_time']:.2f}s")
+        
     return chunks
 
-def split_audio(file_path, min_silence_len=800, silence_thresh=-28, chunk_length_ms=120000):
+def print_chunk_statistics(chunk_lengths):
+    if chunk_lengths:
+        avg_length = statistics.mean(chunk_lengths)
+        std_dev = statistics.stdev(chunk_lengths)
+        min_length = min(chunk_lengths)
+        max_length = max(chunk_lengths)
+        print(f"\nAverage chunk length: {round(avg_length)} words")
+        print(f"Standard deviation of chunk lengths: {round(std_dev)} words")
+        print(f"Smallest chunk length: {min_length} words")
+        print(f"Largest chunk length: {max_length} words")
+    else:
+        print("No chunks processed.")
+
+def split_audio(file_path, min_silence_len=1000, silence_thresh=-26, chunk_length_ms=300000):
     audio = AudioSegment.from_file(file_path)
     chunks = split_on_silence(
         audio, 
@@ -200,6 +262,12 @@ def split_audio(file_path, min_silence_len=800, silence_thresh=-28, chunk_length
     
     if len(current_chunk) > 0:
         combined_chunks.append(current_chunk)
+    
+    # Debug print to log the time windows of the chunks
+    for i, chunk in enumerate(combined_chunks):
+        start_time = sum(len(c) for c in combined_chunks[:i]) / 1000
+        end_time = start_time + len(chunk) / 1000
+        print(f"Chunk {i+1}: Start time = {start_time:.2f}s, End time = {end_time:.2f}s")
     
     return combined_chunks
 
@@ -291,7 +359,7 @@ def get_transcription(file_path):
     1. It checks the SQLite database for the file's index entry.
     2. If found, it loads the transcription from the corresponding gzipped JSON file.
     """
-    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+    file_hash = get_file_hash(file_path)
     conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
     c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
@@ -325,7 +393,7 @@ def save_transcription(file_path, transcripts):
     1. Store the raw transcription data in a gzipped JSON file.
     2. Save the file's metadata and location in the SQLite database for quick indexing.
     """
-    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+    file_hash = get_file_hash(file_path)
     json_file = f"{file_hash}.json.gz"
     full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
     
@@ -400,28 +468,12 @@ def load_pinecone(index_name):
         pc.create_index(index_name, dimension=1536, metric="cosine")
     return pc.Index(index_name)
 
-def get_audio_metadata(file_path):
-    try:
-        audio = MP3(file_path)
-        if audio.tags:
-            title = audio.tags.get('TIT2', [os.path.splitext(os.path.basename(file_path))[0]])[0]
-            author = audio.tags.get('TPE1', ['Swami Kriyananda'])[0]
-        else:
-            # If there are no tags, use the filename as the title
-            title = os.path.splitext(os.path.basename(file_path))[0]
-            author = 'Swami Kriyananda'  # Default author
-        return title, author
-    except ID3NoHeaderError:
-        # Handle files with no ID3 header
-        print(f"Warning: No ID3 header found for {file_path}")
-        return os.path.splitext(os.path.basename(file_path))[0], 'Swami Kriyananda'
-    except Exception as e:
-        print(f"Error reading MP3 metadata for {file_path}: {e}")
-        return os.path.splitext(os.path.basename(file_path))[0], 'Swami Kriyananda'
-
-def store_in_pinecone(index, chunks, embeddings, file_path):
+def store_in_pinecone(index, chunks, embeddings, file_path, dryrun=False):
+    if dryrun:
+        return
+    
     file_name = os.path.basename(file_path)
-    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+    file_hash = get_file_hash(file_path)
     
     # Get the title and author from metadata or fallback
     title, author = get_audio_metadata(file_path)
@@ -538,11 +590,11 @@ def get_expected_chunk_count(file_path):
     transcripts = get_transcription(file_path)
     if not transcripts:
         return 0
-    total_chunks = sum(len(process_transcription(transcript)) for transcript in transcripts)
-    return total_chunks
+    total_chunks = sum(len(transcript['words']) for transcript in transcripts)
+    return (total_chunks + TARGET_CHUNK_SIZE - 1) // TARGET_CHUNK_SIZE
 
 def is_file_fully_indexed(index, file_path):
-    file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+    file_hash = get_file_hash(file_path)
     file_name = os.path.basename(file_path)
     
     expected_chunks = get_expected_chunk_count(file_path)
@@ -577,13 +629,13 @@ def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 def process_file_wrapper(args):
-    file_path, force, current_file, total_files = args
+    file_path, force, current_file, total_files, dryrun = args
     if check_interrupt():
         return None
-    return process_file(file_path, index, client, force, current_file, total_files)
+    return process_file(file_path, index, client, force, current_file, total_files, dryrun)
 
-def process_file(file_path, index, client, force=False, current_file=None, total_files=None):
-    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0}
+def process_file(file_path, index, client, force=False, current_file=None, total_files=None, dryrun=False):
+    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0, 'chunk_lengths': []}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -623,12 +675,16 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             return local_report
 
     try:
+        if dryrun:  
+            print(f"Dry run mode: Would store chunks for file {file_path} in Pinecone.")
+
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc=f"Processing transcripts for {file_name}"):
             if check_interrupt():
                 break
             chunks = process_transcription(transcript)
+            local_report['chunk_lengths'].extend([len(chunk['words']) for chunk in chunks])
             embeddings = create_embeddings(chunks, client)
-            store_in_pinecone(index, chunks, embeddings, file_path)
+            store_in_pinecone(index, chunks, embeddings, file_path, dryrun)
         
         # After successful processing, upload to S3
         s3_warning = upload_to_s3(file_path)
@@ -682,16 +738,14 @@ def upload_to_s3(file_path):
         print(error_msg)
         return error_msg
 
-def get_file_hash(file_path):
-    """Calculate MD5 hash of file content, excluding metadata."""
-    hasher = hashlib.md5()
-    with open(file_path, 'rb') as f:
-        # Read and update hash in chunks of 4K
-        for chunk in iter(lambda: f.read(4096), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+def check_interrupt():
+    if interrupt_requested.value:
+        print("Interrupt requested. Exiting...")
+        force_exit.value = True
+        return True
+    return False
 
-def process_directory(directory_path, force=False):
+def process_directory(directory_path, force=False, dryrun=False):
     audio_files = []
     processed_hashes = set()
     skipped_files = []
@@ -715,14 +769,14 @@ def process_directory(directory_path, force=False):
     # Calculate the number of processes
     max_processes = multiprocessing.cpu_count()
     reduced_processes = max(1, int(max_processes * 0.7))  # Reduce by 30%
-    num_processes = min(reduced_processes, 4)  # Cap num of processes
+    num_processes = min(reduced_processes, 1)  # Cap num of processes
     
     print(f"Using {num_processes} processes for parallel processing")
     
     # Use multiprocessing to process files in parallel
     with multiprocessing.Pool(processes=num_processes, initializer=init_worker) as pool:
         try:
-            args_list = [(file_path, force, i+1, total_files) for i, file_path in enumerate(audio_files)]
+            args_list = [(file_path, force, i+1, total_files, dryrun) for i, file_path in enumerate(audio_files)]
             results = []
             for result in pool.imap_unordered(process_file_wrapper, args_list):
                 if result is None:
@@ -740,7 +794,7 @@ def process_directory(directory_path, force=False):
             pool.join()
     
     # Aggregate results from all processes
-    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0}
+    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0, 'chunk_lengths': []}
     for result in results:
         report['processed'] += result['processed']
         report['skipped'] += result['skipped']
@@ -749,6 +803,7 @@ def process_directory(directory_path, force=False):
         report['warnings'].extend(result.get('warnings', []))
         report['partially_indexed'] += result.get('partially_indexed', 0)
         report['fully_indexed'] += result.get('fully_indexed', 0)
+        report['chunk_lengths'].extend(result.get('chunk_lengths', []))
     
     # Add skipped files due to duplicate content
     report['skipped'] += len(skipped_files)
@@ -788,12 +843,6 @@ def signal_handler(sig, frame):
         force_exit.value = True
         sys.exit(0)
 
-# Add this function to check for interrupts
-def check_interrupt():
-    if force_exit.value:
-        sys.exit(0)
-    return interrupt_requested.value
-
 def check_unique_filenames(directory_path, s3_client, bucket_name):
     local_files = defaultdict(list)
     s3_files = set()
@@ -823,45 +872,21 @@ def check_unique_filenames(directory_path, s3_client, bucket_name):
     return conflicts
 
 if __name__ == "__main__":
-    def usage():
-        print("Usage: python transcribe-audio.py -f <file_path> [-q <query>] [-t] [--force] [-c] [--override-conflicts]")
-        print("  -f, --file: Path to audio file or directory")
-        print("  -q, --query: Query for similar chunks")
-        print("  -t, --transcribe-only: Only transcribe the audio, don't process or store in Chroma")
-        print("  --force: Force re-transcription even if a transcription already exists")
-        print("  -c, --clear-treasures-vectors: Clear existing Treasures vectors from Pinecone before processing")
-        print("  --override-conflicts: Continue processing even if filename conflicts are found")
+    parser = argparse.ArgumentParser(description="Audio transcription and indexing script")
+    parser.add_argument("-f", "--file", help="Path to audio file or directory")
+    parser.add_argument("-q", "--query", help="Query for similar chunks")
+    parser.add_argument("-t", "--transcribe-only", action="store_true", help="Only transcribe the audio, don't process or store in Chroma")
+    parser.add_argument("--force", action="store_true", help="Force re-transcription even if a transcription already exists")
+    parser.add_argument("-c", "--clear-treasures-vectors", action="store_true", help="Clear existing Treasures vectors from Pinecone before processing")
+    parser.add_argument("--override-conflicts", action="store_true", help="Continue processing even if filename conflicts are found")
+    parser.add_argument("--dryrun", action="store_true", help="Perform a dry run without sending data to Pinecone")
+    
+    args = parser.parse_args()
+
+    if not args.file and not args.query:
+        parser.print_help()
         sys.exit(1)
 
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:q:tc", ["file=", "query=", "transcribe-only", "force", "clear-treasures-vectors", "override-conflicts"])
-    except getopt.GetoptError as err:
-        print(err)
-        usage()
-
-    file_path = None
-    query = None
-    transcribe_only = False
-    force_transcribe = False
-    clear_vectors = False
-    override_conflicts = False
-
-    for opt, arg in opts:
-        if opt in ("-f", "--file"):
-            file_path = arg
-        elif opt in ("-q", "--query"):
-            query = arg
-        elif opt in ("-t", "--transcribe-only"):
-            transcribe_only = True
-        elif opt == "--force":
-            force_transcribe = True
-        elif opt in ("-c", "--clear-treasures-vectors"):
-            clear_vectors = True
-        elif opt == "--override-conflicts":
-            override_conflicts = True
-
-    if not file_path and not query:
-        usage()
     try:
         # Load environment variables
         load_dotenv('../.env')
@@ -875,15 +900,15 @@ if __name__ == "__main__":
         index = load_pinecone(os.getenv('PINECONE_INDEX_NAME'))
 
         # Check for unique filenames
-        if file_path and os.path.isdir(file_path):
+        if args.file and os.path.isdir(args.file):
             s3_client = boto3.client('s3',
                 aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
                 aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
                 region_name=os.getenv('AWS_REGION')
             )
             bucket_name = os.getenv('S3_BUCKET_NAME')
-            conflicts = check_unique_filenames(file_path, s3_client, bucket_name)
-            if conflicts and not override_conflicts:
+            conflicts = check_unique_filenames(args.file, s3_client, bucket_name)
+            if conflicts and not args.override_conflicts:
                 print("Filename conflicts found:")
                 for file, locations in conflicts.items():
                     print(f"\n{file}:")
@@ -892,35 +917,37 @@ if __name__ == "__main__":
                 print("Exiting due to filename conflicts. Use --override-conflicts to continue processing.")
                 sys.exit(1)
         
-        if clear_vectors:
+        if args.clear_treasures_vectors:
             clear_treasures_vectors(index)
 
         init_db()  # Initialize the SQLite database for transcription indexing
 
-        if file_path:
-            if os.path.isdir(file_path):
-                if transcribe_only:
-                    for root, dirs, files in os.walk(file_path):
+        if args.file:
+            if os.path.isdir(args.file):
+                if args.transcribe_only:
+                    for root, dirs, files in os.walk(args.file):
                         for file in files:
                             if file.lower().endswith(('.mp3', '.wav', '.flac')):
                                 file_path = os.path.join(root, file)
                                 print(f"\nTranscribing {file_path}")
-                                transcribe_audio(file_path, force_transcribe)
+                                transcribe_audio(file_path, args.force)
                             if check_interrupt():
                                 print("Interrupt requested. Exiting...")
                                 sys.exit(0)
                 else:
-                    report = process_directory(file_path, force_transcribe)
+                    report = process_directory(args.file, args.force, args.dryrun)
+                    # Print chunk statistics
+                    print_chunk_statistics(report['chunk_lengths'])
             else:
-                if transcribe_only:
-                    print(f"\nTranscribing {file_path}")
-                    transcribe_audio(file_path, force_transcribe)
+                if args.transcribe_only:
+                    print(f"\nTranscribing {args.file}")
+                    transcribe_audio(args.file, args.force)
                 else:
                     # For single file processing, create client and index here
                     client = OpenAI()
                     pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
                     index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
-                    report = process_file(file_path, index, client, force_transcribe)
+                    report = process_file(args.file, index, client, args.force, dryrun=args.dryrun)
                     print(f"\nReport:")
                     print(f"Files processed: {report['processed']}")
                     print(f"Files skipped: {report['skipped']}")
@@ -933,10 +960,12 @@ if __name__ == "__main__":
                         print("\nWarnings:")
                         for warning in report['warnings']:
                             print(f"- {warning}")
+                    # Print chunk statistics
+                    print_chunk_statistics(report['chunk_lengths'])
 
-        if query and not transcribe_only:
-            query_similar_chunks(index, client, query)
-        elif not file_path and not transcribe_only:
+        if args.query and not args.transcribe_only:
+            query_similar_chunks(index, client, args.query)
+        elif not args.file and not args.transcribe_only:
             print("No file path or query provided. Exiting.")
 
     except KeyboardInterrupt:
