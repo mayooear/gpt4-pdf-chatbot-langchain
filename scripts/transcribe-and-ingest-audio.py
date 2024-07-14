@@ -152,6 +152,10 @@ Question: {{question}}
 Helpful answer:
 """
 
+class UnsupportedAudioFormatError(Exception):
+    pass
+
+
 # Process transcription into overlapping chunks with time codes
 def process_transcription(transcript, chunk_size=150, overlap=75):
     chunks = []
@@ -249,9 +253,9 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0,
             print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. Exiting script due to rate limit.")
             interrupt_requested.value = True
             return None
-        elif e.code == 400:
+        elif e.code == 400 and 'The audio file could not be decoded or its format is not supported.' in str(e):
             print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
-            return None
+            raise UnsupportedAudioFormatError(f"Unsupported audio format for file {file_name}")
         print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}")
         raise
     except Exception as e:
@@ -363,13 +367,20 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     cumulative_time = 0
     
     for i, chunk in enumerate(tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")):
-        transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time, file_name)
-        if transcript:
-            transcripts.append(transcript)
-            previous_transcript = transcript['text']
-            cumulative_time += chunk.duration_seconds
-        else:
-            print(f"\n*** ERROR *** Empty or invalid transcript for chunk {i+1} in {file_name}")
+        try:
+            transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time, file_name)
+            if transcript:
+                transcripts.append(transcript)
+                previous_transcript = transcript['text']
+                cumulative_time += chunk.duration_seconds
+            else:
+                print(f"\n*** ERROR *** Empty or invalid transcript for chunk {i+1} in {file_name}")
+        except UnsupportedAudioFormatError as e:
+            print(f"\n*** ERROR *** {e}. Stopping processing for file {file_name}.")
+            return None
+        except Exception as e:
+            print(f"\n*** ERROR *** Error transcribing chunk for file {file_name}. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
+            return None
     
     if transcripts:
         save_transcription(file_path, transcripts)
