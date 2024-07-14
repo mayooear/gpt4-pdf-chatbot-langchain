@@ -22,6 +22,7 @@ export function middleware(req: NextRequest) {
   if (
     !cookie &&
     url.pathname !== '/login' &&
+    !(url.pathname.startsWith('/answers/') && url.pathname !== '/answers/') && 
     !url.pathname.startsWith('/_next') &&
     !url.pathname.startsWith('/api') &&
     !url.pathname.startsWith('/favicon.ico') &&
