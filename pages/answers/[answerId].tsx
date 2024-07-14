@@ -146,35 +146,37 @@ const SingleAnswer = () => {
           <div className="flex items-center">
             <span className="material-icons">question_answer</span>
             <div className="ml-4 flex-grow">
-              <b className="text-black-600 ">
-                {expanded ? (
-                  answer.question.split('\n').map((line, i) => (
-                    <React.Fragment key={i}>
-                      {line}
-                      {i < answer.question.split('\n').length - 1 && <br />}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <>
-                    {renderTruncatedQuestion(answer.question, 200)}
-                    {answer.question.length > 200 && '...'}
-                  </>
-                )}
-                {answer.question.length > 200 && !expanded && (
-                  <button 
-                    onClick={() => setExpanded(true)}
-                    className="text-black hover:underline ml-2"
-                  >
-                    Show More
-                  </button>
-                )}
-              </b>
-              <span className="ml-4 text-sm">
-                {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
+              <div className="mb-2">
+                <b className="text-black-600 block">
+                  {expanded ? (
+                    answer.question.split('\n').map((line, i) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        {i < answer.question.split('\n').length - 1 && <br />}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <>
+                      {renderTruncatedQuestion(answer.question, 200)}
+                      {answer.question.length > 200 && '...'}
+                    </>
+                  )}
+                  {answer.question.length > 200 && !expanded && (
+                    <button 
+                      onClick={() => setExpanded(true)}
+                      className="text-black hover:underline ml-2"
+                    >
+                      Show More
+                    </button>
+                  )}
+                </b>
+              </div>
+              <div className="text-sm text-gray-500">
+                {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
                 <span className="ml-4">
                   {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
                 </span>            
-              </span>
+              </div>
             </div>
           </div>
           <div className="bg-gray-100 p-2.5 rounded">

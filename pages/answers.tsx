@@ -308,42 +308,44 @@ const AllAnswers = () => {
                   <div className="flex items-center">
                     <span className="material-icons">question_answer</span>
                     <div className="ml-4 flex-grow">
-                      <Link href={`/answers/${answer.id}`} legacyBehavior>
-                        <a className="text-black-600 hover:underline cursor-pointer">
-                          <b>
-                            {expandedQuestions.has(answer.id) ? (
-                              answer.question.split('\n').map((line, i) => (
-                                <React.Fragment key={i}>
-                                  {line}
-                                  {i < answer.question.split('\n').length - 1 && <br />}
-                                </React.Fragment>
-                              ))
-                            ) : (
-                              <>
-                                {renderTruncatedQuestion(answer.question, 200)}
-                                {answer.question.length > 200 && '...'}
-                              </>
-                            )}
-                          </b>
-                        </a>
-                      </Link>
-                      {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleExpandQuestion(answer.id);
-                          }}
-                          className="text-black hover:underline ml-2"
-                        >
-                          <b>See More</b>
-                        </button>
-                      )}
-                      <span className="ml-4 text-sm">
-                        {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true }) + ' '}
+                      <div className="mb-2">
+                        <Link href={`/answers/${answer.id}`} legacyBehavior>
+                          <a className="text-black-600 hover:underline cursor-pointer">
+                            <b className="block">
+                              {expandedQuestions.has(answer.id) ? (
+                                answer.question.split('\n').map((line, i) => (
+                                  <React.Fragment key={i}>
+                                    {line}
+                                    {i < answer.question.split('\n').length - 1 && <br />}
+                                  </React.Fragment>
+                                ))
+                              ) : (
+                                <>
+                                  {renderTruncatedQuestion(answer.question, 200)}
+                                  {answer.question.length > 200 && '...'}
+                                </>
+                              )}
+                            </b>
+                          </a>
+                        </Link>
+                        {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleExpandQuestion(answer.id);
+                            }}
+                            className="text-black hover:underline ml-2"
+                          >
+                            <b>See More</b>
+                          </button>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
                         <span className="ml-4">
                           {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
                         </span>            
-                      </span>
+                      </div>
                     </div>
                   </div>
                   <div className="bg-gray-100 p-2.5 rounded">
