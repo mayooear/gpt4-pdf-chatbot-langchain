@@ -184,7 +184,6 @@ export default function Home() {
       const clientHeight = messageList.clientHeight;
 
       if (rect.top > clientHeight - 100) {
-        console.log('Scrolling to last message');
         messageList.scrollTo({
           top: scrollTop + rect.top - clientHeight + 100,
           behavior: 'smooth'
