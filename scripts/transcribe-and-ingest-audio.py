@@ -205,7 +205,7 @@ def split_audio(file_path, min_silence_len=800, silence_thresh=-28, chunk_length
     retry=retry_if_exception_type((APITimeoutError, APIError)),
     reraise=False
 )
-def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0):
+def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0, file_name=""):
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
             chunk.export(temp_file.name, format="mp3")
@@ -242,20 +242,20 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0)
         
         return simplified_transcript
     except APITimeoutError:
-        print("\n*** ERROR *** OpenAI API request timed out. Retrying...")
+        print(f"\n*** ERROR *** OpenAI API request timed out for file {file_name}. Retrying...")
         raise
     except APIError as e:
         if e.code == 429:
-            print(f"\n*** ERROR *** OpenAI API error: {e}. Exiting script due to rate limit.")
+            print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. Exiting script due to rate limit.")
             interrupt_requested.value = True
             return None
         elif e.code == 400:
-            print(f"\n*** ERROR *** OpenAI API error: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
+            print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
             return None
-        print(f"\n*** ERROR *** OpenAI API error: {e}")
+        print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}")
         raise
     except Exception as e:
-        print(f"\n*** ERROR *** Error transcribing chunk. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
+        print(f"\n*** ERROR *** Error transcribing chunk for file {file_name}. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
         print(f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}")
         return None
 
@@ -363,7 +363,7 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     cumulative_time = 0
     
     for i, chunk in enumerate(tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")):
-        transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time)
+        transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time, file_name)
         if transcript:
             transcripts.append(transcript)
             previous_transcript = transcript['text']
@@ -572,7 +572,7 @@ def process_file_wrapper(args):
     return process_file(file_path, index, client, force, current_file, total_files)
 
 def process_file(file_path, index, client, force=False, current_file=None, total_files=None):
-    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': []}
+    local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -580,6 +580,7 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         if is_file_fully_indexed(index, file_path):
             print(f"\nFile already fully transcribed and indexed: {file_name}{file_info}")
             local_report['skipped'] += 1
+            local_report['fully_indexed'] += 1
 
             # Still attempt to upload to S3 even if skipped
             s3_warning = upload_to_s3(file_path)
@@ -590,6 +591,7 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         else:
             print(f"\nFile transcribed but not fully indexed. Re-processing: {file_name}{file_info}")
             transcripts = existing_transcription
+            local_report['partially_indexed'] += 1
     else:
         print(f"\nTranscribing audio for {file_name}{file_info}")
         try:
@@ -702,7 +704,7 @@ def process_directory(directory_path, force=False):
     # Calculate the number of processes
     max_processes = multiprocessing.cpu_count()
     reduced_processes = max(1, int(max_processes * 0.7))  # Reduce by 30%
-    num_processes = min(reduced_processes, 4)  # Cap at 4 processes
+    num_processes = min(reduced_processes, 4)  # Cap num of processes
     
     print(f"Using {num_processes} processes for parallel processing")
     
@@ -727,13 +729,15 @@ def process_directory(directory_path, force=False):
             pool.join()
     
     # Aggregate results from all processes
-    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': []}
+    report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'partially_indexed': 0, 'fully_indexed': 0}
     for result in results:
         report['processed'] += result['processed']
         report['skipped'] += result['skipped']
         report['errors'] += result['errors']
         report['error_details'].extend(result.get('error_details', []))
         report['warnings'].extend(result.get('warnings', []))
+        report['partially_indexed'] += result.get('partially_indexed', 0)
+        report['fully_indexed'] += result.get('fully_indexed', 0)
     
     # Add skipped files due to duplicate content
     report['skipped'] += len(skipped_files)
@@ -757,6 +761,9 @@ def process_directory(directory_path, force=False):
         print("\nSkipped files due to duplicate content:")
         for file in skipped_files:
             print(f"- {file}")
+
+    print(f"Partially indexed files: {report['partially_indexed']}")
+    print(f"Fully indexed files: {report['fully_indexed']}")
 
     return report
 
