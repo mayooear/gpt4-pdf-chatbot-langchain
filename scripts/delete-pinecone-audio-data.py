@@ -8,7 +8,6 @@ def delete_records_by_prefix(index, prefix):
     # List all record IDs with the given prefix
     record_ids = []
     for ids in index.list(prefix=prefix):
-        print(f"IDS: {ids}")
         record_ids.extend(ids)
     
     if not record_ids:
