@@ -5,13 +5,12 @@ import { useAudioContext } from '@/contexts/AudioContext';
 interface AudioPlayerProps {
   src: string;
   startTime: number;
-  endTime?: number;
   audioId: string;
   lazyLoad?: boolean;
   isExpanded?: boolean;
 }
 
-export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false, isExpanded = false }: AudioPlayerProps) {
+export function AudioPlayer({ src, startTime, audioId, lazyLoad = false, isExpanded = false }: AudioPlayerProps) {
   const [isLoaded, setIsLoaded] = useState(!lazyLoad);
   const { currentlyPlayingId, setCurrentlyPlayingId } = useAudioContext();
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +30,6 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
   } = useAudioPlayer({
     src: audioUrl,
     startTime,
-    endTime,
     audioId,
     isGloballyPlaying: currentlyPlayingId === audioId,
   });
@@ -71,9 +69,12 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
   }, [currentlyPlayingId, audioId, isPlaying, togglePlayPause]);
 
   const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return hours > 0
+      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      : `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleTogglePlayPause = () => {
@@ -110,7 +111,12 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
 
   return (
     <div className="audio-player bg-gray-100 rounded-lg w-full md:w-1/2">
-      <audio ref={audioRef} preload="metadata" />
+      <audio 
+        ref={audioRef} 
+        preload="metadata" 
+        onLoadedMetadata={() => setAudioTime(startTime)} 
+        onError={(e) => setError('Failed to load audio. Please try again.')}
+      />
       {error && <div className="text-red-500 mb-1 text-sm px-2">{error}</div>}
       {audioError && <div className="text-red-500 mb-1 text-sm px-2">{audioError}</div>}
       <div className="flex items-center justify-between px-2">
@@ -123,7 +129,7 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
           <span className="material-icons text-2xl">{isPlaying ? 'pause' : 'play_arrow'}</span>
         </button>
         <div className="text-xs">
-          {formatTime(currentTime)} / {formatTime(endTime || duration)}
+          {formatTime(currentTime)} / {formatTime(duration)}
         </div>
         <div className="flex items-center ml-2">
           <span className="material-icons text-sm mr-1">volume_up</span>
@@ -143,7 +149,7 @@ export function AudioPlayer({ src, startTime, endTime, audioId, lazyLoad = false
         <input
           type="range"
           min={0}
-          max={endTime || duration}
+          max={duration}
           value={currentTime}
           onChange={handleSeek}
           className="w-full"

@@ -26,7 +26,6 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             key={audioId}
             src={`/api/audio/${doc.metadata.file_name}`}
             startTime={doc.metadata.start_time}
-            endTime={doc.metadata.end_time}
             audioId={audioId}
             lazyLoad={true}
             isExpanded={expandedSources.has(index)}
