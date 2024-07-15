@@ -8,6 +8,9 @@ from openai import OpenAI, APIError, APITimeoutError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tqdm import tqdm
 from audio_utils import get_file_hash, split_audio
+import logging
+
+logger = logging.getLogger(__name__)
 
 TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../audio/transcriptions'
@@ -157,7 +160,7 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
-def transcribe_audio(file_path, force=False, current_file=None, total_files=None):
+def transcribe_audio(file_path, force=False, current_file=None, total_files=None, interrupt_event=None):
     """
     Transcribe audio file, using existing transcription if available and not forced.
     
@@ -180,6 +183,9 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
     cumulative_time = 0
     
     for i, chunk in enumerate(tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")):
+        if interrupt_event and interrupt_event.is_set():
+            print("Interrupt detected. Stopping transcription...")
+            return None
         try:
             transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time, file_name)
             if transcript:
@@ -261,9 +267,9 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
             print(f"** Warning **: Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s")
     
     for idx, chunk in enumerate(chunks):
-        print(f"Chunk {idx + 1}:")
-        print(f"Text: {chunk['text']}")
-        print(f"Number of words: {len(chunk['words'])}")
-        print("\n")
+        logger.debug(f"Chunk {idx + 1}:")
+        logger.debug(f"Text: {chunk['text']}")
+        logger.debug(f"Number of words: {len(chunk['words'])}")
+        logger.debug("\n")
 
     return chunks

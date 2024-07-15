@@ -2,9 +2,12 @@ import os
 import sys
 import json
 import hashlib
+import logging
 from pinecone import Pinecone, ServerlessSpec
-
 from audio_utils import get_audio_metadata, get_file_hash
+
+logger = logging.getLogger(__name__)
+
 
 def create_embeddings(chunks, client):
     texts = [chunk['text'] for chunk in chunks]
@@ -20,10 +23,7 @@ def load_pinecone(index_name=None):
                         spec=ServerlessSpec(cloud='aws', region='us-west-2'))
     return pc.Index(index_name)
 
-def store_in_pinecone(index, chunks, embeddings, file_path, dryrun=False):
-    if dryrun:
-        return
-    
+def store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event=None):
     file_name = os.path.basename(file_path)
     file_hash = get_file_hash(file_path)
     
@@ -35,13 +35,16 @@ def store_in_pinecone(index, chunks, embeddings, file_path, dryrun=False):
         content_hash = hashlib.md5(chunk['text'].encode()).hexdigest()[:8]
         chunk_id = f"audio||Treasures||{title}||{content_hash}||chunk{i+1}"
         
+        # print chunk, but not the words list
+        chunk_copy = {k: v for k, v in chunk.items() if k != 'words'}
+        logger.debug(f"store_in_pinecone: chunk {i+1} of {len(chunks)}: {chunk_copy}")
         vectors.append({
             'id': chunk_id,
             'values': embedding,
             'metadata': {
                 'text': chunk['text'],
-                'start_time': chunk['start_time'],
-                'end_time': chunk['end_time'],
+                'start_time': chunk['start'], 
+                'end_time': chunk['end'],     
                 'full_info': json.dumps(chunk),
                 'file_name': file_name,
                 'file_hash': file_hash,
@@ -52,16 +55,21 @@ def store_in_pinecone(index, chunks, embeddings, file_path, dryrun=False):
             }
         })
 
-    try:
-        index.upsert(vectors=vectors)
-    except Exception as e:
-        error_message = str(e)
-        if "429" in error_message and "Too Many Requests" in error_message:
-            print(f"Error in upserting vectors: {e}")
-            print("You may have reached your write unit limit for the current month. Exiting script.")
-            sys.exit(1)
-        else:
-            print(f"Error in upserting vectors: {e}")
+    for i in range(0, len(vectors), 100):
+        if interrupt_event and interrupt_event.is_set():
+            logger.info("Interrupt detected. Stopping Pinecone upload...")
+            return
+        batch = vectors[i:i+100]
+        try:
+            index.upsert(vectors=batch)
+        except Exception as e:
+            error_message = str(e)
+            if "429" in error_message and "Too Many Requests" in error_message:
+                logger.error(f"Error in upserting vectors: {e}")
+                logger.error("You may have reached your write unit limit for the current month. Exiting script.")
+                sys.exit(1)
+            else:
+                logger.error(f"Error in upserting vectors: {e}")
 
 def query_similar_chunks(index, client, query, n_results=8):
     query_embedding = client.embeddings.create(
