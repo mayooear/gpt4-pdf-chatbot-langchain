@@ -3,7 +3,7 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
 import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
-import { PINECONE_INDEX_NAME } from '@/config/pinecone';
+import { PINECONE_INGEST_INDEX_NAME } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import readline from 'readline';
 import { Index } from '@pinecone-database/pinecone';
@@ -157,7 +157,7 @@ export const run = async (keepData: boolean) => {
 
   let pineconeIndex: Index;
   try {
-    pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
+    pineconeIndex = pinecone.Index(PINECONE_INGEST_INDEX_NAME);
   } catch (error) {
     console.error('Error getting pinecone index:', error);
     process.exit(1);

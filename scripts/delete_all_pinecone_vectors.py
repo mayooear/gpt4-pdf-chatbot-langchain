@@ -23,9 +23,9 @@ def run():
         print(f"Failed to initialize Pinecone: {e}")
         return
 
-    index_name = os.getenv("PINECONE_INDEX_NAME")
+    index_name = os.getenv("PINECONE_INGEST_INDEX_NAME")
     if not index_name:
-        print("PINECONE_INDEX_NAME not set in .env file")
+        print("PINECONE_INGEST_INDEX_NAME not set in .env file")
         return
 
     print(f"Getting Pinecone index: {index_name}")

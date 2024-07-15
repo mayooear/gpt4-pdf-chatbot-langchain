@@ -31,7 +31,7 @@ if __name__ == "__main__":
     load_dotenv('../.env')
     
     PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
-    PINECONE_INDEX_NAME = os.getenv('PINECONE_INDEX_NAME')
+    PINECONE_INDEX_NAME = os.getenv('PINECONE_INGEST_INDEX_NAME')
     
     pc = Pinecone(api_key=PINECONE_API_KEY)
     
