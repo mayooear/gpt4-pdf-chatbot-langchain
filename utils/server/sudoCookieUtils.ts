@@ -41,9 +41,14 @@ async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password
     const token = crypto.randomBytes(64).toString('hex');
     const encryptedToken = encrypt(`${token}:${userIp}`);
     const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 12);
-    cookies.set(sudoCookieName, encryptedToken, 
-      { httpOnly: true, secure: isSecure, sameSite: 'strict', expires: expiryDate });
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Set expiry to 1 year from now
+    cookies.set(sudoCookieName, encryptedToken, { 
+      httpOnly: true, 
+      secure: isSecure, 
+      sameSite: 'strict', 
+      expires: expiryDate,
+      maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
+    });
     return { message: 'You have been blessed' };
   } else {
     throw new Error('Incorrect password');
