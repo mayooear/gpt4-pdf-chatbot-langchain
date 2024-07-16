@@ -8,6 +8,7 @@
 /*-debug.log
 /emulator-data/
 /audio/
+/ingestion_checkpoint.json
 
 # IDE
 /.idea/

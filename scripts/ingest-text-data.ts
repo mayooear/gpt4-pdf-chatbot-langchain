@@ -11,20 +11,50 @@ import { promises as fsPromises } from 'fs';
 import crypto from 'crypto';
 import { Document } from 'langchain/document';
 import pMap from 'p-map';
+import path from 'path';
 
-const CHECKPOINT_FILE = 'ingestion_checkpoint.json';
+const CHECKPOINT_FILE = 'text_ingestion_checkpoint.json';
 const filePath = process.env.PDF_DIRECTORY || './docs';
 
-async function saveCheckpoint(processedDocs: number) {
-  await fsPromises.writeFile(CHECKPOINT_FILE, JSON.stringify({ processedDocs }));
+/**
+ * Creates a unique signature for the folder based on PDF file names and modification times.
+ * This helps detect changes in the folder contents between ingestion runs.
+ * @param directory The path to the directory containing PDF files
+ * @returns A hash string representing the folder's current state
+ */
+async function createFolderSignature(directory: string): Promise<string> {
+  const files = await fsPromises.readdir(directory);
+  const pdfFiles = files.filter((file: string) => file.toLowerCase().endsWith('.pdf'));
+  
+  const fileInfos = await Promise.all(pdfFiles.map(async (file) => {
+    const fullPath = path.join(directory, file);
+    const stats = await fsPromises.stat(fullPath);
+    return `${file}:${stats.mtime.getTime()}`;
+  }));
+
+  const signatureString = fileInfos.sort().join('|');
+  return crypto.createHash('md5').update(signatureString).digest('hex');
 }
 
-async function loadCheckpoint(): Promise<number> {
+/**
+ * Saves the current ingestion progress and folder signature to a checkpoint file.
+ * @param processedDocs The number of documents processed so far
+ * @param folderSignature The current folder signature
+ */
+async function saveCheckpoint(processedDocs: number, folderSignature: string) {
+  await fsPromises.writeFile(CHECKPOINT_FILE, JSON.stringify({ processedDocs, folderSignature }));
+}
+
+/**
+ * Loads the previous ingestion checkpoint, if it exists.
+ * @returns An object containing the number of processed documents and folder signature, or null if no checkpoint exists
+ */
+async function loadCheckpoint(): Promise<{ processedDocs: number; folderSignature: string } | null> {
   try {
     const data = await fsPromises.readFile(CHECKPOINT_FILE, 'utf-8');
-    return JSON.parse(data).processedDocs;
+    return JSON.parse(data);
   } catch (error) {
-    return 0;
+    return null;
   }
 }
 
@@ -237,20 +267,30 @@ export const run = async (keepData: boolean) => {
       pineconeIndex,
       textKey: 'text',
     });
+    let startIndex = 0;
+    const currentFolderSignature = await createFolderSignature(filePath);
+    if (keepData) {
+      const checkpoint = await loadCheckpoint();
+      if (checkpoint && checkpoint.folderSignature === currentFolderSignature) {
+        startIndex = checkpoint.processedDocs;
+        console.log(`Resuming from document ${startIndex + 1}`);
+      } else if (!checkpoint) {
+        console.log('No valid checkpoint found. Starting from the beginning.');
+      } else {
+        console.log('Folder contents have changed. Starting from the beginning.');
+      }
+    }
 
-    const checkpoint = await loadCheckpoint();
-    console.log(`Resuming from document ${checkpoint + 1}`);
-
-    for (let i = checkpoint; i < rawDocs.length; i++) {
+    for (let i = startIndex; i < rawDocs.length; i++) {
       if (isExiting) {
         console.log('Graceful shutdown: saving progress...');
-        await saveCheckpoint(i);
+        await saveCheckpoint(i, currentFolderSignature);
         console.log(`Progress saved. Resumed from document ${i + 1} next time.`);
         process.exit(0);
       }
 
       await processDocument(rawDocs[i], vectorStore, i);
-      await saveCheckpoint(i + 1);
+      await saveCheckpoint(i + 1, currentFolderSignature);
       console.log(`Processed document ${i + 1} of ${rawDocs.length} (${Math.floor((i + 1) / rawDocs.length * 100)}% done)`);
     }
 
