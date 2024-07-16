@@ -212,6 +212,38 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
         print(f"\n*** ERROR *** {error_msg}")
         return None
 
+def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
+    i = 0
+    combined = False
+    while i < len(chunks) - 1:
+        current_chunk = chunks[i]
+        next_chunk = chunks[i + 1]
+        
+        if len(current_chunk['words']) < min_chunk_size or len(next_chunk['words']) < min_chunk_size:
+            if len(current_chunk['words']) + len(next_chunk['words']) <= max_chunk_size:
+                # Combine chunks
+                time_offset = current_chunk['end'] - next_chunk['start']
+                for word in next_chunk['words']:
+                    word['start'] += time_offset
+                    word['end'] += time_offset
+                current_chunk['text'] += " " + next_chunk['text']
+                current_chunk['end'] = next_chunk['end']
+                current_chunk['words'].extend(next_chunk['words'])
+                chunks.pop(i + 1)
+                combined = True
+            else:
+                # Move to next chunk if combining would exceed max_chunk_size
+                i += 1
+        else:
+            i += 1
+    
+    if combined:
+        logger.debug("Chunk sizes after combination:")
+        for idx, chunk in enumerate(chunks):
+            logger.debug(f"Chunk {idx + 1}: {len(chunk['words'])} words")
+    
+    return chunks
+
 def process_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
     adjusted_target_chunk_size = int(target_chunk_size * 1.8)
@@ -248,18 +280,9 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
         
         i += adjusted_chunk_size - overlap
     
-    # Combine the last two chunks with the previous ones if they are too small
-    if len(chunks) > 2 and len(chunks[-1]['words']) < target_chunk_size // 2:
-        last_chunk = chunks.pop()
-        chunks[-1]['text'] += " " + last_chunk['text']
-        chunks[-1]['end'] = last_chunk['end']
-        chunks[-1]['words'].extend(last_chunk['words'])
-    
-    if len(chunks) > 1 and len(chunks[-1]['words']) < target_chunk_size // 2:
-        last_chunk = chunks.pop()
-        chunks[-1]['text'] += " " + last_chunk['text']
-        chunks[-1]['end'] = last_chunk['end']
-        chunks[-1]['words'].extend(last_chunk['words'])
+    min_chunk_size = target_chunk_size // 2
+    max_chunk_size = target_chunk_size * 2
+    chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
     
     for chunk in chunks:
         if len(chunk['words']) < 30:

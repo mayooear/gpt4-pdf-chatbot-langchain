@@ -9,7 +9,7 @@ from openai import OpenAI
 from tqdm import tqdm
 from audio_utils import get_file_hash, print_chunk_statistics
 from transcription_utils import init_db, transcribe_audio, process_transcription, get_transcription
-from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, query_similar_chunks, clear_treasures_vectors
+from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, clear_treasures_vectors
 from s3_utils import upload_to_s3, check_unique_filenames
 import logging
 
@@ -190,7 +190,6 @@ def signal_handler(sig, frame):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Audio transcription and indexing script")
     parser.add_argument("-f", "--file", help="Path to audio file or directory")
-    parser.add_argument("-q", "--query", help="Query for similar chunks")
     parser.add_argument("--force", action="store_true", help="Force re-transcription and re-indexing")
     parser.add_argument("-c", "--clear-vectors", action="store_true", help="Clear existing vectors before processing")
     parser.add_argument("--dryrun", action="store_true", help="Perform a dry run without sending data to Pinecone or S3")
@@ -208,8 +207,14 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     if args.clear_vectors:
-        index = load_pinecone()
-        clear_treasures_vectors(index)
+        try:
+            index = load_pinecone()
+            clear_treasures_vectors(index)
+        except Exception as e:
+            logger.error(f"Error clearing vectors: {str(e)}")
+            if not args.override_conflicts:
+                logger.error("Exiting due to error in clearing vectors.")
+                sys.exit(1)
 
     try:
         if args.file:
@@ -217,7 +222,7 @@ if __name__ == "__main__":
                 conflicts = check_unique_filenames(args.file)
                 if conflicts and not args.override_conflicts:
                     logger.error("Filename conflicts found:")
-                    for file, locations in conflicts.items():       
+                    for file, locations in conflicts.items():
                         logger.error(f"\n{file}:")
                         for location in locations:
                             logger.error(f"  - {location}")
@@ -257,18 +262,6 @@ if __name__ == "__main__":
                         for warning in report['warnings']:
                             logger.warning(f"- {warning}")
                     print_chunk_statistics(report['chunk_lengths'])
-
-        if args.query and not args.transcribe_only:
-            client = OpenAI()
-            index = load_pinecone()
-            results = query_similar_chunks(index, client, args.query)
-            for i, result in enumerate(results, 1):
-                logger.info(f"\nResult {i}:")
-                logger.info(f"Text: {result['metadata']['text']}")
-                logger.info(f"File: {result['metadata']['file_name']}")
-                logger.info(f"Start time: {result['metadata']['start_time']:.2f}s")
-                logger.info(f"End time: {result['metadata']['end_time']:.2f}s")
-                logger.info(f"Similarity: {result['score']:.4f}")
 
         if not args.file and not args.query:
             parser.print_help()

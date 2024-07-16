@@ -2,12 +2,19 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 import logging
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
+def get_s3_client():
+    return boto3.client('s3')
+
+def get_bucket_name():
+    return os.getenv('S3_BUCKET_NAME')
+
 def upload_to_s3(file_path):
-    s3_client = boto3.client('s3')
-    bucket_name = os.getenv('S3_BUCKET_NAME')
+    s3_client = get_s3_client()
+    bucket_name = get_bucket_name()
     object_name = os.path.basename(file_path)
 
     try:
@@ -19,27 +26,36 @@ def upload_to_s3(file_path):
         return False
 
 def check_unique_filenames(directory_path):
-    s3_client = boto3.client('s3',
-        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-        region_name=os.getenv('AWS_REGION')
-    )
-    bucket_name = os.getenv('S3_BUCKET_NAME')
-    local_files = set(os.listdir(directory_path))
-    
-    try:
-        s3_objects = s3_client.list_objects_v2(Bucket=bucket_name)
-        s3_files = set(obj['Key'] for obj in s3_objects.get('Contents', []))
-    except ClientError as e:
-        logger.error(f"Error listing objects in S3 bucket: {e}")
-        return False
+    s3_client = get_s3_client()
+    bucket_name = get_bucket_name()
+    local_files = defaultdict(list)
+    s3_files = set()
+    conflicts = defaultdict(list)
 
-    duplicate_files = local_files.intersection(s3_files)
-    
-    if duplicate_files:
-        logger.warning("Warning: The following files already exist in the S3 bucket:")
-        for file in duplicate_files:
-            logger.warning(f"- {file}")
-        return False
-    
-    return True
+    # Collect local files
+    for root, _, files in os.walk(directory_path):
+        for file in files:
+            if file.lower().endswith(('.mp3', '.wav', '.flac')):
+                local_files[file].append(os.path.join(root, file))
+
+    # Collect S3 files
+    try:
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=bucket_name, Prefix='public/audio/'):
+            for obj in page.get('Contents', []):
+                s3_files.add(os.path.basename(obj['Key']))
+    except ClientError as e:
+        logger.error(f"Error accessing S3 bucket: {e}")
+        return {}
+
+    # Check for conflicts with S3
+    for file in local_files:
+        if file in s3_files:
+            conflicts[file].append(f"S3: public/audio/{file}")
+
+    # Check for local conflicts
+    for file, paths in local_files.items():
+        if len(paths) > 1:
+            conflicts[file].extend(paths)
+
+    return conflicts

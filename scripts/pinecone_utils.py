@@ -5,6 +5,7 @@ import hashlib
 import logging
 from pinecone import Pinecone, ServerlessSpec
 from audio_utils import get_audio_metadata, get_file_hash
+from pinecone.core.client.exceptions import NotFoundException
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ def load_pinecone(index_name=None):
         index_name = os.getenv('PINECONE_INGEST_INDEX_NAME')
     pc = Pinecone()
     if index_name not in pc.list_indexes().names():
+        logger.info(f"Creating pinecone index {index_name}")
         pc.create_index(index_name, dimension=1536, metric="cosine", 
                         spec=ServerlessSpec(cloud='aws', region='us-west-2'))
     return pc.Index(index_name)
@@ -71,14 +73,13 @@ def store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event=None
             else:
                 logger.error(f"Error in upserting vectors: {e}")
 
-def query_similar_chunks(index, client, query, n_results=8):
-    query_embedding = client.embeddings.create(
-        input=query,
-        model="text-embedding-ada-002"
-    ).data[0].embedding
-
-    results = index.query(vector=query_embedding, top_k=n_results, include_metadata=True)
-    return results['matches']
-
 def clear_treasures_vectors(index):
-    index.delete(delete_all=True)
+    try:
+        index.delete(delete_all=True, namespace=None)
+        logger.info("Successfully cleared all vectors from the index.")
+    except NotFoundException:
+        logger.warning("The index or namespace you're trying to clear doesn't exist. Skipping clear operation.")
+        raise
+    except Exception as e:
+        logger.error(f"An error occurred while trying to clear vectors: {str(e)}")
+        raise
