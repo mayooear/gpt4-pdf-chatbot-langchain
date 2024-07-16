@@ -101,7 +101,10 @@ export default async function handler(
       let sourceTitlesString = '';
       if (processedSourceDocuments && processedSourceDocuments.length > 0) {
         const sourceTitles = processedSourceDocuments.map((doc: any) => {
-          // console.log('Document Metadata:', doc.metadata);
+          // Log audio sources
+          // if (doc.metadata.type === 'audio') {
+          //   console.log('Audio Source:', doc);
+          // }
           return doc.metadata.title;
         });
         sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
