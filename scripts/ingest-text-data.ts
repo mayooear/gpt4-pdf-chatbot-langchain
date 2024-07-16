@@ -114,7 +114,7 @@ async function processDocument(rawDoc: any, vectorStore: PineconeStore, index: n
 
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,
-    chunkOverlap: 200,
+    chunkOverlap: 500,
   });
   const docs = await textSplitter.splitDocuments([rawDoc]);
 
