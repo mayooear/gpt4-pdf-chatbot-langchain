@@ -157,11 +157,11 @@ const SingleAnswer = () => {
                     ))
                   ) : (
                     <>
-                      {renderTruncatedQuestion(answer.question, 200)}
-                      {answer.question.length > 200 && '...'}
+                      {renderTruncatedQuestion(answer.question, 600)}
+                      {answer.question.length > 600 && '...'}
                     </>
                   )}
-                  {answer.question.length > 200 && !expanded && (
+                  {answer.question.length > 600 && !expanded && (
                     <button 
                       onClick={() => setExpanded(true)}
                       className="text-black hover:underline ml-2"
@@ -181,7 +181,7 @@ const SingleAnswer = () => {
           </div>
           <div className="bg-gray-100 p-2.5 rounded">
             <div className="markdownanswer">
-              <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
+              <TruncatedMarkdown markdown={answer.answer} maxCharacters={4000} />
               {answer.sources && (
                 <SourcesList sources={answer.sources} useAccordion={false} />
               )}

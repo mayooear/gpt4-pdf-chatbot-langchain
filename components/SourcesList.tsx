@@ -16,6 +16,7 @@ interface SourcesListProps {
 
 const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
   const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
+  const [expandedAccordionSource, setExpandedAccordionSource] = useState<number | null>(null);
 
   const renderAudioPlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
     if (doc.metadata.type === 'audio') {
@@ -65,8 +66,9 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     logEvent('expand_source', 'UI', expandedSources.has(index) ? 'collapsed' : 'expanded');
   };
 
-  const handleAccordionExpand = (expanded: boolean) => {
-    logEvent('expand_sources', 'UI', expanded ? 'expanded' : 'collapsed');
+  const handleAccordionExpand = (index: number | null) => {
+    setExpandedAccordionSource(index);
+    logEvent('expand_sources', 'UI', index !== null ? 'expanded' : 'collapsed');
   };
 
   const handleSourceClick = (e: React.MouseEvent<HTMLAnchorElement>, source: string) => {
@@ -81,11 +83,10 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
   };
 
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
-    const isNonAnandaLibrary = doc.metadata.library && doc.metadata.library !== 'Ananda Library';
     return (
-      <span className={`${isNonAnandaLibrary ? 'text-black-600 font-medium' : ''}`}>
+      <span className="text-black-600 font-medium">
         {formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source')}
-        {isNonAnandaLibrary && <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>}
+        <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>
       </span>
     );
   };
@@ -95,7 +96,11 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
       <>
       {sources.length > 0 && (
         <div className="bg-gray-200 p-3 rounded-lg mt-2 mb-2">
-          <Accordion type="single" collapsible onValueChange={(value) => handleAccordionExpand(!!value)}>
+          <Accordion 
+            type="single" 
+            collapsible 
+            onValueChange={(value) => handleAccordionExpand(value ? parseInt(value) : null)}
+          >
             <AccordionItem value="sources">
               <AccordionTrigger className="text-base font-semibold text-blue-500">
                 Sources
@@ -103,7 +108,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
               <AccordionContent>
                 <ul className="text-base">
                   {sources.map((doc, index) => (
-                    <li key={index}>
+                    <li key={index} className={`${expandedAccordionSource === index && index !== 0 ? 'mt-4' : ''}`}>
                       <a 
                         href={doc.metadata.source} 
                         target="_blank" 
@@ -114,7 +119,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
                         {renderSourceTitle(doc)}
                       </a>
                       {doc.metadata.type === 'audio' && (
-                        <p>{truncateText(doc.pageContent, 30)}</p>
+                        <p>{doc.pageContent}</p>
                       )}
                       {doc.metadata.type === 'audio' && (
                         renderAudioPlayer(doc, index)
@@ -153,11 +158,12 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
         </div>
       )}
       {sources.map((doc, index) => {
+        const isExpanded = expandedSources.has(index);
         return (
           <details 
             key={index} 
-            className={styles.sourceDocsContainer}
-            open={expandedSources.has(index)}
+            className={`${styles.sourceDocsContainer} ${isExpanded && index !== 0 ? 'mt-4' : ''}`}
+            open={isExpanded}
           >
             <summary onClick={(e) => {
               e.preventDefault();
@@ -189,10 +195,10 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             </summary>
             <div className={`${styles.sourceDocContent}`}>
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 50)}"` : `*${doc.pageContent}*`}
+                {doc.pageContent}
               </ReactMarkdown>
             </div>
-            {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
+            {doc.metadata && doc.metadata.type === 'audio' && isExpanded && (
               renderAudioPlayer(doc, index)
             )}
           </details>
