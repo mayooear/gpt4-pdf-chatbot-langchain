@@ -7,11 +7,12 @@ import traceback
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
-from audio_utils import get_file_hash, print_chunk_statistics
+from media_utils import get_file_hash, print_chunk_statistics
 from transcription_utils import init_db, transcribe_audio, process_transcription, get_transcription
-from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, clear_treasures_vectors
+from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, clear_library_vectors
 from s3_utils import upload_to_s3, check_unique_filenames
 import logging
+from pinecone_utils import clear_library_vectors
 
 # Global variables and constants
 interrupt_event = multiprocessing.Event()
@@ -30,23 +31,24 @@ def configure_logging(debug=False):
     
     return logging.getLogger(__name__)
 
-def init_worker(event, debug):
-    global client, index, interrupt_event, logger
+def init_worker(event, debug, library_name):
+    global client, index, interrupt_event, logger, library
     client = OpenAI()
     index = load_pinecone()
     interrupt_event = event
+    library = library_name
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     
     # Use the centralized logging configuration
     logger = configure_logging(debug)
 
 def process_file_wrapper(args):
-    file_path, force, current_file, total_files, dryrun = args
+    file_path, force, current_file, total_files, dryrun, library_name = args
     if interrupt_event.is_set():
         return None
-    return process_file(file_path, index, client, force, current_file, total_files, dryrun, logger)
+    return process_file(file_path, index, client, force, current_file, total_files, dryrun, library_name, logger)
 
-def process_file(file_path, index, client, force=False, current_file=None, total_files=None, dryrun=False, logger=None):
+def process_file(file_path, index, client, force=False, current_file=None, total_files=None, dryrun=False, library_name=None, logger=None):
     local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'fully_indexed': 0, 'chunk_lengths': []}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
@@ -80,8 +82,7 @@ def process_file(file_path, index, client, force=False, current_file=None, total
 
         # TODO: future optimization Is to combine the transcripts together and then
         # Process them all at once, Because right now we don't do any overlap between the end of 
-        # one transcript and the start of the next, so we end up with a bunch of chunks that are 
-        # 100% the same. ?????
+        # one transcript and the start of the next.
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc=f"Processing transcripts for {file_name}"):
             if check_interrupt():
                 break
@@ -89,7 +90,7 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             local_report['chunk_lengths'].extend([len(chunk['words']) for chunk in chunks])
             if not dryrun:
                 embeddings = create_embeddings(chunks, client)
-                store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event)
+                store_in_pinecone(index, chunks, embeddings, file_path, library_name, interrupt_event)
     
         # After successful processing, upload to S3
         if not dryrun:
@@ -113,14 +114,14 @@ def check_interrupt():
         return True
     return False
 
-def process_directory(directory_path, force=False, dryrun=False, debug=False):
-    audio_files = []
+def process_directory(directory_path, force=False, dryrun=False, debug=False, library_name=None):
+    media_files = []
     processed_hashes = set()
     skipped_files = []
 
     for root, dirs, files in os.walk(directory_path):
         for file in files:
-            if file.lower().endswith(('.mp3', '.wav', '.flac')):
+            if file.lower().endswith(('.mp3', '.wav', '.flac', '.mp4', '.avi', '.mov')): 
                 file_path = os.path.join(root, file)
                 file_hash = get_file_hash(file_path)
                 
@@ -129,10 +130,10 @@ def process_directory(directory_path, force=False, dryrun=False, debug=False):
                     skipped_files.append(file_path)
                     continue
                 
-                audio_files.append(file_path)
+                media_files.append(file_path)
                 processed_hashes.add(file_hash)
     
-    total_files = len(audio_files)
+    total_files = len(media_files)
     
     # Calculate the number of processes
     max_processes = multiprocessing.cpu_count()
@@ -145,9 +146,9 @@ def process_directory(directory_path, force=False, dryrun=False, debug=False):
     load_pinecone()
 
     # Use multiprocessing to process files in parallel
-    with multiprocessing.Pool(processes=num_processes, initializer=init_worker, initargs=(interrupt_event, debug)) as pool:
+    with multiprocessing.Pool(processes=num_processes, initializer=init_worker, initargs=(interrupt_event, debug, library_name)) as pool:
         try:
-            args_list = [(file_path, force, i+1, total_files, dryrun) for i, file_path in enumerate(audio_files)]
+            args_list = [(file_path, force, i+1, total_files, dryrun, library_name) for i, file_path in enumerate(media_files)]
             results = []
             for result in pool.imap_unordered(process_file_wrapper, args_list):
                 if result is None or interrupt_event.is_set():
@@ -188,7 +189,7 @@ def signal_handler(sig, frame):
     interrupt_event.set()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Audio transcription and indexing script")
+    parser = argparse.ArgumentParser(description="Audio and video transcription and indexing script")
     parser.add_argument("-f", "--file", help="Path to audio file or directory")
     parser.add_argument("--force", action="store_true", help="Force re-transcription and re-indexing")
     parser.add_argument("-c", "--clear-vectors", action="store_true", help="Clear existing vectors before processing")
@@ -196,6 +197,7 @@ if __name__ == "__main__":
     parser.add_argument("--override-conflicts", action="store_true", help="Continue processing even if filename conflicts are found")
     parser.add_argument("--transcribe-only", action="store_true", help="Only transcribe the audio, don't process or store in Pinecone")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--library", type=str, help="Name of the library")
     args = parser.parse_args()
 
     load_dotenv()
@@ -209,7 +211,7 @@ if __name__ == "__main__":
     if args.clear_vectors:
         try:
             index = load_pinecone()
-            clear_treasures_vectors(index)
+            clear_library_vectors(index, args.library)
         except Exception as e:
             logger.error(f"Error clearing vectors: {str(e)}")
             if not args.override_conflicts:
@@ -232,7 +234,7 @@ if __name__ == "__main__":
                 if args.transcribe_only:
                     for root, dirs, files in os.walk(args.file):
                         for file in files:
-                            if file.lower().endswith(('.mp3', '.wav', '.flac')):
+                            if file.lower().endswith(('.mp3', '.wav', '.flac', '.mp4', '.avi', '.mov')):
                                 file_path = os.path.join(root, file)
                                 logger.info(f"\nTranscribing {file_path}")
                                 transcribe_audio(file_path, args.force)
@@ -240,7 +242,7 @@ if __name__ == "__main__":
                                 logger.info("Interrupt requested. Exiting...")
                                 sys.exit(0)
                 else:
-                    report = process_directory(args.file, args.force, args.dryrun, args.debug)
+                    report = process_directory(args.file, args.force, args.dryrun, args.debug, args.library)
             else:
                 if args.transcribe_only:
                     logger.info(f"\nTranscribing {args.file}")
@@ -248,7 +250,7 @@ if __name__ == "__main__":
                 else:
                     client = OpenAI()
                     index = load_pinecone()
-                    report = process_file(args.file, index, client, args.force, dryrun=args.dryrun, interrupt_event=interrupt_event, debug=args.debug)
+                    report = process_file(args.file, index, client, args.force, dryrun=args.dryrun, library_name=args.library, interrupt_event=interrupt_event, debug=args.debug)
                     logger.info(f"\nReport:")
                     logger.info(f"Files processed: {report['processed']}")
                     logger.info(f"Files skipped: {report['skipped']}")

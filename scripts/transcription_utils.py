@@ -7,13 +7,14 @@ import time
 from openai import OpenAI, APIError, APITimeoutError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tqdm import tqdm
-from audio_utils import get_file_hash, split_audio
+from media_utils import get_file_hash, get_file_type, split_media
 import logging
+from moviepy.editor import VideoFileClip
 
 logger = logging.getLogger(__name__)
 
-TRANSCRIPTIONS_DB_PATH = '../audio/transcriptions.db'
-TRANSCRIPTIONS_DIR = '../audio/transcriptions'
+TRANSCRIPTIONS_DB_PATH = '../media/transcriptions.db'
+TRANSCRIPTIONS_DIR = '../media/transcriptions'
 
 # Global list to store chunk lengths
 chunk_lengths = []
@@ -160,13 +161,15 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
-def transcribe_audio(file_path, force=False, current_file=None, total_files=None, interrupt_event=None):
+def transcribe_media(file_path, force=False, current_file=None, total_files=None, interrupt_event=None):
     """
-    Transcribe audio file, using existing transcription if available and not forced.
+    Transcribe audio or video file, using existing transcription if available and not forced.
     
     This function first checks for an existing transcription using the hybrid storage system.
     If not found or if force is True, it performs the transcription and saves the result.
     """
+        
+    file_type = get_file_type(file_path)
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -175,9 +178,20 @@ def transcribe_audio(file_path, force=False, current_file=None, total_files=None
         return existing_transcription
 
     client = OpenAI()
-    print(f"Splitting audio into chunks for {file_name}...{file_info}")
-    chunks = split_audio(file_path)
-    print(f"Audio split into {len(chunks)} chunks for {file_name}")
+    print(f"Splitting {file_type} into chunks for {file_name}...{file_info}")
+    
+    if file_type == 'video':
+        # Extract audio from video
+        with VideoFileClip(file_path) as video:
+            audio = video.audio
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_audio_file:
+                audio.write_audiofile(temp_audio_file.name, codec='mp3')
+                chunks = split_media(temp_audio_file.name)
+        os.unlink(temp_audio_file.name)
+    else:
+        chunks = split_media(file_path)
+    
+    print(f"{file_type.capitalize()} split into {len(chunks)} chunks for {file_name}")
     transcripts = []
     previous_transcript = None
     cumulative_time = 0

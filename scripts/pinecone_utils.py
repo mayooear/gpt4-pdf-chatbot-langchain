@@ -4,7 +4,7 @@ import json
 import hashlib
 import logging
 from pinecone import Pinecone, ServerlessSpec
-from audio_utils import get_audio_metadata, get_file_hash
+from media_utils import get_media_metadata, get_file_hash, get_file_type
 from pinecone.core.client.exceptions import NotFoundException
 
 logger = logging.getLogger(__name__)
@@ -25,17 +25,18 @@ def load_pinecone(index_name=None):
                         spec=ServerlessSpec(cloud='aws', region='us-west-2'))
     return pc.Index(index_name)
 
-def store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event=None):
+def store_in_pinecone(index, chunks, embeddings, file_path, library_name, interrupt_event=None):
     file_name = os.path.basename(file_path)
     file_hash = get_file_hash(file_path)
+    file_type = get_file_type(file_path)
     
-    # Get the title and author from metadata or fallback
-    title, author = get_audio_metadata(file_path)
+    # Get the title and author from metadata
+    title, author, duration = get_media_metadata(file_path)
     
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         content_hash = hashlib.md5(chunk['text'].encode()).hexdigest()[:8]
-        chunk_id = f"audio||Treasures||{title}||{content_hash}||chunk{i+1}"
+        chunk_id = f"{file_type}||{library_name}||{title}||{content_hash}||chunk{i+1}"
         
         # print chunk, but not the words list
         chunk_copy = {k: v for k, v in chunk.items() if k != 'words'}
@@ -50,10 +51,11 @@ def store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event=None
                 'full_info': json.dumps(chunk),
                 'file_name': file_name,
                 'file_hash': file_hash,
-                'library': "Treasures",
+                'library': library_name,
                 'author': author,
-                'type': 'audio',
+                'type': file_type,
                 'title': title,
+                'duration': duration
             }
         })
 
@@ -73,10 +75,11 @@ def store_in_pinecone(index, chunks, embeddings, file_path, interrupt_event=None
             else:
                 logger.error(f"Error in upserting vectors: {e}")
 
-def clear_treasures_vectors(index):
+def clear_library_vectors(index, library_name):
     try:
-        index.delete(delete_all=True, namespace=None)
-        logger.info("Successfully cleared all vectors from the index.")
+#        index.delete(delete_all=True, namespace=None)
+        index.delete(filter={"library": library_name})
+        logger.info(f"Successfully cleared all vectors for library '{library_name}' from the index.")
     except NotFoundException:
         logger.warning("The index or namespace you're trying to clear doesn't exist. Skipping clear operation.")
         raise

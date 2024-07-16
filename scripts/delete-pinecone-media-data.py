@@ -2,7 +2,7 @@ import os
 import argparse
 from dotenv import load_dotenv
 from pinecone import Pinecone
-from audio_utils import get_audio_metadata
+from media_utils import get_media_metadata, get_file_type
 
 def delete_records_by_prefix(index, prefix):
     # List all record IDs with the given prefix
@@ -24,8 +24,9 @@ def delete_records_by_prefix(index, prefix):
         print("Deletion aborted.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Delete audio Pinecone records by file prefix.")
-    parser.add_argument("file_path", type=str, help="Path to the MP3 file")
+    parser = argparse.ArgumentParser(description="Delete Pinecone records by file prefix for audio or video files.")
+    parser.add_argument("file_path", type=str, help="Path to the media file (audio or video)")
+    parser.add_argument("--library", type=str, help="Name of the library")
     args = parser.parse_args()
 
     load_dotenv('../.env')
@@ -41,9 +42,13 @@ if __name__ == "__main__":
     index = pc.Index(PINECONE_INDEX_NAME)
     
     file_path = args.file_path
-    title, _ = get_audio_metadata(file_path)
+    library_name = args.library
+    file_type = get_file_type(file_path)
+    title, _, _ = get_media_metadata(file_path)
+    print(f"File Type: {file_type}")
     print(f"Title: {title}")
+    print(f"Library: {library_name}")
 
-    prefix = f"audio||Treasures||{title}"
+    prefix = f"{file_type}||{library_name}||{title}"
     
     delete_records_by_prefix(index, prefix)
