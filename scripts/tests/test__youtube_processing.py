@@ -4,6 +4,8 @@ import sys
 import logging
 from dotenv import load_dotenv
 import random
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,6 +15,18 @@ from youtube_utils import download_youtube_audio
 from transcription_utils import transcribe_media
 from pinecone_utils import store_in_pinecone, load_pinecone
 from s3_utils import upload_to_s3
+
+YOUTUBE_URLS = [
+    "https://youtu.be/MvyIpKLbayc?si=Nk9M7EDQ5oYngQkT",
+    "https://youtu.be/WLtl1okZlYU?si=iKj-o_RwMgiA_1dn",
+    "https://youtu.be/-AtW7c9pkGw?si=i4w-W6bGfIk7rI-n",
+    "https://youtu.be/xUgtw_MwEas?si=HcdYvKjK17rZ3aK2",
+    "https://youtu.be/zQDgBuoml4c?si=y2wGnAm76YxiMNLr",
+    "https://youtu.be/r8iwgBVERm4?si=dBo7_HJ89gDUGeQw",
+    "https://youtu.be/2s77yXNPwb0?si=abjnjhhBj9qGE1IY",
+    "https://youtu.be/Lj8RuVB3JhI?si=xI9I4P_i5DtqoNqk",
+    "https://youtu.be/m8b3E-mC6Ps?si=B7Xk3PGO_a63LXAR"
+]
 
 def configure_logging(debug=False):
     # Configure the root logger
@@ -39,22 +53,31 @@ logger.debug(f"Loaded .env file from: {dotenv_path}")
 
 class TestYouTubeProcessing(unittest.TestCase):
     def setUp(self):
-        self.test_video_url = "https://youtu.be/FYuPfDhqJPQ?si=oIUjZhv4Wep8IIVS"
+        self.test_video_url = random.choice(YOUTUBE_URLS)
         self.author = "Swami Kriyananda"
         self.library = "Ananda Sangha"
+        self.audio_path = None
         logger.debug(f"Set up test with video URL: {self.test_video_url}")
+
+    def tearDown(self):
+        if self.audio_path and os.path.exists(self.audio_path):
+            os.remove(self.audio_path)
+            logger.debug(f"Cleaned up audio file: {self.audio_path}")
 
     def test_youtube_download(self):
         logger.debug("Starting YouTube download test")
         result = download_youtube_audio(self.test_video_url)
         self.assertIsNotNone(result)
         self.assertTrue(os.path.exists(result['audio_path']))
-        logger.debug(f"YouTube download test completed. Audio path: {result['audio_path']}")
+        self.audio_path = result['audio_path']
+        logger.debug(f"YouTube download test completed. Audio path: {self.audio_path}")
 
     def test_transcription(self):
         logger.debug("Starting transcription test")
         youtube_data = download_youtube_audio(self.test_video_url)
-        transcripts = transcribe_media(youtube_data['audio_path'])
+        self.assertIsNotNone(youtube_data, "Failed to download YouTube audio")
+        self.audio_path = youtube_data['audio_path']
+        transcripts = transcribe_media(self.audio_path)
         self.assertIsNotNone(transcripts)
         self.assertTrue(len(transcripts) > 0)
         logger.debug(f"Transcription test completed. Number of transcripts: {len(transcripts)}")
@@ -62,7 +85,9 @@ class TestYouTubeProcessing(unittest.TestCase):
     def test_pinecone_storage(self):
         logger.debug("Starting Pinecone storage test")
         youtube_data = download_youtube_audio(self.test_video_url)
-        transcripts = transcribe_media(youtube_data['audio_path'])
+        self.assertIsNotNone(youtube_data, "Failed to download YouTube audio")
+        self.audio_path = youtube_data['audio_path']
+        transcripts = transcribe_media(self.audio_path)
         
         self.assertTrue(transcripts, "No transcripts were generated")
         
@@ -83,7 +108,7 @@ class TestYouTubeProcessing(unittest.TestCase):
         embedding = [random.uniform(0, 1) for _ in range(1536)]
         logger.debug(f"Created mock embedding with {len(embedding)} dimensions")
         
-        store_in_pinecone(index, [chunk], [embedding], youtube_data['audio_path'], self.author, self.library, True)
+        store_in_pinecone(index, [chunk], [embedding], self.audio_path, self.author, self.library, True)
         logger.debug("Pinecone storage test completed")
         
         # Add assertions to check if data was stored correctly
@@ -101,9 +126,36 @@ class TestYouTubeProcessing(unittest.TestCase):
         if youtube_data is None or 'audio_path' not in youtube_data:
             self.fail("Failed to download YouTube audio or retrieve audio path")
         
-        result = upload_to_s3(youtube_data['audio_path'])
+        self.audio_path = youtube_data['audio_path']
+        result = upload_to_s3(self.audio_path)
         self.assertIsNone(result)  # Should be None as upload is skipped for YouTube videos
         logger.debug("S3 upload skip test completed")
+
+    def test_audio_metadata(self):
+        logger.debug("Starting audio metadata test")
+        youtube_data = download_youtube_audio(self.test_video_url)
+        
+        if youtube_data is None or 'audio_path' not in youtube_data:
+            self.fail("Failed to download YouTube audio or retrieve audio path")
+        
+        self.audio_path = youtube_data['audio_path']
+        self.assertTrue(os.path.exists(self.audio_path), f"Audio file does not exist: {self.audio_path}")
+        
+        try:
+            audio = MP3(self.audio_path, ID3=ID3)
+            
+            # Check if tags exist
+            self.assertIsNotNone(audio.tags, "No ID3 tags found in the audio file")
+            
+            # Check if URL is in the comments
+            url_comment = audio.tags.getall('COMM:url:eng')
+            self.assertTrue(url_comment, "URL comment not found in audio metadata")
+            self.assertEqual(url_comment[0].text[0], self.test_video_url, 
+                             "Stored URL does not match the original YouTube URL")
+            
+            logger.debug("Audio metadata test completed successfully")
+        except Exception as e:
+            self.fail(f"Error reading audio metadata: {str(e)}")
 
 if __name__ == '__main__':
     logger.debug("Starting test suite")

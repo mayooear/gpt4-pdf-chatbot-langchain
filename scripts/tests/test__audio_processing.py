@@ -45,7 +45,15 @@ class TestAudioProcessing(unittest.TestCase):
         self.author = "Paramhansa Yogananda"
         self.library = "Ananda Sangha"
         self.client = OpenAI()
+        self.temp_files = []
         logger.debug(f"Set up test with audio file: {self.test_audio_path}")
+
+    def tearDown(self):
+        for file_path in self.temp_files:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logger.debug(f"Cleaned up temporary file: {file_path}")
+        self.temp_files.clear()
 
     def test_audio_metadata(self):
         logger.debug("Starting audio metadata test")
@@ -92,7 +100,7 @@ class TestAudioProcessing(unittest.TestCase):
             logger.debug("Pinecone storage success test completed")
         except PineconeException as e:
             self.fail(f"Pinecone storage failed unexpectedly: {str(e)}")
-        
+                
         # Add assertions to check if data was stored correctly
         self.assertGreater(len(chunks), 0, "Should have at least one chunk")
         self.assertTrue('text' in chunks[0], "Chunk should contain 'text'")
@@ -120,7 +128,7 @@ class TestAudioProcessing(unittest.TestCase):
             # Expect a PineconeException to be raised
             with self.assertRaises(PineconeException) as context:
                 store_in_pinecone(index, chunks, embeddings, self.test_audio_path, self.author, self.library, False)
-        
+                
         # Check if the error message contains the expected content
         self.assertIn("Failed to upsert vectors", str(context.exception))
         self.assertIn("Simulated Pinecone error", str(context.exception))
