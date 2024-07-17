@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
+import random
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -77,7 +78,9 @@ class TestYouTubeProcessing(unittest.TestCase):
         logger.debug(f"Created chunk: {chunk}")
         
         index = load_pinecone()
-        embedding = [0] * 1536  # Single mock embedding
+        
+        # Create a mock embedding with some non-zero values
+        embedding = [random.uniform(0, 1) for _ in range(1536)]
         logger.debug(f"Created mock embedding with {len(embedding)} dimensions")
         
         store_in_pinecone(index, [chunk], [embedding], youtube_data['audio_path'], self.author, self.library, True)
@@ -93,6 +96,11 @@ class TestYouTubeProcessing(unittest.TestCase):
     def test_s3_upload_skipped(self):
         logger.debug("Starting S3 upload skip test")
         youtube_data = download_youtube_audio(self.test_video_url)
+        
+        # Check if youtube_data is None or doesn't contain 'audio_path'
+        if youtube_data is None or 'audio_path' not in youtube_data:
+            self.fail("Failed to download YouTube audio or retrieve audio path")
+        
         result = upload_to_s3(youtube_data['audio_path'])
         self.assertIsNone(result)  # Should be None as upload is skipped for YouTube videos
         logger.debug("S3 upload skip test completed")
