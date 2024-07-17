@@ -4,11 +4,21 @@ import logging
 from yt_dlp import YoutubeDL
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, COMM
+import re
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def extract_youtube_id(url: str) -> str:
+    match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
+    return match.group(1) if match else None
+
 def download_youtube_audio(url: str, output_path: str = '.'):
+    youtube_id = extract_youtube_id(url)
+    if not youtube_id:
+        logger.error("Invalid YouTube URL. Could not extract YouTube ID.")
+        return None
+
     random_filename = str(uuid.uuid4())
     
     ydl_opts = {
@@ -45,7 +55,8 @@ def download_youtube_audio(url: str, output_path: str = '.'):
             'audio_path': audio_path,
             'title': info['title'],
             'author': info['uploader'],
-            'url': url
+            'url': url,
+            'youtube_id': youtube_id
         }
     except Exception as e:
         logger.error(f"An error occurred while downloading YouTube audio: {e}")

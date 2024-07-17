@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 TRANSCRIPTIONS_DB_PATH = '../media/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../media/transcriptions'
+YOUTUBE_HASH_MAP_PATH = '../media/youtube_hash_map.json'
 
 # Global list to store chunk lengths
 chunk_lengths = []
@@ -304,3 +305,49 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
         logger.debug("\n")
 
     return chunks
+
+"""
+The following functions are used to manage the mapping between YouTube video IDs and their corresponding transcription file hashes.
+This allows for efficient retrieval and storage of transcriptions associated with YouTube videos.
+
+1. load_youtube_hash_map: Loads the YouTube hash map from a JSON file if it exists.
+2. save_youtube_hash_map: Saves the YouTube hash map to a JSON file.
+3. get_transcription_by_youtube_id: Retrieves the transcription for a given YouTube video ID by looking up the file hash in the YouTube hash map and then loading the transcription from the corresponding file.
+4. save_youtube_transcription: Saves the transcription for a YouTube video and updates the YouTube hash map with the new file hash.
+"""
+
+def load_youtube_hash_map():
+    if os.path.exists(YOUTUBE_HASH_MAP_PATH):
+        with open(YOUTUBE_HASH_MAP_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_youtube_hash_map(youtube_hash_map):
+    with open(YOUTUBE_HASH_MAP_PATH, 'w') as f:
+        json.dump(youtube_hash_map, f, ensure_ascii=False, indent=2)
+
+def get_transcription_by_youtube_id(youtube_id):
+    youtube_hash_map = load_youtube_hash_map()
+    file_hash = youtube_hash_map.get(youtube_id)
+    if file_hash:
+        conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
+        result = c.fetchone()
+        conn.close()
+        if result:
+            json_file = result[0]
+            full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
+            if os.path.exists(full_json_path):
+                with gzip.open(full_json_path, 'rt', encoding='utf-8') as f:
+                    transcripts = json.load(f)
+                    # Ensure we're returning a list of transcripts
+                    return transcripts if isinstance(transcripts, list) else [transcripts]
+    return None
+
+def save_youtube_transcription(youtube_id, file_path, transcripts):
+    save_transcription(file_path, transcripts)
+    file_hash = get_file_hash(file_path)
+    youtube_hash_map = load_youtube_hash_map()
+    youtube_hash_map[youtube_id] = file_hash
+    save_youtube_hash_map(youtube_hash_map)

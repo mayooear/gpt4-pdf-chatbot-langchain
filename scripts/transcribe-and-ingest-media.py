@@ -5,15 +5,15 @@ import multiprocessing
 import signal
 import traceback
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, AuthenticationError
 from tqdm import tqdm
-from media_utils import get_file_hash, print_chunk_statistics, get_media_metadata
-from transcription_utils import init_db, transcribe_media, process_transcription, get_transcription
+from media_utils import get_file_hash, print_chunk_statistics
+from transcription_utils import init_db, transcribe_media, process_transcription, get_transcription, load_youtube_hash_map, save_youtube_hash_map, get_transcription_by_youtube_id, save_youtube_transcription
 from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, clear_library_vectors
 from s3_utils import upload_to_s3, check_unique_filenames
 import logging
 from pinecone_utils import clear_library_vectors
-from youtube_utils import download_youtube_audio
+from youtube_utils import download_youtube_audio, extract_youtube_id
 
 # Global variables and constants
 interrupt_event = multiprocessing.Event()
@@ -25,11 +25,11 @@ def configure_logging(debug=False):
     
     # Configure specific loggers
     loggers_to_adjust = [
-        "openai", "httpx", "httpcore", "boto3", "botocore", "urllib3", "s3transfer"
+        "openai", "httpx", "httpcore", "boto3", "botocore", "urllib3", "s3transfer", "subprocess"
     ]
     for logger_name in loggers_to_adjust:
         logging.getLogger(logger_name).setLevel(logging.INFO if debug else logging.WARNING)
-    
+        
     return logging.getLogger(__name__)
 
 def init_worker(event, debug, library_name):
@@ -87,8 +87,15 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             chunks = process_transcription(transcript)
             local_report['chunk_lengths'].extend([len(chunk['words']) for chunk in chunks])
             if not dryrun:
-                embeddings = create_embeddings(chunks, client)
-                store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, interrupt_event)
+                try:
+                    embeddings = create_embeddings(chunks, client)
+                    store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, interrupt_event)
+                except AuthenticationError as e:
+                    error_msg = f"Authentication error for file {file_name}: {str(e)}"
+                    logger.error(f"\n*** ERROR *** {error_msg}")
+                    local_report['errors'] += 1
+                    local_report['error_details'].append(error_msg)
+                    return local_report
     
         # After successful processing, upload to S3 only if it's not a YouTube video
         if not dryrun and not is_youtube_video:
@@ -103,12 +110,6 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         logger.error(f"\n*** ERROR *** {error_msg}")
         local_report['errors'] += 1
         local_report['error_details'].append(error_msg)
-
-    finally:
-        # Delete the MP3 file if it was a YouTube video
-        if is_youtube_video and os.path.exists(file_path):
-            os.remove(file_path)
-            logger.info(f"Deleted temporary YouTube audio file: {file_path}")
 
     return local_report
 
@@ -226,7 +227,13 @@ if __name__ == "__main__":
 
     try:
         if args.video:
-            # Download YouTube video audio
+            youtube_id = extract_youtube_id(args.video)
+            existing_transcription = get_transcription_by_youtube_id(youtube_id)
+            if existing_transcription:
+                logger.info(f"Using existing transcription for YouTube video: {args.video}")
+                print_chunk_statistics(existing_transcription['chunk_lengths'])
+                sys.exit(0)
+
             youtube_data = download_youtube_audio(args.video)
             if youtube_data:
                 args.file = youtube_data['audio_path']
@@ -269,6 +276,11 @@ if __name__ == "__main__":
                     client = OpenAI()
                     index = load_pinecone()
                     report = process_file(args.file, index, client, args.force, dryrun=args.dryrun, author=args.author, library_name=args.library, is_youtube_video=is_youtube_video, interrupt_event=interrupt_event, debug=args.debug)
+                    if is_youtube_video and report['errors'] == 0:
+                        save_youtube_transcription(youtube_id, args.file, report)
+                    elif is_youtube_video and os.path.exists(args.file):
+                        os.remove(args.file)
+                        logger.info(f"Deleted temporary YouTube audio file due to errors: {args.file}")
                     logger.info(f"\nReport:")
                     logger.info(f"Files processed: {report['processed']}")
                     logger.info(f"Files skipped: {report['skipped']}")
@@ -288,4 +300,7 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         logger.info("\nKeyboard interrupt. Exiting.")
+        if is_youtube_video and os.path.exists(args.file):
+            os.remove(args.file)
+            logger.info(f"Deleted temporary YouTube audio file due to interruption: {args.file}")
         sys.exit(0)

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 def create_embeddings(chunks, client):
     texts = [chunk['text'] for chunk in chunks]
+    logging.debug("create_embeddings")
     response = client.embeddings.create(input=texts, model="text-embedding-ada-002")
     return [embedding.embedding for embedding in response.data]
 
