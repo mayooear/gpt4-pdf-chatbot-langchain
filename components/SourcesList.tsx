@@ -113,13 +113,26 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
     return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : text;
   };
 
+  const getSourceIcon = (doc: Document<Record<string, any>>) => {
+    switch (doc.metadata.type) {
+      case 'audio':
+        return 'mic';
+      case 'youtube':
+        return 'videocam';
+      default:
+        return 'description';
+    }
+  };
+
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
     const isNonAnandaLibrary = doc.metadata.library && doc.metadata.library !== 'Ananda Library';
     return (
-      <span className={`${isNonAnandaLibrary ? 'text-black-600 font-medium' : ''}`}>
-        {formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source')}
-        {isNonAnandaLibrary && <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>}
-      </span>
+      <>
+        <span className={`${isNonAnandaLibrary ? 'text-black-600 font-medium' : ''} flex-grow`}>
+          {formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source')}
+          {isNonAnandaLibrary && <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>}
+        </span>
+      </>
     );
   };
 
@@ -148,48 +161,57 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
         return (
           <details 
             key={index} 
-            className={styles.sourceDocsContainer}
+            className="group"
             open={expandedSources.has(index)}
           >
-            <summary onClick={(e) => {
-              e.preventDefault();
-              handleSourceToggle(index);
-            }}>
+            <summary 
+              onClick={(e) => {
+                e.preventDefault();
+                handleSourceToggle(index);
+              }}
+              className="flex items-center cursor-pointer list-none"
+            >
+              <div className="flex items-center mr-2 w-8">
+                <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90">
+                  ▶
+                </span>
+                <span className="material-icons text-sm ml-1">{getSourceIcon(doc)}</span>
+              </div>
               {doc.metadata && doc.metadata.source ? (
                 <a 
                   href={doc.metadata.source} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  style={{ color: 'blue' }}
+                  className="text-blue-600 hover:underline flex items-center flex-grow"
                   onClick={(e) => handleSourceClick(e, doc.metadata.source)}
                 >
                   {renderSourceTitle(doc)}
                 </a>
               ) : doc.metadata.title ? (
-                <span>
+                <span className="flex items-center flex-grow">
                   {renderSourceTitle(doc)}
                 </span>
               ) : doc.metadata['pdf.info.Title'] ? (
-                <span style={{ color: 'blue' }}>
+                <span className="text-blue-600 flex items-center flex-grow">
                   {renderSourceTitle(doc)}
                 </span>
               ) : (
-                <span style={{ color: 'blue' }}>
+                <span className="text-blue-600 flex items-center flex-grow">
                   Unknown source
                 </span>
               )}
             </summary>
-            <div className={`${styles.sourceDocContent}`}>
+            <div className="pl-5 mt-2">
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                 {truncateText(doc.pageContent, 200)}
               </ReactMarkdown>
+              {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
+                renderAudioPlayer(doc, index)
+              )}
+              {doc.metadata && doc.metadata.type === 'youtube' && expandedSources.has(index) && (
+                renderYouTubePlayer(doc, index)
+              )}
             </div>
-            {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
-              renderAudioPlayer(doc, index)
-            )}
-            {doc.metadata && doc.metadata.type === 'youtube' && expandedSources.has(index) && (
-              renderYouTubePlayer(doc, index)
-            )}
           </details>
         );
       })}
