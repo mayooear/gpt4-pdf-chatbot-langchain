@@ -7,9 +7,10 @@ import time
 from openai import OpenAI, APIError, APITimeoutError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tqdm import tqdm
-from media_utils import get_file_hash, get_file_type, split_media
+from media_utils import get_file_hash, split_audio, get_expected_chunk_count
 import logging
 from moviepy.editor import VideoFileClip
+from pydub import AudioSegment
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0,
         transcript_dict = transcript.model_dump()
         
         if 'words' not in transcript_dict:
-            print(f"\n*** ERROR *** 'words' not found in transcript. Full response: {transcript_dict}")
+            logger.error(f"'words' not found in transcript. Full response: {transcript_dict}")
             return None
         
         # Adjust timestamps for words
@@ -81,8 +82,8 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0,
         print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}")
         raise
     except Exception as e:
-        print(f"\n*** ERROR *** Error transcribing chunk for file {file_name}. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
-        print(f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}")
+        logger.error(f"Error transcribing chunk for file {file_name}: {str(e)}")
+        logger.error(f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}")
         return None
 
 def init_db():
@@ -163,13 +164,12 @@ def save_transcription(file_path, transcripts):
 
 def transcribe_media(file_path, force=False, current_file=None, total_files=None, interrupt_event=None):
     """
-    Transcribe audio or video file, using existing transcription if available and not forced.
+    Transcribe audio file, using existing transcription if available and not forced.
     
     This function first checks for an existing transcription using the hybrid storage system.
     If not found or if force is True, it performs the transcription and saves the result.
     """
-        
-    file_type = get_file_type(file_path)
+    file_hash = get_file_hash(file_path)
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
@@ -178,28 +178,24 @@ def transcribe_media(file_path, force=False, current_file=None, total_files=None
         return existing_transcription
 
     client = OpenAI()
-    print(f"Splitting {file_type} into chunks for {file_name}...{file_info}")
     
-    if file_type == 'video':
-        # Extract audio from video
-        with VideoFileClip(file_path) as video:
-            audio = video.audio
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_audio_file:
-                audio.write_audiofile(temp_audio_file.name, codec='mp3')
-                chunks = split_media(temp_audio_file.name)
-        os.unlink(temp_audio_file.name)
-    else:
-        chunks = split_media(file_path)
     
-    print(f"{file_type.capitalize()} split into {len(chunks)} chunks for {file_name}")
+    logger.info(f"Splitting audio into chunks for {file_name}...{file_info}")
+    
+    # Split the audio into chunks
+    chunks = split_audio(file_path)
+    
+    logger.info(f"Audio split into {len(chunks)} chunks for {file_name}")
+    
     transcripts = []
     previous_transcript = None
     cumulative_time = 0
     
     for i, chunk in enumerate(tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")):
         if interrupt_event and interrupt_event.is_set():
-            print("Interrupt detected. Stopping transcription...")
-            return None
+            logger.info("Interrupt detected. Stopping transcription...")
+            break
+        
         try:
             transcript = transcribe_chunk(client, chunk, previous_transcript, cumulative_time, file_name)
             if transcript:
@@ -207,7 +203,7 @@ def transcribe_media(file_path, force=False, current_file=None, total_files=None
                 previous_transcript = transcript['text']
                 cumulative_time += chunk.duration_seconds
             else:
-                print(f"\n*** ERROR *** Empty or invalid transcript for chunk {i+1} in {file_name}")
+                logger.error(f"Empty or invalid transcript for chunk {i+1} in {file_name}")
         except RateLimitError:
             print(f"\n*** ERROR *** Rate limit exceeded. Terminating process.")
             return None
@@ -215,15 +211,13 @@ def transcribe_media(file_path, force=False, current_file=None, total_files=None
             print(f"\n*** ERROR *** {e}. Stopping processing for file {file_name}.")
             return None
         except Exception as e:
-            print(f"\n*** ERROR *** Error transcribing chunk for file {file_name}. Exception type: {type(e).__name__}, Arguments: {e.args}, Full exception: {e}")
-            return None
+            logger.error(f"Error transcribing chunk for file {file_name}. Exception: {str(e)}")
     
     if transcripts:
         save_transcription(file_path, transcripts)
         return transcripts
     else:
-        error_msg = f"No transcripts generated for {file_name}"
-        print(f"\n*** ERROR *** {error_msg}")
+        logger.error(f"No transcripts generated for {file_name}")
         return None
 
 def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):

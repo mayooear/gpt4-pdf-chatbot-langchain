@@ -2,7 +2,7 @@ import os
 import argparse
 from dotenv import load_dotenv
 from pinecone import Pinecone
-from media_utils import get_media_metadata, get_file_type
+from media_utils import get_media_metadata
 
 def delete_records_by_prefix(index, prefix):
     # List all record IDs with the given prefix
@@ -26,7 +26,8 @@ def delete_records_by_prefix(index, prefix):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Delete Pinecone records by file prefix for audio or video files.")
     parser.add_argument("file_path", type=str, help="Path to the media file (audio or video)")
-    parser.add_argument("--library", type=str, help="Name of the library")
+    parser.add_argument("--library", type=str, required=True, help="Name of the library")
+    parser.add_argument("--file-type", type=str, required=True, choices=['audio', 'youtube'], help="Type of the file (audio or youtube)")
     args = parser.parse_args()
 
     load_dotenv('../.env')
@@ -40,10 +41,10 @@ if __name__ == "__main__":
         raise ValueError(f"Index '{PINECONE_INDEX_NAME}' does not exist.")
     
     index = pc.Index(PINECONE_INDEX_NAME)
-    
+
     file_path = args.file_path
     library_name = args.library
-    file_type = get_file_type(file_path)
+    file_type = args.file_type
     title, _, _ = get_media_metadata(file_path)
     print(f"File Type: {file_type}")
     print(f"Title: {title}")

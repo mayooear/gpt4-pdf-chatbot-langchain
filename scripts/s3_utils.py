@@ -3,7 +3,6 @@ import boto3
 from botocore.exceptions import ClientError
 import logging
 from collections import defaultdict
-from media_utils import get_file_type
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ def get_bucket_name():
     return os.getenv('S3_BUCKET_NAME')
 
 def upload_to_s3(file_path):
-    file_type = get_file_type(file_path)
+    file_type = 'audio'
     s3_client = get_s3_client()
     bucket_name = get_bucket_name()
     object_name = f"public/{file_type}/{os.path.basename(file_path)}"
@@ -22,10 +21,11 @@ def upload_to_s3(file_path):
     try:
         s3_client.upload_file(file_path, bucket_name, object_name)
         logger.info(f"Successfully uploaded {file_path} to {bucket_name}/{object_name}")
-        return True
+        return None
     except ClientError as e:
-        logger.error(f"Error uploading {file_path} to S3: {e}")
-        return False
+        error_message = f"Failed to upload {file_path} to S3: {str(e)}"
+        logger.error(error_message)
+        return error_message
 
 def check_unique_filenames(directory_path):
     s3_client = get_s3_client()

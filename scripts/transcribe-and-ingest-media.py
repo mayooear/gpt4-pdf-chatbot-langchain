@@ -7,12 +7,13 @@ import traceback
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
-from media_utils import get_file_hash, print_chunk_statistics
-from transcription_utils import init_db, transcribe_audio, process_transcription, get_transcription
+from media_utils import get_file_hash, print_chunk_statistics, get_media_metadata
+from transcription_utils import init_db, transcribe_media, process_transcription, get_transcription
 from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, clear_library_vectors
 from s3_utils import upload_to_s3, check_unique_filenames
 import logging
 from pinecone_utils import clear_library_vectors
+from youtube_utils import download_youtube_audio
 
 # Global variables and constants
 interrupt_event = multiprocessing.Event()
@@ -43,12 +44,12 @@ def init_worker(event, debug, library_name):
     logger = configure_logging(debug)
 
 def process_file_wrapper(args):
-    file_path, force, current_file, total_files, dryrun, library_name = args
+    file_path, force, current_file, total_files, dryrun, library_name, is_youtube = args
     if interrupt_event.is_set():
         return None
-    return process_file(file_path, index, client, force, current_file, total_files, dryrun, library_name, logger)
+    return process_file(file_path, index, client, force, current_file, total_files, dryrun, library_name, logger, is_youtube)
 
-def process_file(file_path, index, client, force=False, current_file=None, total_files=None, dryrun=False, library_name=None, logger=None):
+def process_file(file_path, index, client, force=False, current_file=None, total_files=None, dryrun=False, author=None, library_name=None, is_youtube_video=False, interrupt_event=None, debug=False):
     local_report = {'processed': 0, 'skipped': 0, 'errors': 0, 'error_details': [], 'warnings': [], 'fully_indexed': 0, 'chunk_lengths': []}
     file_name = os.path.basename(file_path)
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
@@ -60,7 +61,7 @@ def process_file(file_path, index, client, force=False, current_file=None, total
     else:
         logger.info(f"\nTranscribing audio for {file_name}{file_info}")
         try:
-            transcripts = transcribe_audio(file_path, force, current_file, total_files, interrupt_event)
+            transcripts = transcribe_media(file_path, force)
             if transcripts:
                 local_report['processed'] += 1
             else:
@@ -80,9 +81,6 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         if dryrun:  
             logger.info(f"Dry run mode: Would store chunks for file {file_path} in Pinecone.")
 
-        # TODO: future optimization Is to combine the transcripts together and then
-        # Process them all at once, Because right now we don't do any overlap between the end of 
-        # one transcript and the start of the next.
         for i, transcript in tqdm(enumerate(transcripts), total=len(transcripts), desc=f"Processing transcripts for {file_name}"):
             if check_interrupt():
                 break
@@ -90,10 +88,10 @@ def process_file(file_path, index, client, force=False, current_file=None, total
             local_report['chunk_lengths'].extend([len(chunk['words']) for chunk in chunks])
             if not dryrun:
                 embeddings = create_embeddings(chunks, client)
-                store_in_pinecone(index, chunks, embeddings, file_path, library_name, interrupt_event)
+                store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, interrupt_event)
     
-        # After successful processing, upload to S3
-        if not dryrun:
+        # After successful processing, upload to S3 only if it's not a YouTube video
+        if not dryrun and not is_youtube_video:
             s3_warning = upload_to_s3(file_path)
             if s3_warning:
                 local_report['warnings'].append(s3_warning)
@@ -148,7 +146,7 @@ def process_directory(directory_path, force=False, dryrun=False, debug=False, li
     # Use multiprocessing to process files in parallel
     with multiprocessing.Pool(processes=num_processes, initializer=init_worker, initargs=(interrupt_event, debug, library_name)) as pool:
         try:
-            args_list = [(file_path, force, i+1, total_files, dryrun, library_name) for i, file_path in enumerate(media_files)]
+            args_list = [(file_path, force, i+1, total_files, dryrun, library_name, False) for i, file_path in enumerate(media_files)]
             results = []
             for result in pool.imap_unordered(process_file_wrapper, args_list):
                 if result is None or interrupt_event.is_set():
@@ -191,13 +189,15 @@ def signal_handler(sig, frame):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Audio and video transcription and indexing script")
     parser.add_argument("-f", "--file", help="Path to audio file or directory")
+    parser.add_argument("--video", help="YouTube video URL")
+    parser.add_argument("--author", required=True, help="Author of the media")
+    parser.add_argument("--library", required=True, help="Name of the library")
     parser.add_argument("--force", action="store_true", help="Force re-transcription and re-indexing")
     parser.add_argument("-c", "--clear-vectors", action="store_true", help="Clear existing vectors before processing")
     parser.add_argument("--dryrun", action="store_true", help="Perform a dry run without sending data to Pinecone or S3")
     parser.add_argument("--override-conflicts", action="store_true", help="Continue processing even if filename conflicts are found")
-    parser.add_argument("--transcribe-only", action="store_true", help="Only transcribe the audio, don't process or store in Pinecone")
+    parser.add_argument("--transcribe-only", action="store_true", help="Only transcribe the media, don't process or store in Pinecone")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("--library", type=str, help="Name of the library")
     args = parser.parse_args()
 
     load_dotenv()
@@ -219,6 +219,18 @@ if __name__ == "__main__":
                 sys.exit(1)
 
     try:
+        if args.video:
+            # Download YouTube video audio
+            youtube_data = download_youtube_audio(args.video)
+            if youtube_data:
+                args.file = youtube_data['audio_path']
+                is_youtube_video = True
+            else:
+                logger.error("Failed to download YouTube video audio. Exiting.")
+                sys.exit(1)
+        else:
+            is_youtube_video = False
+
         if args.file:
             if os.path.isdir(args.file):
                 conflicts = check_unique_filenames(args.file)
@@ -237,7 +249,7 @@ if __name__ == "__main__":
                             if file.lower().endswith(('.mp3', '.wav', '.flac', '.mp4', '.avi', '.mov')):
                                 file_path = os.path.join(root, file)
                                 logger.info(f"\nTranscribing {file_path}")
-                                transcribe_audio(file_path, args.force)
+                                transcribe_media(file_path, args.force)
                             if check_interrupt():
                                 logger.info("Interrupt requested. Exiting...")
                                 sys.exit(0)
@@ -246,11 +258,11 @@ if __name__ == "__main__":
             else:
                 if args.transcribe_only:
                     logger.info(f"\nTranscribing {args.file}")
-                    transcribe_audio(args.file, args.force)
+                    transcribe_media(args.file, args.force)
                 else:
                     client = OpenAI()
                     index = load_pinecone()
-                    report = process_file(args.file, index, client, args.force, dryrun=args.dryrun, library_name=args.library, interrupt_event=interrupt_event, debug=args.debug)
+                    report = process_file(args.file, index, client, args.force, dryrun=args.dryrun, author=args.author, library_name=args.library, is_youtube_video=is_youtube_video, interrupt_event=interrupt_event, debug=args.debug)
                     logger.info(f"\nReport:")
                     logger.info(f"Files processed: {report['processed']}")
                     logger.info(f"Files skipped: {report['skipped']}")
@@ -265,7 +277,7 @@ if __name__ == "__main__":
                             logger.warning(f"- {warning}")
                     print_chunk_statistics(report['chunk_lengths'])
 
-        if not args.file and not args.query:
+        if not args.file and not args.video:
             parser.print_help()
 
     except KeyboardInterrupt:

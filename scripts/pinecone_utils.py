@@ -4,8 +4,8 @@ import json
 import hashlib
 import logging
 from pinecone import Pinecone, ServerlessSpec
-from media_utils import get_media_metadata, get_file_hash, get_file_type
-from pinecone.core.client.exceptions import NotFoundException
+from media_utils import get_media_metadata, get_file_hash
+from pinecone.core.client.exceptions import NotFoundException, PineconeException
 
 logger = logging.getLogger(__name__)
 
@@ -25,38 +25,44 @@ def load_pinecone(index_name=None):
                         spec=ServerlessSpec(cloud='aws', region='us-west-2'))
     return pc.Index(index_name)
 
-def store_in_pinecone(index, chunks, embeddings, file_path, library_name, interrupt_event=None):
+def store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, interrupt_event=None):
     file_name = os.path.basename(file_path)
     file_hash = get_file_hash(file_path)
-    file_type = get_file_type(file_path)
     
-    # Get the title and author from metadata
-    title, author, duration = get_media_metadata(file_path)
+    # Get the title, author, duration, and URL from metadata
+    title, _, duration, url = get_media_metadata(file_path)
     
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         content_hash = hashlib.md5(chunk['text'].encode()).hexdigest()[:8]
-        chunk_id = f"{file_type}||{library_name}||{title}||{content_hash}||chunk{i+1}"
+        chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{title}||{content_hash}||chunk{i+1}"
         
         # print chunk, but not the words list
         chunk_copy = {k: v for k, v in chunk.items() if k != 'words'}
         logger.debug(f"store_in_pinecone: chunk {i+1} of {len(chunks)}: {chunk_copy}")
+        
+        metadata = {
+            'text': chunk['text'],
+            'start_time': chunk['start'], 
+            'end_time': chunk['end'],     
+            'full_info': json.dumps(chunk),
+            'file_name': file_name,
+            'file_hash': file_hash,
+            'library': library_name,
+            'author': author,
+            'type': 'youtube' if is_youtube_video else 'audio',
+            'title': title,
+            'duration': duration,
+        }
+        
+        # Only add the url field if it's not None
+        if url is not None:
+            metadata['url'] = url
+
         vectors.append({
             'id': chunk_id,
             'values': embedding,
-            'metadata': {
-                'text': chunk['text'],
-                'start_time': chunk['start'], 
-                'end_time': chunk['end'],     
-                'full_info': json.dumps(chunk),
-                'file_name': file_name,
-                'file_hash': file_hash,
-                'library': library_name,
-                'author': author,
-                'type': file_type,
-                'title': title,
-                'duration': duration
-            }
+            'metadata': metadata
         })
 
     for i in range(0, len(vectors), 100):
@@ -74,6 +80,9 @@ def store_in_pinecone(index, chunks, embeddings, file_path, library_name, interr
                 sys.exit(1)
             else:
                 logger.error(f"Error in upserting vectors: {e}")
+                raise PineconeException(f"Failed to upsert vectors: {str(e)}")
+
+    logger.info(f"Successfully stored {len(vectors)} vectors in Pinecone for file: {file_name}")
 
 def clear_library_vectors(index, library_name):
     try:
