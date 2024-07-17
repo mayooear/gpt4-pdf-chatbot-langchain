@@ -6,7 +6,8 @@ if (!process.env.PINECONE_INDEX_NAME) {
   throw new Error('Missing Pinecone index name in .env file');
 }
 
-if (!process.env.PINECONE_INGEST_INDEX_NAME) {
+// For now, ingestion only happens in development
+if (process.env.NODE_ENV === 'development' && !process.env.PINECONE_INGEST_INDEX_NAME) {
   throw new Error('Missing Pinecone ingest index name in .env file');
 }
 
