@@ -49,13 +49,15 @@ export default async function handler(
         ...(collection === 'master_swami' && { author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
       };
 
-      // require at least one media type to be selected or set both to true
-      if (!mediaTypes.text && !mediaTypes.audio) {
+      // require at least one media type to be selected or set all to true
+      if (!mediaTypes.text && !mediaTypes.audio && !mediaTypes.youtube) {
         mediaTypes.text = true;
         mediaTypes.audio = true;
+        mediaTypes.youtube = true;
       }
       if (mediaTypes.text) filter.type.$in.push('text');
       if (mediaTypes.audio) filter.type.$in.push('audio');
+      if (mediaTypes.youtube) filter.type.$in.push('youtube');
 
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({}),
@@ -102,9 +104,9 @@ export default async function handler(
       if (processedSourceDocuments && processedSourceDocuments.length > 0) {
         const sourceTitles = processedSourceDocuments.map((doc: any) => {
           // Log audio sources
-          // if (doc.metadata.type === 'audio') {
-          //   console.log('Audio Source:', doc);
-          // }
+          if (doc.metadata.type === 'youtube') {
+            console.log('youtube source:', doc);
+          }
           return doc.metadata.title;
         });
         sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');

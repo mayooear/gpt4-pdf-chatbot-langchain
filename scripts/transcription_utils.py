@@ -289,13 +289,13 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
         i += adjusted_chunk_size - overlap
     
     min_chunk_size = target_chunk_size // 2
-    max_chunk_size = target_chunk_size * 2
+    max_chunk_size = int(target_chunk_size * 1.7)
     chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
     
     for chunk in chunks:
         if len(chunk['words']) < 30:
-            print(f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..." + (" *****" if len(chunk['words']) < 15 else ""))
-            print(f"** Warning **: Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s")
+            logger.warning(f"Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s")
+            logger.warning(f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..." + (" *****" if len(chunk['words']) < 15 else ""))
     
     for idx, chunk in enumerate(chunks):
         logger.debug(f"Chunk {idx + 1}:")

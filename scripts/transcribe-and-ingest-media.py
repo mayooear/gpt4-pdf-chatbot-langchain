@@ -104,6 +104,12 @@ def process_file(file_path, index, client, force=False, current_file=None, total
         local_report['errors'] += 1
         local_report['error_details'].append(error_msg)
 
+    finally:
+        # Delete the MP3 file if it was a YouTube video
+        if is_youtube_video and os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted temporary YouTube audio file: {file_path}")
+
     return local_report
 
 def check_interrupt():

@@ -10,11 +10,10 @@ import { AudioPlayer } from './AudioPlayer';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
-  useAccordion?: boolean;
   collectionName?: string;
 }
 
-const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
+const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = null }) => {
   const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
 
   const renderAudioPlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
@@ -35,6 +34,40 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     }
     return null;
   }, [expandedSources]);
+
+  const transformYouTubeUrl = (url: string, startTime: number) => {
+    const urlObj = new URL(url);
+    let videoId = '';
+    if (urlObj.hostname === 'youtu.be') {
+      videoId = urlObj.pathname.slice(1);
+    } else if (urlObj.hostname === 'www.youtube.com' && urlObj.pathname.includes('watch')) {
+      videoId = urlObj.searchParams.get('v') || '';
+    }
+    const baseUrl = `https://www.youtube.com/embed/${videoId}`;
+    const params = new URLSearchParams(urlObj.search);
+    params.set('start', Math.floor(startTime).toString());
+    params.set('rel', '0');
+    return `${baseUrl}?${params.toString()}`;
+  };
+
+  const renderYouTubePlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
+    if (doc.metadata.type === 'youtube') {
+      const embedUrl = transformYouTubeUrl(doc.metadata.url, doc.metadata.start_time);
+      return (
+        <div className="aspect-video mb-7">
+          <iframe
+            className="h-full w-full rounded-lg"
+            src={embedUrl}
+            title={doc.metadata.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+    return null;
+  }, []);
 
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
@@ -89,47 +122,6 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
       </span>
     );
   };
-
-  if (useAccordion) {
-    return (
-      <>
-      {sources.length > 0 && (
-        <div className="bg-gray-200 p-3 rounded-lg mt-2 mb-2">
-          <Accordion type="single" collapsible onValueChange={(value) => handleAccordionExpand(!!value)}>
-            <AccordionItem value="sources">
-              <AccordionTrigger className="text-base font-semibold text-blue-500">
-                Sources
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="text-base">
-                  {sources.map((doc, index) => (
-                    <li key={index}>
-                      <a 
-                        href={doc.metadata.source} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="hover:underline"
-                        onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-                      >
-                        {renderSourceTitle(doc)}
-                      </a>
-                      {doc.metadata.type === 'audio' && (
-                        <p>{truncateText(doc.pageContent, 30)}</p>
-                      )}
-                      {doc.metadata.type === 'audio' && (
-                        renderAudioPlayer(doc, index)
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      )}
-      </>
-    );
-  }
 
   return (
     <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2 sourcesContainer"> 
@@ -189,11 +181,14 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             </summary>
             <div className={`${styles.sourceDocContent}`}>
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.metadata.type === 'audio' ? `"${truncateText(doc.pageContent, 50)}"` : `*${doc.pageContent}*`}
+                {truncateText(doc.pageContent, 200)}
               </ReactMarkdown>
             </div>
             {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
               renderAudioPlayer(doc, index)
+            )}
+            {doc.metadata && doc.metadata.type === 'youtube' && expandedSources.has(index) && (
+              renderYouTubePlayer(doc, index)
             )}
           </details>
         );

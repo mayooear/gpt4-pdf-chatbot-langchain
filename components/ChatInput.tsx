@@ -19,8 +19,8 @@ interface ChatInputProps {
   clearQuery: () => void;
   messageListRef: React.RefObject<HTMLDivElement>;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
-  mediaTypes: { text: boolean; audio: boolean };
-  handleMediaTypeChange: (type: 'text' | 'audio') => void;
+  mediaTypes: { text: boolean; audio: boolean; youtube: boolean };
+  handleMediaTypeChange: (type: 'text' | 'audio' | 'youtube') => void;
   isControlsMenuOpen: boolean;
   setIsControlsMenuOpen: (isOpen: boolean) => void;
 }
@@ -166,7 +166,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                           mediaTypes.text ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                         }`}
                       >
-                        Written
+                        Writings
                       </button>
                       <button
                         type="button"
@@ -175,7 +175,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                           mediaTypes.audio ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
                         }`}
                       >
-                        Spoken
+                        Audio
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMediaTypeChange('youtube')}
+                        className={`px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto ${
+                          mediaTypes.youtube ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        Video
                       </button>
                     </div>
                     <div className="sm:w-auto sm:min-w-[160px]">
