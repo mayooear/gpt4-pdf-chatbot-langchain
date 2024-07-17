@@ -70,16 +70,16 @@ def transcribe_chunk(client, chunk, previous_transcript=None, cumulative_time=0,
         
         return simplified_transcript
     except APITimeoutError:
-        print(f"\n*** ERROR *** OpenAI API request timed out for file {file_name}. Retrying...")
+        logger.error(f"OpenAI API request timed out for file {file_name}. Retrying...")
         raise
     except APIError as e:
         if e.code == 429:
-            print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. Rate limit exceeded.")
+            logger.error(f"OpenAI API error for file {file_name}: {e}. Rate limit exceeded.")
             raise RateLimitError("Rate limit exceeded")
         elif e.code == 400 and 'The audio file could not be decoded or its format is not supported.' in str(e):
-            print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
+            logger.error(f"OpenAI API error for file {file_name}: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk.")
             raise UnsupportedAudioFormatError(f"Unsupported audio format for file {file_name}")
-        print(f"\n*** ERROR *** OpenAI API error for file {file_name}: {e}")
+        logger.error(f"OpenAI API error for file {file_name}: {e}")
         raise
     except Exception as e:
         logger.error(f"Error transcribing chunk for file {file_name}: {str(e)}")
@@ -99,7 +99,7 @@ def init_db():
             c.execute('''CREATE TABLE IF NOT EXISTS transcriptions
                          (file_hash TEXT PRIMARY KEY, file_path TEXT, timestamp REAL, json_file TEXT)''')
         else:
-            print("Table creation aborted.")
+            logger.info("Table creation aborted.")
             conn.close()
             return
     
@@ -123,7 +123,7 @@ def get_transcription(file_path):
     
     if result:
         json_file = result[0]
-        print(f"Using existing transcription for {file_path} ({file_hash})")
+        logger.info(f"Using existing transcription for {file_path} ({file_hash})")
 
         # Ensure we're using the full path to the JSON file
         full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
@@ -133,7 +133,7 @@ def get_transcription(file_path):
                 data = json.load(f)
                 return data
         else:
-            print(f"Warning: JSON file not found at {full_json_path}")
+            logger.warning(f"JSON file not found at {full_json_path}")
     return None
 
 def save_transcription(file_path, transcripts):
@@ -174,7 +174,7 @@ def transcribe_media(file_path, force=False, current_file=None, total_files=None
     file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
     existing_transcription = get_transcription(file_path)
     if existing_transcription and not force:
-        print(f"Using existing transcription for {file_name}{file_info}")
+        logger.info(f"Using existing transcription for {file_name}{file_info}")
         return existing_transcription
 
     client = OpenAI()
@@ -205,10 +205,10 @@ def transcribe_media(file_path, force=False, current_file=None, total_files=None
             else:
                 logger.error(f"Empty or invalid transcript for chunk {i+1} in {file_name}")
         except RateLimitError:
-            print(f"\n*** ERROR *** Rate limit exceeded. Terminating process.")
+            logger.error(f"Rate limit exceeded. Terminating process.")
             return None
         except UnsupportedAudioFormatError as e:
-            print(f"\n*** ERROR *** {e}. Stopping processing for file {file_name}.")
+            logger.error(f"{e}. Stopping processing for file {file_name}.")
             return None
         except Exception as e:
             logger.error(f"Error transcribing chunk for file {file_name}. Exception: {str(e)}")

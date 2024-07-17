@@ -1,8 +1,12 @@
 import os
 import uuid
+import logging
 from yt_dlp import YoutubeDL
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, COMM
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def download_youtube_audio(url: str, output_path: str = '.'):
     random_filename = str(uuid.uuid4())
@@ -34,8 +38,8 @@ def download_youtube_audio(url: str, output_path: str = '.'):
         }
         add_metadata_to_mp3(audio_path, metadata, url)
 
-        print(f"Downloaded and extracted audio successfully: {info['title']}")
-        print(f"File saved as: {audio_path}")
+        logger.info(f"Downloaded and extracted audio successfully: {info['title']}")
+        logger.info(f"File saved as: {audio_path}")
 
         return {
             'audio_path': audio_path,
@@ -44,7 +48,7 @@ def download_youtube_audio(url: str, output_path: str = '.'):
             'url': url
         }
     except Exception as e:
-        print(f"An error occurred while downloading YouTube audio: {e}")
+        logger.error(f"An error occurred while downloading YouTube audio: {e}")
         return None
 
 def add_metadata_to_mp3(mp3_path: str, metadata: dict, url: str):
@@ -61,6 +65,6 @@ def add_metadata_to_mp3(mp3_path: str, metadata: dict, url: str):
         audio.tags.add(COMM(encoding=3, lang='eng', desc='url', text=url))
 
         audio.save()
-        print("Metadata added successfully to MP3.")
+        logger.info("Metadata added successfully to MP3.")
     except Exception as e:
-        print(f"An error occurred while adding metadata to MP3: {e}")        
+        logger.error(f"An error occurred while adding metadata to MP3: {e}")        
