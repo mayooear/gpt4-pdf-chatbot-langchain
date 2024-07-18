@@ -95,3 +95,34 @@ def save_youtube_data_map(youtube_data_map):
     with open(YOUTUBE_DATA_MAP_PATH, 'w') as f:
         json.dump(youtube_data_map, f, ensure_ascii=False, indent=2)
 
+def get_channel_videos(channel_url: str, output_path: str = '.'):
+    ydl_opts = {
+        'extract_flat': True,
+        'force_generic_extractor': True,
+        'ignoreerrors': True,
+    }
+
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            channel_info = ydl.extract_info(channel_url, download=False)
+            
+            if 'entries' not in channel_info:
+                raise ValueError("Unable to find videos in the channel")
+
+            print(f"Found channel: {channel_info.get('uploader', 'Unknown')}")
+            print(f"Total videos: {len(channel_info['entries'])}")
+
+            videos = []
+            for entry in channel_info['entries']:
+                videos.append({
+                    'url': f"https://www.youtube.com/watch?v={entry['id']}",
+                    'youtube_id': entry['id']
+                })
+
+            logging.debug(f"Video from channel:\n{videos}")
+            return videos
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+

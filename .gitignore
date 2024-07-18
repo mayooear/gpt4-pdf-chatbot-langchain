@@ -9,6 +9,7 @@
 /emulator-data/
 /media/
 /ingestion_checkpoint.json
+/scripts/queue
 
 # IDE
 /.idea/

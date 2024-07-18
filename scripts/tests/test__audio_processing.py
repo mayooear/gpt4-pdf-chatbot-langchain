@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pinecone.core.client.exceptions import PineconeException
 from unittest.mock import patch
+from scripts.IngestQueue import IngestQueue  # Add this import
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,6 +47,7 @@ class TestAudioProcessing(unittest.TestCase):
         self.library = "Ananda Sangha"
         self.client = OpenAI()
         self.temp_files = []
+        self.queue = IngestQueue() 
         logger.debug(f"Set up test with audio file: {self.test_audio_path}")
 
     def tearDown(self):
@@ -96,7 +98,7 @@ class TestAudioProcessing(unittest.TestCase):
         logger.debug(f"Created {len(embeddings)} embeddings, each with {len(embeddings[0])} dimensions")
         
         try:
-            store_in_pinecone(index, chunks, embeddings, self.test_audio_path, self.author, self.library, False)
+            store_in_pinecone(index, chunks, embeddings, self.test_audio_path, self.author, self.library)
             logger.debug("Pinecone storage success test completed")
         except PineconeException as e:
             self.fail(f"Pinecone storage failed unexpectedly: {str(e)}")
@@ -127,7 +129,7 @@ class TestAudioProcessing(unittest.TestCase):
         with patch.object(index, 'upsert', side_effect=Exception("Simulated Pinecone error")):
             # Expect a PineconeException to be raised
             with self.assertRaises(PineconeException) as context:
-                store_in_pinecone(index, chunks, embeddings, self.test_audio_path, self.author, self.library, False)
+                store_in_pinecone(index, chunks, embeddings, self.test_audio_path, self.author, self.library)
                 
         # Check if the error message contains the expected content
         self.assertIn("Failed to upsert vectors", str(context.exception))

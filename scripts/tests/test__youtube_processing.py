@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import random
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3
+from scripts.IngestQueue import IngestQueue 
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +59,7 @@ class TestYouTubeProcessing(unittest.TestCase):
         self.library = "Ananda Sangha"
         self.audio_path = None
         logger.debug(f"Set up test with video URL: {self.test_video_url}")
+        self.queue = IngestQueue() 
 
     def tearDown(self):
         if self.audio_path and os.path.exists(self.audio_path):
