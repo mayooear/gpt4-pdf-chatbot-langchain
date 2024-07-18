@@ -26,12 +26,13 @@ def load_pinecone(index_name=None):
                         spec=ServerlessSpec(cloud='aws', region='us-west-2'))
     return pc.Index(index_name)
 
-def store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, interrupt_event=None):
-    file_name = os.path.basename(file_path)
-    file_hash = get_file_hash(file_path)
-    
+def store_in_pinecone(index, chunks, embeddings, file_path, author, library_name, is_youtube_video, youtube_id=None, interrupt_event=None):    
     # Get the title, author, duration, and URL from metadata
-    title, _, duration, url = get_media_metadata(file_path)
+    if file_path:
+        title, _, duration, url = get_media_metadata(file_path)
+    else:
+        # TODO get metadata from youtube mp3
+        title, _, duration, url = None, None, None, None
     
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
@@ -47,13 +48,10 @@ def store_in_pinecone(index, chunks, embeddings, file_path, author, library_name
             'start_time': chunk['start'], 
             'end_time': chunk['end'],     
             'full_info': json.dumps(chunk),
-            'file_name': file_name,
-            'file_hash': file_hash,
             'library': library_name,
             'author': author,
             'type': 'youtube' if is_youtube_video else 'audio',
             'title': title,
-            'duration': duration,
         }
         
         # Only add the url field if it's not None
@@ -83,7 +81,7 @@ def store_in_pinecone(index, chunks, embeddings, file_path, author, library_name
                 logger.error(f"Error in upserting vectors: {e}")
                 raise PineconeException(f"Failed to upsert vectors: {str(e)}")
 
-    logger.info(f"Successfully stored {len(vectors)} vectors in Pinecone for file: {file_name}")
+    logger.info(f"Successfully stored {len(vectors)} vectors in Pinecone")
 
 def clear_library_vectors(index, library_name):
     try:

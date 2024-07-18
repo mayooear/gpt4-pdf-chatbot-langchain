@@ -7,7 +7,8 @@ import time
 from openai import OpenAI, APIError, APITimeoutError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tqdm import tqdm
-from media_utils import get_file_hash, split_audio, get_expected_chunk_count
+from media_utils import get_file_hash, split_audio
+from youtube_utils import load_youtube_data_map, save_youtube_data_map
 import logging
 from moviepy.editor import VideoFileClip
 from pydub import AudioSegment
@@ -16,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 TRANSCRIPTIONS_DB_PATH = '../media/transcriptions.db'
 TRANSCRIPTIONS_DIR = '../media/transcriptions'
-YOUTUBE_HASH_MAP_PATH = '../media/youtube_hash_map.json'
 
 # Global list to store chunk lengths
 chunk_lengths = []
@@ -107,15 +107,30 @@ def init_db():
     conn.commit()
     conn.close()
 
-def get_transcription(file_path):
+def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
     """
-    Retrieve transcription for a given file.
+    Retrieve transcription for a given file or YouTube video.
     
     This function uses a hybrid approach:
-    1. It checks the SQLite database for the file's index entry.
-    2. If found, it loads the transcription from the corresponding gzipped JSON file.
+    1. For audio files, it checks the SQLite database for the file's index entry.
+    2. For YouTube videos, it checks the YouTube data map.
+    3. If found, it loads the transcription from the corresponding gzipped JSON file.
+
+    For Youtube videos, file_path is None
     """
-    file_hash = get_file_hash(file_path)
+
+    if is_youtube_video:
+        if not youtube_id:
+            raise ValueError("YouTube ID is required for YouTube videos")
+        youtube_data_map = load_youtube_data_map()
+        youtube_data = youtube_data_map.get(youtube_id)
+        if youtube_data:
+            file_hash = youtube_data['file_hash']
+        else:
+            return None
+    else:
+        file_hash = get_file_hash(file_path)
+    
     conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
     c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
@@ -124,7 +139,7 @@ def get_transcription(file_path):
     
     if result:
         json_file = result[0]
-        logger.info(f"Using existing transcription for {file_path} ({file_hash})")
+        logger.info(f"Using existing transcription for {'YouTube video' if is_youtube_video else 'file'} {youtube_id or file_path} ({file_hash})")
 
         # Ensure we're using the full path to the JSON file
         full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
@@ -163,25 +178,23 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
-def transcribe_media(file_path, force=False, current_file=None, total_files=None, interrupt_event=None):
+def transcribe_media(file_path, force=False, is_youtube_video=False, youtube_id=None, interrupt_event=None):
     """
     Transcribe audio file, using existing transcription if available and not forced.
     
     This function first checks for an existing transcription using the hybrid storage system.
     If not found or if force is True, it performs the transcription and saves the result.
     """
-    file_hash = get_file_hash(file_path)
-    file_name = os.path.basename(file_path)
-    file_info = f" (file #{current_file} of {total_files}, {current_file/total_files:.1%})" if current_file and total_files else ""
-    existing_transcription = get_transcription(file_path)
+    
+    file_name = os.path.basename(file_path) if file_path else f"YouTube_{youtube_id}"
+
+    existing_transcription = get_transcription(file_path, is_youtube_video, youtube_id)
     if existing_transcription and not force:
-        logger.info(f"Using existing transcription for {file_name}{file_info}")
         return existing_transcription
 
     client = OpenAI()
     
-    
-    logger.info(f"Splitting audio into chunks for {file_name}...{file_info}")
+    logger.info(f"Splitting audio into chunks for {file_name}...")
     
     # Split the audio into chunks
     chunks = split_audio(file_path)
@@ -306,48 +319,10 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
 
     return chunks
 
-"""
-The following functions are used to manage the mapping between YouTube video IDs and their corresponding transcription file hashes.
-This allows for efficient retrieval and storage of transcriptions associated with YouTube videos.
-
-1. load_youtube_hash_map: Loads the YouTube hash map from a JSON file if it exists.
-2. save_youtube_hash_map: Saves the YouTube hash map to a JSON file.
-3. get_transcription_by_youtube_id: Retrieves the transcription for a given YouTube video ID by looking up the file hash in the YouTube hash map and then loading the transcription from the corresponding file.
-4. save_youtube_transcription: Saves the transcription for a YouTube video and updates the YouTube hash map with the new file hash.
-"""
-
-def load_youtube_hash_map():
-    if os.path.exists(YOUTUBE_HASH_MAP_PATH):
-        with open(YOUTUBE_HASH_MAP_PATH, 'r') as f:
-            return json.load(f)
-    return {}
-
-def save_youtube_hash_map(youtube_hash_map):
-    with open(YOUTUBE_HASH_MAP_PATH, 'w') as f:
-        json.dump(youtube_hash_map, f, ensure_ascii=False, indent=2)
-
-def get_transcription_by_youtube_id(youtube_id):
-    youtube_hash_map = load_youtube_hash_map()
-    file_hash = youtube_hash_map.get(youtube_id)
-    if file_hash:
-        conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
-        result = c.fetchone()
-        conn.close()
-        if result:
-            json_file = result[0]
-            full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
-            if os.path.exists(full_json_path):
-                with gzip.open(full_json_path, 'rt', encoding='utf-8') as f:
-                    transcripts = json.load(f)
-                    # Ensure we're returning a list of transcripts
-                    return transcripts if isinstance(transcripts, list) else [transcripts]
-    return None
-
-def save_youtube_transcription(youtube_id, file_path, transcripts):
+def save_youtube_transcription(youtube_data, file_path, transcripts):
     save_transcription(file_path, transcripts)
     file_hash = get_file_hash(file_path)
-    youtube_hash_map = load_youtube_hash_map()
-    youtube_hash_map[youtube_id] = file_hash
-    save_youtube_hash_map(youtube_hash_map)
+    youtube_data_map = load_youtube_data_map()
+    youtube_data['file_hash'] = file_hash
+    youtube_data_map[youtube_data['youtube_id']] = youtube_data
+    save_youtube_data_map(youtube_data_map)

@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 import logging
@@ -8,6 +9,9 @@ import re
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+YOUTUBE_DATA_MAP_PATH = '../media/youtube_data_map.json'
+
 
 def extract_youtube_id(url: str) -> str:
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
@@ -79,3 +83,15 @@ def add_metadata_to_mp3(mp3_path: str, metadata: dict, url: str):
         logger.info("Metadata added successfully to MP3.")
     except Exception as e:
         logger.error(f"An error occurred while adding metadata to MP3: {e}")        
+
+
+def load_youtube_data_map():
+    if os.path.exists(YOUTUBE_DATA_MAP_PATH):
+        with open(YOUTUBE_DATA_MAP_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_youtube_data_map(youtube_data_map):
+    with open(YOUTUBE_DATA_MAP_PATH, 'w') as f:
+        json.dump(youtube_data_map, f, ensure_ascii=False, indent=2)
+
