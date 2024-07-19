@@ -120,18 +120,30 @@ def list_queue_items(queue):
         return
 
     print("Queue contents:")
+    # Determine the maximum lengths for each column dynamically
+    max_id_len = max((len(str(item.get('id', 'Unknown ID'))) for item in items), default=10)
+    max_type_len = max((len(item.get('type', 'Unknown type')) for item in items), default=15)
+    max_status_len = max((len(item.get('status', 'Unknown status')) for item in items), default=15)
+    max_url_len = max((len(item.get('data', {}).get('url', '')) for item in items if item.get('type') == 'youtube_video'), default=50)
+    max_file_path_len = max((len(item.get('data', {}).get('file_path', '')) for item in items if item.get('type') == 'audio_file'), default=50)
+    max_author_len = max((len(item.get('data', {}).get('author', '')) for item in items), default=20)
+    max_library_len = max((len(item.get('data', {}).get('library', '')) for item in items), default=20)
+
+    # Print the header with dynamic lengths and 2 spaces between columns
+    print(f"{'ID'.ljust(max_id_len)}  {'Type'.ljust(max_type_len)}  {'Status'.ljust(max_status_len)}  {'URL/File'.ljust(max(max_url_len, max_file_path_len))}  {'Author'.ljust(max_author_len)}  {'Library'.ljust(max_library_len)}")
+    
     for item in items:
-        item_id = item.get('id', 'Unknown ID')
+        item_id = str(item.get('id', 'Unknown ID'))
         item_type = item.get('type', 'Unknown type')
         item_data = item.get('data', {})
         item_status = item.get('status', 'Unknown status')
         
         if item_type == 'youtube_video':
-            print(f"ID: {item_id} | Type: {item_type} | Status: {item_status} | URL: {item_data.get('url')} | Author: {item_data.get('author')} | Library: {item_data.get('library')}")
+            print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('url', '').ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}")
         elif item_type == 'audio_file':
-            print(f"ID: {item_id} | Type: {item_type} | Status: {item_status} | File: {item_data.get('file_path')} | Author: {item_data.get('author')} | Library: {item_data.get('library')}")
+            print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('file_path', '').ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}")
         else:
-            print(f"ID: {item_id} | Type: {item_type} | Status: {item_status} | Data: {item_data}")
+            print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {'N/A'.ljust(max_author_len)}  {'N/A'.ljust(max_library_len)}")
 
 def clear_queue(queue):
     queue.clear_queue()
