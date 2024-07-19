@@ -73,6 +73,7 @@ def store_in_pinecone(
             "author": author,
             "type": "youtube" if is_youtube_video else "audio",
             "title": title,
+            "filename": "" if not file_path else os.path.basename(file_path),
         }
 
         # Only add the url field if it's not None

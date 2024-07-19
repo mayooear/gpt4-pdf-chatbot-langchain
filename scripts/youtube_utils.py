@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import uuid
 import logging
 from yt_dlp import YoutubeDL
@@ -75,10 +76,12 @@ def download_youtube_audio(url: str, output_path: str = "."):
             if "HTTP Error 403: Forbidden" in str(e):
                 if attempt < max_retries - 1:  # don't sleep after the last attempt
                     sleep_time = 30 * (2**attempt)  # 30, 60, 120 seconds
+                    jitter = random.uniform(0, 15)  # Add up to 15 seconds jitter
+                    total_sleep_time = sleep_time + jitter
                     logger.warning(
-                        f"403 Forbidden error. Retrying in {sleep_time} seconds..."
+                        f"403 Forbidden error. Retrying in {total_sleep_time:.2f} seconds..."
                     )
-                    time.sleep(sleep_time)
+                    time.sleep(total_sleep_time)
                 else:
                     logger.error(
                         "Max retries reached. Unable to download due to 403 Forbidden error."

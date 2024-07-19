@@ -27,8 +27,21 @@ from s3_utils import upload_to_s3
 from pinecone_utils import clear_library_vectors
 from youtube_utils import download_youtube_audio, extract_youtube_id
 from multiprocessing import Pool, cpu_count
+import atexit
 
 logger = logging.getLogger(__name__)
+
+
+def reset_terminal():
+    """Reset the terminal to its normal state."""
+    if os.name == 'posix':  # For Unix-like systems
+        os.system('stty sane')
+    print('\033[?25h', end='')  # Show the cursor
+    print('\033[0m', end='')    # Reset all attributes
+    print('', flush=True)       # Ensure a newline and flush the output
+
+# Register the reset_terminal function to be called on exit
+atexit.register(reset_terminal)
 
 
 def process_file(
@@ -158,16 +171,32 @@ def process_file(
     return local_report
 
 
-def process_audio_file(item, args):
-    """process audio file in a separate process"""
+def process_item(item, args):
+    """Process a media item (audio file or YouTube video) in a separate process"""
 
     # Initialize resources for this process
     client = OpenAI()
     index = load_pinecone()
 
-    file_to_process = item["data"]["file_path"]
+    if item["type"] == "audio_file":
+        file_to_process = item["data"]["file_path"]
+        is_youtube_video = False
+        youtube_data = None
+    elif item["type"] == "youtube_video":
+        youtube_data, youtube_id = preprocess_youtube_video(item["data"]["url"], logger)
+        if not youtube_data:
+            logger.error("Failed to process YouTube video.")
+            return item["id"], {"errors": 1, "error_details": ["Failed to process YouTube video"]}
+        file_to_process = youtube_data["audio_path"]
+        is_youtube_video = True
+    else:
+        logger.error(f"Unknown item type: {item['type']}")
+        return item["id"], {"errors": 1, "error_details": [f"Unknown item type: {item['type']}"]}
+
     author = item["data"]["author"]
     library = item["data"]["library"]
+    logger.debug(f"Author: {author}")
+    logger.debug(f"Library: {library}")
 
     report = process_file(
         file_to_process,
@@ -177,12 +206,14 @@ def process_audio_file(item, args):
         dryrun=args.dryrun,
         author=author,
         library_name=library,
-        is_youtube_video=False,
-        youtube_data=None,
+        is_youtube_video=is_youtube_video,
+        youtube_data=youtube_data,
     )
 
-    # Clean up resources if necessary
-    # (e.g., close connections, etc.)
+    # Clean up temporary YouTube audio file if necessary
+    if is_youtube_video and file_to_process and os.path.exists(file_to_process):
+        os.remove(file_to_process)
+        logger.info(f"Deleted temporary YouTube audio file: {file_to_process}")
 
     return item["id"], report
 
@@ -250,24 +281,6 @@ def merge_reports(reports):
     return combined_report
 
 
-def process_audio_batch(audio_files, args, pool, queue):
-    try:
-        results = pool.starmap(
-            process_audio_file, [(file, args) for file in audio_files]
-        )
-        combined_report = merge_reports([report for _, report in results])
-        print_report(combined_report)
-        for item_id, _ in results:
-            queue.update_item_status(item_id, "completed")
-        return combined_report
-    except Exception as e:
-        logger.error(f"Error in audio file batch processing: {str(e)}")
-        logger.exception("Full traceback:")
-        for audio_item in audio_files:
-            queue.update_item_status(audio_item["id"], "error")
-        return None
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Audio and video transcription and indexing script"
@@ -310,9 +323,7 @@ def main():
     client = OpenAI()
     index = load_pinecone()
 
-    failed_youtube_attempts = 0  # Initialize the counter
-
-    audio_files = []
+    items_to_process = []
     overall_report = {
         "processed": 0,
         "skipped": 0,
@@ -330,107 +341,35 @@ def main():
                 if not item:
                     break
 
-                if item["type"] == "audio_file":
-                    audio_files.append(item)
-                elif item["type"] == "youtube_video":
-                    # Process YouTube videos sequentially as before
-                    logger.debug("Processing YouTube video")
-                    youtube_data = item["data"]
-                    logger.debug(f"YouTube data: {youtube_data}")
-                    logger.debug(f"YouTube URL: {youtube_data.get('url')}")
-                    logger.debug(f"YouTube ID: {youtube_data.get('youtube_id')}")
-                    logger.debug(f"Author: {youtube_data.get('author')}")
-                    logger.debug(f"Library: {youtube_data.get('library')}")
+                items_to_process.append(item)
 
-                    youtube_data, youtube_id = preprocess_youtube_video(
-                        item["data"]["url"], logger
-                    )
-                    if not youtube_data:
-                        logger.error("Failed to process YouTube video.")
-                        queue.update_item_status(item["id"], "error")
-                        failed_youtube_attempts += 1  # Increment the counter
-                        if failed_youtube_attempts >= 3:
-                            logger.error(
-                                "Exiting script after 3 failed YouTube video processing attempts."
-                            )
-                            sys.exit(1)  # Exit the script
-                        continue
+                if len(items_to_process) >= 4:
+                    results = pool.starmap(process_item, [(item, args) for item in items_to_process])
+                    for item_id, report in results:
+                        queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
+                        overall_report = merge_reports([overall_report, report])
+                    items_to_process = []
 
-                    logger.debug(f"Processed YouTube data: {youtube_data}")
-                    logger.debug(f"Processed YouTube ID: {youtube_id}")
-
-                    file_to_process = youtube_data["audio_path"]
-                    is_youtube_video = True
-                    author = item["data"]["author"]
-                    library = item["data"]["library"]
-                    logger.debug(f"Author: {author}")
-                    logger.debug(f"Library: {library}")
-
-                    report = process_file(
-                        file_to_process,
-                        index,
-                        client,
-                        args.force,
-                        dryrun=args.dryrun,
-                        author=author,
-                        library_name=library,
-                        is_youtube_video=is_youtube_video,
-                        youtube_data=youtube_data,
-                    )
-
-                    logger.debug(f"Processing report: {report}")
-
-                    if is_youtube_video and file_to_process:
-                        if os.path.exists(file_to_process):
-                            os.remove(file_to_process)
-                            logger.info(
-                                f"Deleted temporary YouTube audio file: {file_to_process}"
-                            )
-
-                    print_report(report)
-                    
-                    if report["errors"] > 0:
-                        queue.update_item_status(item["id"], "error")
-                        logger.error(f"Errors occurred while processing {youtube_data['youtube_id']}. Marking as error.")
-                    else:
-                        queue.update_item_status(item["id"], "completed")
-                        logger.info(f"Successfully processed {youtube_data['youtube_id']}. Marking as completed.")
-
+            # Process any remaining items
+            if items_to_process:
+                results = pool.starmap(process_item, [(item, args) for item in items_to_process])
+                for item_id, report in results:
+                    queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
                     overall_report = merge_reports([overall_report, report])
-
-                    # Reset the counter on successful processing
-                    failed_youtube_attempts = 0
-
-                if len(audio_files) >= 4:
-                    batch_report = process_audio_batch(audio_files, args, pool, queue)
-                    if batch_report:
-                        overall_report = merge_reports([overall_report, batch_report])
-                    audio_files = []
-
-            # Process any remaining audio files
-            if audio_files:
-                batch_report = process_audio_batch(audio_files, args, pool, queue)
-                if batch_report:
-                    overall_report = merge_reports([overall_report, batch_report])
 
         except KeyboardInterrupt:
             logger.info("\nKeyboard interrupt. Exiting.")
-            for audio_item in audio_files:
-                queue.update_item_status(audio_item["id"], "interrupted")
-            if "item" in locals() and item["type"] == "youtube_video":
+            for item in items_to_process:
                 queue.update_item_status(item["id"], "interrupted")
-                if "file_to_process" in locals() and os.path.exists(file_to_process):
-                    os.remove(file_to_process)
-                    logger.info(
-                        f"Deleted temporary YouTube audio file due to interruption: {file_to_process}"
-                    )
             print_report(overall_report)
+            reset_terminal()
             sys.exit(0)
 
         except Exception as e:
-            logger.error(f"Error processing item {item['id']}: {str(e)}")
+            logger.error(f"Error processing items: {str(e)}")
             logger.exception("Full traceback:")
-            queue.update_item_status(item["id"], "error")
+            for item in items_to_process:
+                queue.update_item_status(item["id"], "error")
 
     print("\nOverall Processing Report:")
     print_report(overall_report)
@@ -438,6 +377,11 @@ def main():
     queue_status = queue.get_queue_status()
     logger.info(f"Final queue status: {queue_status}")
 
+    # Explicitly reset the terminal state
+    reset_terminal()
 
 if __name__ == "__main__":
     main()
+
+# Add an extra newline at the very end of the file
+print("")

@@ -23,7 +23,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
         <div className="pt-1 pb-2">
           <AudioPlayer
             key={audioId}
-            src={`/api/audio/${doc.metadata.file_name}`}
+            src={`/api/audio/${doc.metadata.filename}`}
             startTime={doc.metadata.start_time}
             audioId={audioId}
             lazyLoad={true}

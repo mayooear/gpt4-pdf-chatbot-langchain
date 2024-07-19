@@ -76,7 +76,6 @@ class IngestQueue:
                     if e.errno != errno.EWOULDBLOCK:
                         logger.error(f"Error reading queue item: {e}")
                     continue  # Move to the next file if this one is locked
-        logger.info("No pending items in the queue")
         return None
 
     def update_item_status(self, item_id, status):
@@ -111,9 +110,7 @@ class IngestQueue:
         return False
 
     def get_queue_status(self):
-        pending = 0
-        completed = 0
-        error = 0
+        status_counts = {}
 
         for filename in os.listdir(self.queue_dir):
             if filename.endswith(".json"):
@@ -121,21 +118,16 @@ class IngestQueue:
                 try:
                     with open(filepath, "r") as f:
                         item = json.load(f)
-                    if item["status"] == "pending":
-                        pending += 1
-                    elif item["status"] == "completed":
-                        completed += 1
-                    elif item["status"] == "error":
-                        error += 1
+                    status = item.get("status", "unknown")
+                    if status in status_counts:
+                        status_counts[status] += 1
+                    else:
+                        status_counts[status] = 1
                 except IOError as e:
                     logger.error(f"Error reading queue item: {e}")
 
-        return {
-            "pending": pending,
-            "completed": completed,
-            "error": error,
-            "total": pending + completed + error,
-        }
+        status_counts["total"] = sum(status_counts.values())
+        return status_counts
 
     def clear_queue(self):
         """Remove all JSON items from the queue."""
@@ -230,3 +222,20 @@ class IngestQueue:
         except IOError as e:
             logger.error(f"Error reprocessing item {item_id}: {e}")
             return False, f"Error reprocessing item: {e}"
+
+    def reset_all_items(self):
+        """Reset all items in the queue to 'pending' status."""
+        for filename in os.listdir(self.queue_dir):
+            if filename.endswith(".json"):
+                filepath = os.path.join(self.queue_dir, filename)
+                try:
+                    with open(filepath, "r+") as f:
+                        item = json.load(f)
+                        item["status"] = "pending"
+                        item["updated_at"] = datetime.utcnow().isoformat()
+                        f.seek(0)
+                        json.dump(item, f)
+                        f.truncate()
+                except IOError as e:
+                    logger.error(f"Error resetting item {filename}: {e}")
+        logger.info("All items in the queue have been reset to 'pending' status.")

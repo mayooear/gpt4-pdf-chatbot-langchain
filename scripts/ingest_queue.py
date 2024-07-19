@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from IngestQueue import IngestQueue
 from logging_utils import configure_logging
-from youtube_utils import extract_youtube_id, get_channel_videos
+from youtube_utils import extract_youtube_id, get_playlist_videos
 from media_utils import get_file_hash
 import logging
 
@@ -108,7 +108,7 @@ def add_to_queue(args, queue):
             logger.error("Invalid YouTube video URL")
 
     elif args.playlist:
-        videos = get_channel_videos(args.playlist)
+        videos = get_playlist_videos(args.playlist)
         for video in videos:
             logger.debug(f"Video to add: {video}")
             item_id = queue.add_item(
@@ -234,6 +234,11 @@ def reprocess_item(queue, item_id):
         logger.warning(message)
 
 
+def reprocess_all_items(queue):
+    reset_count = queue.reset_all_items()
+    logger.info(f"Reset all {reset_count} items in the queue. Ready for reprocessing.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
 
@@ -262,13 +267,20 @@ def main():
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--reprocess", help="Reprocess a specific item by ID")
+    parser.add_argument(
+        "--reprocess-all",
+        action="store_true",
+        help="Reset all items in the queue for reprocessing",
+    )
 
     args = parser.parse_args()
 
     logger = initialize_environment(args)
     queue = IngestQueue()
 
-    if args.reprocess:
+    if args.reprocess_all:
+        reprocess_all_items(queue)
+    elif args.reprocess:
         reprocess_item(queue, args.reprocess)
     elif args.list:
         list_queue_items(queue)

@@ -42,7 +42,7 @@ VERY IMPORTANT: If you are provided any sources that are "type: audio", you *MUS
 but do not quote more than 30 words from any one excerpt (chunk). 
 
 Your answer will refer to the audio player include on the web page to hear more, e.g.:
-[Play audio in referenced source: <TITLE>]
+[Play referenced source: <TITLE>]
 
 ## Example Answer using Two Audio Sources
 
@@ -62,7 +62,7 @@ predominantly through God's grace. When you're in tune with that flow,
 miraculous healing can sometimes occur. As stated by Swamiji, "Several people
 have had cancer and have simply not had cancer. Patria had it very badly and
 suddenly there's absolutely no trace of it left."
-[Play audio in referenced source: Can Karma Be Changed]
+[Play in referenced source: Can Karma Be Changed]
 
 4. Practicality and Self-Reliance: While it is practical to seek medical help, it is also crucial to 
 develop self-reliance and not depend entirely on others. This balance helps in building resilience 
@@ -73,7 +73,7 @@ be about suppression but more about introducing a higher level of energy. As
 Swamiji points out, "karma may be so strong for you to have a particular
 physical problem that it's only when you've increased the energy much higher
 relative to it that it finally is weak."
-[Play audio in referenced source: Secrets of Spiritual Healing]
+[Play in referenced source: Secrets of Spiritual Healing]
 
 By integrating these approaches, one can better cope with and potentially overcome extremely challenging 
 health-related issues.
