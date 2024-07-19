@@ -125,15 +125,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
   };
 
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
-    const isNonAnandaLibrary = doc.metadata.library && doc.metadata.library !== 'Ananda Library';
-    return (
-      <>
-        <span className={`${isNonAnandaLibrary ? 'text-black-600 font-medium' : ''} flex-grow`}>
-          {formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source')}
-          {isNonAnandaLibrary && <span className="ml-4 text-gray-500 font-normal">{doc.metadata.library}</span>}
-        </span>
-      </>
-    );
+    return formatTitle(doc.metadata.title || doc.metadata['pdf.info.Title'] || 'Unknown source');
   };
 
   return (
@@ -178,26 +170,40 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
                 <span className="material-icons text-sm ml-1">{getSourceIcon(doc)}</span>
               </div>
               {doc.metadata && doc.metadata.source ? (
-                <a 
-                  href={doc.metadata.source} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-blue-600 hover:underline flex items-center flex-grow"
-                  onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-                >
-                  {renderSourceTitle(doc)}
-                </a>
+                <div className="flex items-center flex-grow">
+                  <a 
+                    href={doc.metadata.source} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-600 hover:underline mr-4"
+                    onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+                  >
+                    <span className="font-medium">{renderSourceTitle(doc)}</span>
+                  </a>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
+                </div>
               ) : doc.metadata.title ? (
                 <span className="flex items-center flex-grow">
-                  {renderSourceTitle(doc)}
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               ) : doc.metadata['pdf.info.Title'] ? (
                 <span className="text-blue-600 flex items-center flex-grow">
-                  {renderSourceTitle(doc)}
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               ) : (
                 <span className="text-blue-600 flex items-center flex-grow">
-                  Unknown source
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               )}
             </summary>
