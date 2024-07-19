@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime
 import logging
 import shutil
+import fcntl
+import errno
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +55,24 @@ class IngestQueue:
             if filename.endswith('.json'):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r') as f:
-                        item = json.load(f)
-                    if item['status'] == 'pending':
-                        logger.info(f"Retrieved next item from queue: {item['id']}")
-                        return item
+                    with open(filepath, 'r+') as f:
+                        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        try:
+                            item = json.load(f)
+                            if item['status'] == 'pending':
+                                item['status'] = 'processing'
+                                item['updated_at'] = datetime.utcnow().isoformat()
+                                f.seek(0)
+                                json.dump(item, f)
+                                f.truncate()
+                                logger.info(f"Retrieved and locked next item from queue: {item['id']}")
+                                return item
+                        finally:
+                            fcntl.flock(f, fcntl.LOCK_UN)
                 except IOError as e:
-                    logger.error(f"Error reading queue item: {e}")
+                    if e.errno != errno.EWOULDBLOCK:
+                        logger.error(f"Error reading queue item: {e}")
+                    continue  # Move to the next file if this one is locked
         logger.info("No pending items in the queue")
         return None
 
@@ -157,20 +170,20 @@ class IngestQueue:
         return items
 
     def reset_error_items(self):
-        """Reset status to 'pending' for all items in 'error' state."""
-        reprocessed_count = 0
+        """Reset status to 'pending' for all items in 'error' or 'interrupted' state."""
+        count = 0
         for filename in os.listdir(self.queue_dir):
             if filename.endswith('.json'):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
                     with open(filepath, 'r') as f:
                         item = json.load(f)
-                    if item['status'] == 'error':
+                    if item['status'] in ['error', 'interrupted']:
                         item['status'] = 'pending'
                         item['updated_at'] = datetime.utcnow().isoformat()
                         with open(filepath, 'w') as f:
                             json.dump(item, f)
-                        reprocessed_count += 1
+                        count += 1
                 except IOError as e:
-                    logger.error(f"Error reprocessing item {filename}: {e}")
-        return reprocessed_count
+                    logger.error(f"Error resetting item {filename}: {e}")
+        return count

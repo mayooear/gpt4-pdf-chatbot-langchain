@@ -6,6 +6,8 @@ from yt_dlp import YoutubeDL
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, COMM
 import re
+import time
+from yt_dlp.utils import DownloadError
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -35,36 +37,52 @@ def download_youtube_audio(url: str, output_path: str = '.'):
         'outtmpl': os.path.join(output_path, f'{random_filename}.%(ext)s'),
     }
 
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                
+                audio_path = os.path.join(output_path, f"{random_filename}.mp3")
+
+                if not os.path.exists(audio_path):
+                    raise FileNotFoundError(f"Could not find the downloaded MP3 file: {audio_path}")
             
-            audio_path = os.path.join(output_path, f"{random_filename}.mp3")
+            # Get and add metadata to MP3
+            metadata = {
+                "title": info['title'],
+                "author": info['uploader'],
+                "description": info.get('description', '')
+            }
+            add_metadata_to_mp3(audio_path, metadata, url)
 
-            if not os.path.exists(audio_path):
-                raise FileNotFoundError(f"Could not find the downloaded MP3 file: {audio_path}")
-        
-        # Get and add metadata to MP3
-        metadata = {
-            "title": info['title'],
-            "author": info['uploader'],
-            "description": info.get('description', '')
-        }
-        add_metadata_to_mp3(audio_path, metadata, url)
+            logger.info(f"Downloaded and extracted audio successfully: {info['title']}")
+            logger.info(f"File saved as: {audio_path}")
 
-        logger.info(f"Downloaded and extracted audio successfully: {info['title']}")
-        logger.info(f"File saved as: {audio_path}")
+            return {
+                'audio_path': audio_path,
+                'title': info['title'],
+                'author': info['uploader'],
+                'url': url,
+                'youtube_id': youtube_id
+            }
+        except DownloadError as e:
+            if 'HTTP Error 403: Forbidden' in str(e):
+                if attempt < max_retries - 1:  # don't sleep after the last attempt
+                    sleep_time = 30 * (2 ** attempt)  # 30, 60, 120 seconds
+                    logger.warning(f"403 Forbidden error. Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    logger.error("Max retries reached. Unable to download due to 403 Forbidden error.")
+                    return None
+            else:
+                logger.error(f"An error occurred while downloading YouTube audio: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"An error occurred while downloading YouTube audio: {e}")
+            return None
 
-        return {
-            'audio_path': audio_path,
-            'title': info['title'],
-            'author': info['uploader'],
-            'url': url,
-            'youtube_id': youtube_id
-        }
-    except Exception as e:
-        logger.error(f"An error occurred while downloading YouTube audio: {e}")
-        return None
+    return None  # If we've exhausted all retries
 
 def add_metadata_to_mp3(mp3_path: str, metadata: dict, url: str):
     try:
@@ -125,4 +143,3 @@ def get_channel_videos(channel_url: str, output_path: str = '.'):
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
-

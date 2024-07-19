@@ -35,6 +35,29 @@ def check_unique_filenames(directory_path):
     
     return conflicts
 
+def process_audio_input(input_path, queue, author, library):
+    if os.path.isfile(input_path):
+        if input_path.lower().endswith(('.mp3', '.wav', '.flac')):
+            item_id = queue.add_item('audio_file', {
+                'file_path': input_path,
+                'author': author,
+                'library': library
+            })
+            if item_id:
+                logger.info(f"Added audio file to queue: {item_id} - {input_path}")
+                return [item_id]
+            else:
+                logger.error(f"Failed to add audio file to queue: {input_path}")
+                return []
+        else:
+            logger.error(f"Unsupported file type: {input_path}")
+            return []
+    elif os.path.isdir(input_path):
+        return process_directory(input_path, queue, author, library)
+    else:
+        logger.error(f"Invalid input path: {input_path}")
+        return []
+
 def process_directory(directory_path, queue, author, library):
     conflicts = check_unique_filenames(directory_path)
     if conflicts:
@@ -43,11 +66,12 @@ def process_directory(directory_path, queue, author, library):
             logger.error(f"\n{file}:")
             for location in locations:
                 logger.error(f"  - {location}")
-        return False
+        return []
 
+    added_items = []
     for root, _, files in os.walk(directory_path):
         for file in files:
-            if file.lower().endswith('.mp3'):
+            if file.lower().endswith(('.mp3', '.wav', '.flac')):
                 file_path = os.path.join(root, file)
                 item_id = queue.add_item('audio_file', {
                     'file_path': file_path,
@@ -56,10 +80,11 @@ def process_directory(directory_path, queue, author, library):
                 })
                 if item_id:
                     logger.info(f"Added audio file to queue: {item_id} - {file_path}")
+                    added_items.append(item_id)
                 else:
                     logger.error(f"Failed to add audio file to queue: {file_path}")
     
-    return True
+    return added_items
 
 def add_to_queue(args, queue):
     if args.video:
@@ -93,22 +118,13 @@ def add_to_queue(args, queue):
             else:
                 logger.error(f"Failed to add YouTube video to queue: {video['url']}")
 
-    elif args.audio:
-        item_id = queue.add_item('audio_file', {
-            'file_path': args.audio,
-            'author': args.author,
-            'library': args.library
-        })
-        if item_id:
-            logger.info(f"Added audio file to queue: {item_id}")
+    elif args.audio or args.directory:
+        input_path = args.audio or args.directory
+        added_items = process_audio_input(input_path, queue, args.author, args.library)
+        if added_items:
+            logger.info(f"Added {len(added_items)} audio file(s) to queue")
         else:
-            logger.error("Failed to add audio file to queue")
-
-    elif args.directory:
-        if process_directory(args.directory, queue, args.author, args.library):
-            logger.info(f"Processed directory: {args.directory}")
-        else:
-            logger.error(f"Failed to process directory: {args.directory}")
+            logger.error(f"Failed to add any audio files from: {input_path}")
 
     else:
         logger.error("No valid input provided for adding to queue")
@@ -150,7 +166,7 @@ def clear_queue(queue):
     logger.info("Queue has been cleared")
 
 def reset_error_items(queue):
-    reprocessed_count = queue.reprocess_error_items()
+    reprocessed_count = queue.reset_error_items()
     logger.info(f"Reset {reprocessed_count} items from error state. Ready for processing.")
 
 def main():

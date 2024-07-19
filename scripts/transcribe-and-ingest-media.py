@@ -13,6 +13,7 @@ from pinecone_utils import load_pinecone, create_embeddings, store_in_pinecone, 
 from s3_utils import upload_to_s3
 from pinecone_utils import clear_library_vectors
 from youtube_utils import download_youtube_audio, extract_youtube_id
+from multiprocessing import Pool, cpu_count
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,26 @@ def process_file(file_path, index, client, force, dryrun, author, library_name, 
 
     return local_report
 
+def process_audio_file(item, args):
+    """process audio file in a separate process"""
+
+    # Initialize resources for this process
+    client = OpenAI()
+    index = load_pinecone()
+
+    file_to_process = item['data']['file_path']
+    author = item['data']['author']
+    library = item['data']['library']
+    
+    report = process_file(file_to_process, index, client, args.force, dryrun=args.dryrun, 
+                          author=author, library_name=library, 
+                          is_youtube_video=False, youtube_data=None)
+    
+    # Clean up resources if necessary
+    # (e.g., close connections, etc.)
+    
+    return item['id'], report
+
 def initialize_environment(args):
     load_dotenv()
     init_db()
@@ -109,8 +130,8 @@ def process_youtube_video(url, logger):
     if youtube_data:
         return youtube_data, youtube_id
     else:
-        logger.error("Failed to download YouTube video audio. Exiting.")
-        sys.exit(1)
+        logger.error("Failed to download YouTube video audio.")
+        return None, None
 
 def print_report(report):
     logger.info(f"\nReport:")
@@ -126,6 +147,40 @@ def print_report(report):
         for warning in report['warnings']:
             logger.warning(f"- {warning}")
     print_chunk_statistics(report['chunk_lengths'])
+
+def merge_reports(reports):
+    combined_report = {
+        'processed': 0,
+        'skipped': 0,
+        'errors': 0,
+        'error_details': [],
+        'warnings': [],
+        'fully_indexed': 0,
+        'chunk_lengths': []
+    }
+    for report in reports:
+        for key in ['processed', 'skipped', 'errors', 'fully_indexed']:
+            combined_report[key] += report[key]
+        combined_report['error_details'].extend(report['error_details'])
+        combined_report['warnings'].extend(report['warnings'])
+        combined_report['chunk_lengths'].extend(report['chunk_lengths'])
+    return combined_report
+
+def process_audio_batch(audio_files, args, pool, queue):
+    try:
+        results = pool.starmap(process_audio_file, 
+                               [(file, args) for file in audio_files])
+        combined_report = merge_reports([report for _, report in results])
+        print_report(combined_report)
+        for item_id, _ in results:
+            queue.update_item_status(item_id, 'completed')
+        return combined_report
+    except Exception as e:
+        logger.error(f"Error in audio file batch processing: {str(e)}")
+        logger.exception("Full traceback:")
+        for audio_item in audio_files:
+            queue.update_item_status(audio_item['id'], 'error')
+        return None
 
 def main():
     parser = argparse.ArgumentParser(description="Audio and video transcription and indexing script")
@@ -152,77 +207,106 @@ def main():
     client = OpenAI()
     index = load_pinecone()
 
-    while True:
-        item = queue.get_next_item()
-        if not item:
-            logger.info("No more items in the queue. Exiting.")
-            break
+    failed_youtube_attempts = 0  # Initialize the counter
 
-        logger.debug(f"Processing item: {item}")
-        logger.debug(f"Item type: {item.get('type')}")
-        logger.debug(f"Item data: {item.get('data')}")
+    audio_files = []
+    overall_report = {
+        'processed': 0,
+        'skipped': 0,
+        'errors': 0,
+        'error_details': [],
+        'warnings': [],
+        'fully_indexed': 0,
+        'chunk_lengths': []
+    }
 
+    with Pool(processes=4) as pool:
         try:
-            if item['type'] == 'youtube_video':
-                logger.debug("Processing YouTube video")
-                youtube_data = item['data']
-                logger.debug(f"YouTube data: {youtube_data}")
-                logger.debug(f"YouTube URL: {youtube_data.get('url')}")
-                logger.debug(f"YouTube ID: {youtube_data.get('youtube_id')}")
-                logger.debug(f"Author: {youtube_data.get('author')}")
-                logger.debug(f"Library: {youtube_data.get('library')}")
-                
-                youtube_data, youtube_id = process_youtube_video(item['data']['url'], logger)
-                logger.debug(f"Processed YouTube data: {youtube_data}")
-                logger.debug(f"Processed YouTube ID: {youtube_id}")
-                
-                file_to_process = youtube_data['audio_path']
-                is_youtube_video = True
-            elif item['type'] == 'audio_file':
-                logger.debug("Processing audio file")
-                file_to_process = item['data']['file_path']
-                logger.debug(f"File to process: {file_to_process}")
-                is_youtube_video = False
-                youtube_data = None
-            else:
-                logger.error(f"Unknown item type: {item['type']}")
-                queue.update_item_status(item['id'], 'error')
-                continue
+            while True:
+                item = queue.get_next_item()
+                if not item:
+                    break
 
-            logger.debug(f"File to process: {file_to_process}")
-            logger.debug(f"Is YouTube video: {is_youtube_video}")
+                if item['type'] == 'audio_file':
+                    audio_files.append(item)
+                elif item['type'] == 'youtube_video':
+                    # Process YouTube videos sequentially as before
+                    logger.debug("Processing YouTube video")
+                    youtube_data = item['data']
+                    logger.debug(f"YouTube data: {youtube_data}")
+                    logger.debug(f"YouTube URL: {youtube_data.get('url')}")
+                    logger.debug(f"YouTube ID: {youtube_data.get('youtube_id')}")
+                    logger.debug(f"Author: {youtube_data.get('author')}")
+                    logger.debug(f"Library: {youtube_data.get('library')}")
+                    
+                    youtube_data, youtube_id = process_youtube_video(item['data']['url'], logger)
+                    if not youtube_data:
+                        logger.error("Failed to process YouTube video.")
+                        queue.update_item_status(item['id'], 'error')
+                        failed_youtube_attempts += 1  # Increment the counter
+                        if failed_youtube_attempts >= 3:
+                            logger.error("Exiting script after 3 failed YouTube video processing attempts.")
+                            sys.exit(1)  # Exit the script
+                        continue
+                    
+                    logger.debug(f"Processed YouTube data: {youtube_data}")
+                    logger.debug(f"Processed YouTube ID: {youtube_id}")
+                    
+                    file_to_process = youtube_data['audio_path']
+                    is_youtube_video = True
+                    author = item['data']['author']
+                    library = item['data']['library']
+                    logger.debug(f"Author: {author}")
+                    logger.debug(f"Library: {library}")
 
-            author = item['data']['author']
-            library = item['data']['library']
-            logger.debug(f"Author: {author}")
-            logger.debug(f"Library: {library}")
+                    report = process_file(file_to_process, index, client, args.force, dryrun=args.dryrun, 
+                                          author=author, library_name=library, 
+                                          is_youtube_video=is_youtube_video, youtube_data=youtube_data)
+                    
+                    logger.debug(f"Processing report: {report}")
 
-            report = process_file(file_to_process, index, client, args.force, dryrun=args.dryrun, 
-                                  author=author, library_name=library, 
-                                  is_youtube_video=is_youtube_video, youtube_data=youtube_data)
-            
-            logger.debug(f"Processing report: {report}")
+                    if is_youtube_video and file_to_process:
+                        if os.path.exists(file_to_process):
+                            os.remove(file_to_process)
+                            logger.info(f"Deleted temporary YouTube audio file: {file_to_process}")
 
-            if is_youtube_video and file_to_process:
-                if os.path.exists(file_to_process):
-                    os.remove(file_to_process)
-                    logger.info(f"Deleted temporary YouTube audio file: {file_to_process}")
+                    print_report(report)
+                    queue.update_item_status(item['id'], 'completed')
 
-            print_report(report)
-            queue.update_item_status(item['id'], 'completed')
-            queue.remove_item(item['id'])
+                    # Reset the counter on successful processing
+                    failed_youtube_attempts = 0
+
+                if len(audio_files) >= 4:
+                    batch_report = process_audio_batch(audio_files, args, pool, queue)
+                    if batch_report:
+                        overall_report = merge_reports([overall_report, batch_report])
+                    audio_files = []
 
         except KeyboardInterrupt:
             logger.info("\nKeyboard interrupt. Exiting.")
-            queue.update_item_status(item['id'], 'interrupted')
-            if is_youtube_video and 'file_to_process' in locals() and os.path.exists(file_to_process):
-                os.remove(file_to_process)
-                logger.info(f"Deleted temporary YouTube audio file due to interruption: {file_to_process}")
+            for audio_item in audio_files:
+                queue.update_item_status(audio_item['id'], 'interrupted')
+            if 'item' in locals() and item['type'] == 'youtube_video':
+                queue.update_item_status(item['id'], 'interrupted')
+                if 'file_to_process' in locals() and os.path.exists(file_to_process):
+                    os.remove(file_to_process)
+                    logger.info(f"Deleted temporary YouTube audio file due to interruption: {file_to_process}")
+            print_report(overall_report)
             sys.exit(0)
+
         except Exception as e:
             logger.error(f"Error processing item {item['id']}: {str(e)}")
             logger.exception("Full traceback:")
             queue.update_item_status(item['id'], 'error')
+
+    # Process any remaining audio files
+    if audio_files:
+        batch_report = process_audio_batch(audio_files, args, pool, queue)
+        if batch_report:
+            overall_report = merge_reports([overall_report, batch_report])
+
+    print("\nOverall Processing Report:")
+    print_report(overall_report)
 
     queue_status = queue.get_queue_status()
     logger.info(f"Final queue status: {queue_status}")
