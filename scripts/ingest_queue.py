@@ -129,6 +129,11 @@ def add_to_queue(args, queue):
     else:
         logger.error("No valid input provided for adding to queue")
 
+def truncate_path(file_path, num_dirs=3):
+    """Return the last `num_dirs` directories of a file path."""
+    parts = file_path.split(os.sep)
+    return os.sep.join(parts[-num_dirs-1:]) if len(parts) > num_dirs else file_path
+
 def list_queue_items(queue):
     items = queue.get_all_items()
     if not items:
@@ -141,7 +146,7 @@ def list_queue_items(queue):
     max_type_len = max((len(item.get('type', 'Unknown type')) for item in items), default=15)
     max_status_len = max((len(item.get('status', 'Unknown status')) for item in items), default=15)
     max_url_len = max((len(item.get('data', {}).get('url', '')) for item in items if item.get('type') == 'youtube_video'), default=50)
-    max_file_path_len = max((len(item.get('data', {}).get('file_path', '')) for item in items if item.get('type') == 'audio_file'), default=50)
+    max_file_path_len = max((len(truncate_path(item.get('data', {}).get('file_path', ''))) for item in items if item.get('type') == 'audio_file'), default=50)
     max_author_len = max((len(item.get('data', {}).get('author', '')) for item in items), default=20)
     max_library_len = max((len(item.get('data', {}).get('library', '')) for item in items), default=20)
 
@@ -157,7 +162,8 @@ def list_queue_items(queue):
         if item_type == 'youtube_video':
             print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('url', '').ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}")
         elif item_type == 'audio_file':
-            print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('file_path', '').ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}")
+            truncated_path = truncate_path(item_data.get('file_path', ''))
+            print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {truncated_path.ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}")
         else:
             print(f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {'N/A'.ljust(max_author_len)}  {'N/A'.ljust(max_library_len)}")
 
@@ -165,9 +171,13 @@ def clear_queue(queue):
     queue.clear_queue()
     logger.info("Queue has been cleared")
 
-def reset_error_items(queue):
-    reprocessed_count = queue.reset_error_items()
-    logger.info(f"Reset {reprocessed_count} items from error state. Ready for processing.")
+def reset_stuck_items(queue):
+    reset_count = queue.reset_stuck_items()
+    logger.info(f"Reset {reset_count} items from error or interrupted state. Ready for processing.")
+
+def remove_completed_items(queue):
+    removed_count = queue.remove_completed_items()
+    logger.info(f"Removed {removed_count} completed items from the queue")
 
 def main():
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
@@ -181,7 +191,8 @@ def main():
     parser.add_argument("--library", help="Name of the library")
     parser.add_argument("--list", action="store_true", help="List all items in the processing queue")
     parser.add_argument("--clear", action="store_true", help="Clear all items from the queue")
-    parser.add_argument("--reset", action="store_true", help="Reset items in error state to pending")
+    parser.add_argument("--reset", action="store_true", help="Reset items in error or interrupted state to pending")
+    parser.add_argument("--remove-completed", action="store_true", help="Remove all completed items from the queue")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
     args = parser.parse_args()
@@ -194,7 +205,9 @@ def main():
     elif args.clear:
         clear_queue(queue)
     elif args.reset:
-        reset_error_items(queue)
+        reset_stuck_items(queue)
+    elif args.remove_completed:
+        remove_completed_items(queue)
     elif any([args.video, args.channel, args.audio, args.directory]):
         if not args.author or not args.library:
             logger.error("For adding items, you must specify both --author and --library")
@@ -202,7 +215,7 @@ def main():
             return
         add_to_queue(args, queue)
     else:
-        logger.error("No valid operation specified. Use --list to view queue, --clear to clear queue, --reprocess to rerun error items, or provide input for adding items.")
+        logger.error("No valid operation specified.")
         parser.print_help()
         return
 

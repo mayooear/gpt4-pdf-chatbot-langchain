@@ -169,7 +169,7 @@ class IngestQueue:
                     logger.error(f"Error reading queue item {filename}: {e}")
         return items
 
-    def reset_error_items(self):
+    def reset_stuck_items(self):
         """Reset status to 'pending' for all items in 'error' or 'interrupted' state."""
         count = 0
         for filename in os.listdir(self.queue_dir):
@@ -187,3 +187,21 @@ class IngestQueue:
                 except IOError as e:
                     logger.error(f"Error resetting item {filename}: {e}")
         return count
+
+    def remove_completed_items(self):
+        """Remove all completed items from the queue."""
+        removed_count = 0
+        for filename in os.listdir(self.queue_dir):
+            if filename.endswith('.json'):
+                filepath = os.path.join(self.queue_dir, filename)
+                try:
+                    with open(filepath, 'r') as f:
+                        item = json.load(f)
+                    if item['status'] == 'completed':
+                        item_id = item['id']
+                        if self.remove_item(item_id):
+                            removed_count += 1
+                except IOError as e:
+                    logger.error(f"Error reading queue item {filename}: {e}")
+        
+        return removed_count

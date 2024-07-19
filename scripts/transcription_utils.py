@@ -225,14 +225,18 @@ def transcribe_media(file_path, force=False, is_youtube_video=False, youtube_id=
             logger.error(f"{e}. Stopping processing for file {file_name}.")
             return None
         except Exception as e:
-            logger.error(f"Error transcribing chunk for file {file_name}. Exception: {str(e)}")
-    
+            logger.error(f"Error transcribing chunk {i+1} for file {file_name}. Exception: {str(e)}")
+
+    if len(transcripts) < len(chunks):
+        logger.error(f"Failed. Not all chunks were successfully transcribed for {file_name}. {len(transcripts)} out of {len(chunks)} chunks processed.")
+        return None
+
     if transcripts:
         save_transcription(file_path, transcripts)
         return transcripts
-    else:
-        logger.error(f"No transcripts generated for {file_name}")
-        return None
+    
+    logger.error(f"No transcripts generated for {file_name}")
+    return None
 
 def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
     i = 0
@@ -306,16 +310,20 @@ def process_transcription(transcript, target_chunk_size=150, overlap=75):
     max_chunk_size = int(target_chunk_size * 1.7)
     chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
     
+    chunk_warning = False
     for chunk in chunks:
         if len(chunk['words']) < 30:
             logger.warning(f"Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s")
             logger.warning(f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..." + (" *****" if len(chunk['words']) < 15 else ""))
+            chunk_warning = True
     
-    for idx, chunk in enumerate(chunks):
-        logger.debug(f"Chunk {idx + 1}:")
-        logger.debug(f"Text: {chunk['text']}")
-        logger.debug(f"Number of words: {len(chunk['words'])}")
-        logger.debug("\n")
+    if chunk_warning:
+        logger.warning("Full list of chunks:")
+        for idx, chunk in enumerate(chunks):
+            logger.warning(f"Chunk {idx + 1}:")
+            logger.warning(f"Text: {chunk['text']}")
+            logger.warning(f"Number of words: {len(chunk['words'])}")
+            logger.warning("\n")
 
     return chunks
 

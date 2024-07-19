@@ -282,6 +282,12 @@ def main():
                         overall_report = merge_reports([overall_report, batch_report])
                     audio_files = []
 
+            # Process any remaining audio files 
+            if audio_files:
+                batch_report = process_audio_batch(audio_files, args, pool, queue)
+                if batch_report:
+                    overall_report = merge_reports([overall_report, batch_report])
+
         except KeyboardInterrupt:
             logger.info("\nKeyboard interrupt. Exiting.")
             for audio_item in audio_files:
@@ -298,12 +304,6 @@ def main():
             logger.error(f"Error processing item {item['id']}: {str(e)}")
             logger.exception("Full traceback:")
             queue.update_item_status(item['id'], 'error')
-
-    # Process any remaining audio files
-    if audio_files:
-        batch_report = process_audio_batch(audio_files, args, pool, queue)
-        if batch_report:
-            overall_report = merge_reports([overall_report, batch_report])
 
     print("\nOverall Processing Report:")
     print_report(overall_report)
