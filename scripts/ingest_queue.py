@@ -226,6 +226,14 @@ def remove_completed_items(queue):
     logger.info(f"Removed {removed_count} completed items from the queue")
 
 
+def reprocess_item(queue, item_id):
+    success, message = queue.reprocess_item(item_id)
+    if success:
+        logger.info(message)
+    else:
+        logger.warning(message)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
 
@@ -253,13 +261,16 @@ def main():
         help="Remove all completed items from the queue",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--reprocess", help="Reprocess a specific item by ID")
 
     args = parser.parse_args()
 
     logger = initialize_environment(args)
     queue = IngestQueue()
 
-    if args.list:
+    if args.reprocess:
+        reprocess_item(queue, args.reprocess)
+    elif args.list:
         list_queue_items(queue)
     elif args.clear:
         clear_queue(queue)

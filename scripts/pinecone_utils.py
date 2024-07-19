@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import hashlib
@@ -41,19 +42,23 @@ def store_in_pinecone(
     library_name,
     is_youtube_video,
     youtube_id=None,
+    title=None,
+    duration=None,
+    url=None,
     interrupt_event=None,
 ):
-    # Get the title, author, duration, and URL from metadata
-    if file_path:
-        title, _, duration, url = get_media_metadata(file_path)
-    else:
-        # TODO get metadata from youtube mp3
-        title, _, duration, url = None, None, None, None
-
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         content_hash = hashlib.md5(chunk["text"].encode()).hexdigest()[:8]
-        chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{title}||{content_hash}||chunk{i+1}"
+        
+        # Replace offensive single quote with acceptable one
+        if title:
+            title = title.replace("’", "'")
+            
+        # Sanitize the title to ensure it's ASCII-compatible
+        sanitized_title = re.sub(r'[^\x00-\x7F]+', '', title) if title else 'Unknown_Title'
+        
+        chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{sanitized_title}||{content_hash}||chunk{i+1}"
 
         # print chunk, but not the words list
         chunk_copy = {k: v for k, v in chunk.items() if k != "words"}

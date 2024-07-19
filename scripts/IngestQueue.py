@@ -208,3 +208,25 @@ class IngestQueue:
                     logger.error(f"Error reading queue item {filename}: {e}")
 
         return removed_count
+
+    def reprocess_item(self, item_id):
+        item = self.get_item(item_id)
+        if not item:
+            logger.warning(f"Item not found: {item_id}")
+            return False, "Item not found"
+        
+        if item["status"] == "pending":
+            logger.warning(f"Item {item_id} is already pending. No action taken.")
+            return False, "Item is already pending"
+        
+        item["status"] = "pending"
+        item["updated_at"] = datetime.utcnow().isoformat()
+        
+        filepath = os.path.join(self.queue_dir, f"{item_id}.json")
+        try:
+            with open(filepath, "w") as f:
+                json.dump(item, f)
+            return True, f"Item reset for reprocessing: {item_id}"
+        except IOError as e:
+            logger.error(f"Error reprocessing item {item_id}: {e}")
+            return False, f"Error reprocessing item: {e}"

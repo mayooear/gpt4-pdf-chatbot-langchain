@@ -12,7 +12,7 @@ from tenacity import (
     retry_if_exception_type,
 )
 from tqdm import tqdm
-from media_utils import get_file_hash, split_audio
+from media_utils import get_file_hash, split_audio, get_media_metadata
 from youtube_utils import load_youtube_data_map, save_youtube_data_map
 import logging
 from moviepy.editor import VideoFileClip
@@ -144,10 +144,8 @@ def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
     """
     Retrieve transcription for a given file or YouTube video.
 
-    This function uses a hybrid approach:
-    1. For audio files, it checks the SQLite database for the file's index entry.
-    2. For YouTube videos, it checks the YouTube data map.
-    3. If found, it loads the transcription from the corresponding gzipped JSON file.
+    This function loads the saved transcription from the corresponding gzipped JSON file,
+    if it exists.
 
     For Youtube videos, file_path is None
     """
@@ -173,7 +171,7 @@ def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
     if result:
         json_file = result[0]
         logger.info(
-            f"Using existing transcription for {'YouTube video' if is_youtube_video else 'file'} {youtube_id or file_path} ({file_hash})"
+            f"get_transcription: Using existing transcription for {'YouTube video' if is_youtube_video else 'file'} {youtube_id or file_path} ({file_hash})"
         )
 
         # Ensure we're using the full path to the JSON file
@@ -235,6 +233,7 @@ def transcribe_media(
 
     existing_transcription = get_transcription(file_path, is_youtube_video, youtube_id)
     if existing_transcription and not force:
+        logger.debug(f"transcribe_media: Using existing transcription")
         return existing_transcription
 
     client = OpenAI()
@@ -401,6 +400,19 @@ def save_youtube_transcription(youtube_data, file_path, transcripts):
     save_transcription(file_path, transcripts)
     file_hash = get_file_hash(file_path)
     youtube_data_map = load_youtube_data_map()
+    
+    # Get media metadata and store it in youtube_data
+    try:
+        title, author, duration, url = get_media_metadata(file_path)
+        youtube_data["media_metadata"] = {
+            "title": title,
+            "author": author,
+            "duration": duration,
+            "url": url
+        }
+    except Exception as e:
+        logger.warning(f"Failed to get media metadata for YouTube video: {e}")
+    
     youtube_data["file_hash"] = file_hash
     youtube_data_map[youtube_data["youtube_id"]] = youtube_data
     save_youtube_data_map(youtube_data_map)

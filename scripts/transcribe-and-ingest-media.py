@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 from openai import OpenAI, AuthenticationError
 from tqdm import tqdm
-from media_utils import print_chunk_statistics
+from media_utils import get_media_metadata, print_chunk_statistics
 from logging_utils import configure_logging
 from IngestQueue import IngestQueue
 from transcription_utils import (
@@ -110,6 +110,16 @@ def process_file(
             if not dryrun:
                 try:
                     embeddings = create_embeddings(chunks, client)
+                    
+                    # Use youtube_data for metadata if it's a YouTube video
+                    if is_youtube_video and youtube_data and "media_metadata" in youtube_data:
+                        metadata = youtube_data["media_metadata"]
+                        title = metadata.get("title", "Unknown Title")
+                        duration = metadata.get("duration")
+                        url = metadata.get("url")
+                    else:
+                        title, _, duration, url = get_media_metadata(file_path)
+                    
                     store_in_pinecone(
                         index,
                         chunks,
@@ -119,10 +129,14 @@ def process_file(
                         library_name,
                         is_youtube_video,
                         youtube_id,
+                        title=title,
+                        duration=duration,
+                        url=url
                     )
-                except AuthenticationError as e:
-                    error_msg = f"Error creating embeddings for {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
+                except Exception as e:
+                    error_msg = f"Error processing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
                     logger.error(error_msg)
+                    logger.error(f"Caught exception: {e}")
                     local_report["errors"] += 1
                     local_report["error_details"].append(error_msg)
                     return local_report
@@ -180,7 +194,7 @@ def initialize_environment(args):
     return logger
 
 
-def process_youtube_video(url, logger):
+def preprocess_youtube_video(url, logger):
     youtube_id = extract_youtube_id(url)
     youtube_data_map = load_youtube_data_map()
     existing_youtube_data = youtube_data_map.get(youtube_id)
@@ -190,6 +204,7 @@ def process_youtube_video(url, logger):
             None, is_youtube_video=True, youtube_id=youtube_id
         )
         if existing_transcription:
+            logger.debug(f"preprocess_youtube_video: Using existing transcription for YouTube video")
             return existing_youtube_data, youtube_id
 
     youtube_data = download_youtube_audio(url)
@@ -327,7 +342,7 @@ def main():
                     logger.debug(f"Author: {youtube_data.get('author')}")
                     logger.debug(f"Library: {youtube_data.get('library')}")
 
-                    youtube_data, youtube_id = process_youtube_video(
+                    youtube_data, youtube_id = preprocess_youtube_video(
                         item["data"]["url"], logger
                     )
                     if not youtube_data:
@@ -373,7 +388,15 @@ def main():
                             )
 
                     print_report(report)
-                    queue.update_item_status(item["id"], "completed")
+                    
+                    if report["errors"] > 0:
+                        queue.update_item_status(item["id"], "error")
+                        logger.error(f"Errors occurred while processing {youtube_data['youtube_id']}. Marking as error.")
+                    else:
+                        queue.update_item_status(item["id"], "completed")
+                        logger.info(f"Successfully processed {youtube_data['youtube_id']}. Marking as completed.")
+
+                    overall_report = merge_reports([overall_report, report])
 
                     # Reset the counter on successful processing
                     failed_youtube_attempts = 0
