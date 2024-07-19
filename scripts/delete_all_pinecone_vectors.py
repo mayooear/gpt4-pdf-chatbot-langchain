@@ -3,17 +3,19 @@ from dotenv import load_dotenv
 from pinecone import Pinecone
 
 # Load environment variables from ../.env
-dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+dotenv_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 
 load_dotenv(dotenv_path)
 
+
 def get_pinecone_client():
     api_key = os.getenv("PINECONE_API_KEY")
-    
+
     if not api_key:
         raise ValueError("Pinecone API key not set in .env file")
-    
+
     return Pinecone(api_key=api_key)
+
 
 def run():
     print("Connecting to Pinecone...")
@@ -44,8 +46,10 @@ def run():
             print("The index is already empty. No vectors to delete.")
             return
 
-        confirm = input(f"Are you sure you want to delete all {total_vector_count} vectors? (yes/no): ")
-        if confirm.lower() != 'yes':
+        confirm = input(
+            f"Are you sure you want to delete all {total_vector_count} vectors? (yes/no): "
+        )
+        if confirm.lower() != "yes":
             print("Deletion cancelled.")
             return
 
@@ -55,6 +59,7 @@ def run():
 
     except Exception as e:
         print(f"Error during operation: {e}")
+
 
 if __name__ == "__main__":
     run()

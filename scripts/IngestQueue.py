@@ -9,8 +9,9 @@ import errno
 
 logger = logging.getLogger(__name__)
 
+
 class IngestQueue:
-    def __init__(self, queue_dir='queue'):
+    def __init__(self, queue_dir="queue"):
         self.queue_dir = queue_dir
         self.ensure_queue_dir()
 
@@ -23,18 +24,18 @@ class IngestQueue:
         item_id = str(uuid.uuid4())
         filename = f"{item_id}.json"
         filepath = os.path.join(self.queue_dir, filename)
-        
+
         queue_item = {
-            'id': item_id,
-            'type': item_type,
-            'data': data,
-            'status': 'pending',
-            'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat()
+            "id": item_id,
+            "type": item_type,
+            "data": data,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
         }
-        
+
         try:
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 json.dump(queue_item, f)
             logger.info(f"Added item to queue: {item_id}")
             return item_id
@@ -52,20 +53,22 @@ class IngestQueue:
 
     def get_next_item(self):
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r+') as f:
+                    with open(filepath, "r+") as f:
                         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
                         try:
                             item = json.load(f)
-                            if item['status'] == 'pending':
-                                item['status'] = 'processing'
-                                item['updated_at'] = datetime.utcnow().isoformat()
+                            if item["status"] == "pending":
+                                item["status"] = "processing"
+                                item["updated_at"] = datetime.utcnow().isoformat()
                                 f.seek(0)
                                 json.dump(item, f)
                                 f.truncate()
-                                logger.info(f"Retrieved and locked next item from queue: {item['id']}")
+                                logger.info(
+                                    f"Retrieved and locked next item from queue: {item['id']}"
+                                )
                                 return item
                         finally:
                             fcntl.flock(f, fcntl.LOCK_UN)
@@ -80,11 +83,11 @@ class IngestQueue:
         filepath = os.path.join(self.queue_dir, f"{item_id}.json")
         if os.path.exists(filepath):
             try:
-                with open(filepath, 'r') as f:
+                with open(filepath, "r") as f:
                     item = json.load(f)
-                item['status'] = status
-                item['updated_at'] = datetime.utcnow().isoformat()
-                with open(filepath, 'w') as f:
+                item["status"] = status
+                item["updated_at"] = datetime.utcnow().isoformat()
+                with open(filepath, "w") as f:
                     json.dump(item, f)
                 logger.info(f"Updated item status: {item_id} -> {status}")
                 return True
@@ -111,45 +114,45 @@ class IngestQueue:
         pending = 0
         completed = 0
         error = 0
-        
+
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         item = json.load(f)
-                    if item['status'] == 'pending':
+                    if item["status"] == "pending":
                         pending += 1
-                    elif item['status'] == 'completed':
+                    elif item["status"] == "completed":
                         completed += 1
-                    elif item['status'] == 'error':
+                    elif item["status"] == "error":
                         error += 1
                 except IOError as e:
                     logger.error(f"Error reading queue item: {e}")
-        
+
         return {
-            'pending': pending,
-            'completed': completed,
-            'error': error,
-            'total': pending + completed + error
+            "pending": pending,
+            "completed": completed,
+            "error": error,
+            "total": pending + completed + error,
         }
 
     def clear_queue(self):
         """Remove all JSON items from the queue."""
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 file_path = os.path.join(self.queue_dir, filename)
                 try:
                     os.unlink(file_path)
                 except Exception as e:
-                    logger.error(f'Failed to delete {file_path}. Reason: {e}')
+                    logger.error(f"Failed to delete {file_path}. Reason: {e}")
         logger.info("Queue cleared")
 
     def get_item(self, item_id):
         filepath = os.path.join(self.queue_dir, f"{item_id}.json")
         if os.path.exists(filepath):
             try:
-                with open(filepath, 'r') as f:
+                with open(filepath, "r") as f:
                     return json.load(f)
             except IOError as e:
                 logger.error(f"Error reading queue item: {e}")
@@ -159,10 +162,10 @@ class IngestQueue:
         """Retrieve all items from the queue."""
         items = []
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         item = json.load(f)
                         items.append(item)
                 except IOError as e:
@@ -173,15 +176,15 @@ class IngestQueue:
         """Reset status to 'pending' for all items in 'error' or 'interrupted' state."""
         count = 0
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         item = json.load(f)
-                    if item['status'] in ['error', 'interrupted']:
-                        item['status'] = 'pending'
-                        item['updated_at'] = datetime.utcnow().isoformat()
-                        with open(filepath, 'w') as f:
+                    if item["status"] in ["error", "interrupted"]:
+                        item["status"] = "pending"
+                        item["updated_at"] = datetime.utcnow().isoformat()
+                        with open(filepath, "w") as f:
                             json.dump(item, f)
                         count += 1
                 except IOError as e:
@@ -192,16 +195,16 @@ class IngestQueue:
         """Remove all completed items from the queue."""
         removed_count = 0
         for filename in os.listdir(self.queue_dir):
-            if filename.endswith('.json'):
+            if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, "r") as f:
                         item = json.load(f)
-                    if item['status'] == 'completed':
-                        item_id = item['id']
+                    if item["status"] == "completed":
+                        item_id = item["id"]
                         if self.remove_item(item_id):
                             removed_count += 1
                 except IOError as e:
                     logger.error(f"Error reading queue item {filename}: {e}")
-        
+
         return removed_count
