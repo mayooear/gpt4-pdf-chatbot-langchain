@@ -61,14 +61,39 @@ def split_audio(
     current_chunk = AudioSegment.empty()
 
     for chunk in chunks:
+        # If the current chunk length plus the new chunk length is within the limit, add the new chunk to the current chunk
         if len(current_chunk) + len(chunk) <= chunk_length_ms:
             current_chunk += chunk
         else:
+            # If the combined length exceeds the limit, add the current chunk to the combined chunks list and start a new chunk
             combined_chunks.append(current_chunk)
             current_chunk = chunk
 
+    # Add any remaining chunk to the combined chunks list
     if len(current_chunk) > 0:
         combined_chunks.append(current_chunk)
+
+    # Combine short chunks with adjacent chunks
+    changes_made = True
+    while changes_made:
+        changes_made = False
+        i = 0
+        while i < len(combined_chunks):
+            if len(combined_chunks[i]) < chunk_length_ms / 4:
+                if i > 0:  # Prefer combining with the previous chunk
+                    combined_chunks[i-1] += combined_chunks[i]
+                    combined_chunks.pop(i)
+                    changes_made = True
+                elif i < len(combined_chunks) - 1:  # If no previous chunk, combine with the next
+                    combined_chunks[i] += combined_chunks[i+1]
+                    combined_chunks.pop(i+1)
+                    changes_made = True
+            else:
+                i += 1
+
+    logger.debug("split_audio - List of chunk sizes:")
+    for i, chunk in enumerate(combined_chunks):
+        logger.debug(f"Chunk {i+1} size: {len(chunk)} ms")
 
     return combined_chunks
 
