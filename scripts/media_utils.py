@@ -27,13 +27,13 @@ def get_media_metadata(file_path):
         return title, author, duration, url
     except ID3NoHeaderError:
         logger.warning(f"Warning: No ID3 header found for {file_path}")
-        return os.path.splitext(os.path.basename(file_path))[0], "Unknown", 0, None
+        raise
     except FileNotFoundError as e:
         logger.error(f"Error reading MP3 metadata for {file_path}: {e}")
         raise
     except Exception as e:
         logger.error(f"Error reading MP3 metadata for {file_path}: {e}")
-        return os.path.splitext(os.path.basename(file_path))[0], "Unknown", 0, None
+        raise
 
 
 def get_file_hash(file_path):
