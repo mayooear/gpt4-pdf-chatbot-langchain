@@ -107,8 +107,8 @@ def add_to_queue(args, queue):
         else:
             logger.error("Invalid YouTube video URL")
 
-    elif args.channel:
-        videos = get_channel_videos(args.channel)
+    elif args.playlist:
+        videos = get_channel_videos(args.playlist)
         for video in videos:
             logger.debug(f"Video to add: {video}")
             item_id = queue.add_item(
@@ -121,7 +121,7 @@ def add_to_queue(args, queue):
                 },
             )
             if item_id:
-                logger.info(f"Added YouTube video from channel to queue: {item_id}")
+                logger.info(f"Added YouTube video from playlist to queue: {item_id}")
             else:
                 logger.error(f"Failed to add YouTube video to queue: {video['url']}")
 
@@ -239,7 +239,7 @@ def main():
 
     # Add operation arguments
     parser.add_argument("--video", help="YouTube video URL")
-    parser.add_argument("--channel", help="YouTube channel URL")
+    parser.add_argument("--playlist", help="YouTube playlist URL")
     parser.add_argument("--audio", help="Path to audio file")
     parser.add_argument("--directory", help="Path to directory containing audio files")
     parser.add_argument("--author", help="Author of the media")
@@ -278,7 +278,7 @@ def main():
         reset_stuck_items(queue)
     elif args.remove_completed:
         remove_completed_items(queue)
-    elif any([args.video, args.channel, args.audio, args.directory]):
+    elif any([args.video, args.playlist, args.audio, args.directory]):
         if not args.author or not args.library:
             logger.error(
                 "For adding items, you must specify both --author and --library"

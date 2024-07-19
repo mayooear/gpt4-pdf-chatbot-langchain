@@ -127,7 +127,7 @@ def save_youtube_data_map(youtube_data_map):
         json.dump(youtube_data_map, f, ensure_ascii=False, indent=2)
 
 
-def get_channel_videos(channel_url: str, output_path: str = "."):
+def get_playlist_videos(playlist_url: str, output_path: str = "."):
     ydl_opts = {
         "extract_flat": True,
         "force_generic_extractor": True,
@@ -136,16 +136,16 @@ def get_channel_videos(channel_url: str, output_path: str = "."):
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
-            channel_info = ydl.extract_info(channel_url, download=False)
+            playlist_info = ydl.extract_info(playlist_url, download=False)
 
-            if "entries" not in channel_info:
-                raise ValueError("Unable to find videos in the channel")
+            if "entries" not in playlist_info:
+                raise ValueError("Unable to find videos in the playlist")
 
-            print(f"Found channel: {channel_info.get('uploader', 'Unknown')}")
-            print(f"Total videos: {len(channel_info['entries'])}")
+            print(f"Found playlist: {playlist_info.get('title', 'Unknown')}")
+            print(f"Total videos: {len(playlist_info['entries'])}")
 
             videos = []
-            for entry in channel_info["entries"]:
+            for entry in playlist_info["entries"]:
                 videos.append(
                     {
                         "url": f"https://www.youtube.com/watch?v={entry['id']}",
@@ -153,9 +153,9 @@ def get_channel_videos(channel_url: str, output_path: str = "."):
                     }
                 )
 
-            logging.debug(f"Video from channel:\n{videos}")
+            logging.debug(f"Videos from playlist:\n{videos}")
             return videos
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while fetching playlist videos: {e}")
         return []
