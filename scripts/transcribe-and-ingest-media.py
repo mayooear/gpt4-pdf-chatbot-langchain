@@ -28,6 +28,8 @@ from pinecone_utils import clear_library_vectors
 from youtube_utils import download_youtube_audio, extract_youtube_id
 from multiprocessing import Pool, cpu_count
 import atexit
+import signal
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +283,17 @@ def merge_reports(reports):
     return combined_report
 
 
+def graceful_shutdown(pool, queue, items_to_process, overall_report, signum, frame):
+    logger.info("\nReceived interrupt signal. Shutting down gracefully...")
+    pool.terminate()
+    pool.join()
+    for item in items_to_process:
+        queue.update_item_status(item["id"], "interrupted")
+    print_report(overall_report)
+    reset_terminal()
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Audio and video transcription and indexing script"
@@ -335,6 +348,10 @@ def main():
     }
 
     with Pool(processes=4) as pool:
+        signal_handler = partial(graceful_shutdown, pool, queue, items_to_process, overall_report)
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
         try:
             while True:
                 item = queue.get_next_item()
@@ -356,14 +373,6 @@ def main():
                 for item_id, report in results:
                     queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
                     overall_report = merge_reports([overall_report, report])
-
-        except KeyboardInterrupt:
-            logger.info("\nKeyboard interrupt. Exiting.")
-            for item in items_to_process:
-                queue.update_item_status(item["id"], "interrupted")
-            print_report(overall_report)
-            reset_terminal()
-            sys.exit(0)
 
         except Exception as e:
             logger.error(f"Error processing items: {str(e)}")
