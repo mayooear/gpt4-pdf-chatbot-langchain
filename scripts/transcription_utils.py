@@ -372,15 +372,12 @@ def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
 
 def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
-    adjusted_target_chunk_size = int(target_chunk_size * 1.8)
     chunks = []
     words = transcript["words"]
     total_words = len(words)
 
     # Calculate the number of chunks needed
-    num_chunks = (
-        total_words + adjusted_target_chunk_size - 1
-    ) // adjusted_target_chunk_size
+    num_chunks = (total_words + target_chunk_size - 1) // target_chunk_size
 
     # Adjust chunk size to ensure even distribution
     adjusted_chunk_size = (total_words + num_chunks - 1) // num_chunks
@@ -411,8 +408,10 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
         i += adjusted_chunk_size - overlap
 
     min_chunk_size = target_chunk_size // 2
-    max_chunk_size = int(target_chunk_size * 1.7)
+    max_chunk_size = int(target_chunk_size * 1.2)
     chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
+
+    chunks = split_large_chunks(chunks, target_chunk_size)
 
     chunk_warning = False
     for chunk in chunks:
@@ -435,6 +434,31 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
             logger.warning("\n")
 
     return chunks
+
+
+def split_large_chunks(chunks, target_size):
+    new_chunks = []
+    for chunk in chunks:
+        if len(chunk["words"]) > target_size * 1.5:
+            # Split the chunk into smaller chunks
+            words = chunk["words"]
+            num_words = len(words)
+            num_chunks = (num_words + target_size - 1) // target_size
+            chunk_size = (num_words + num_chunks - 1) // num_chunks
+
+            for i in range(0, num_words, chunk_size):
+                end_index = min(i + chunk_size, num_words)
+                new_chunk = {
+                    "text": " ".join([w["word"] for w in words[i:end_index]]),
+                    "start": words[i]["start"],
+                    "end": words[end_index - 1]["end"],
+                    "words": words[i:end_index],
+                }
+                new_chunks.append(new_chunk)
+        else:
+            new_chunks.append(chunk)
+
+    return new_chunks
 
 
 def save_youtube_transcription(youtube_data, file_path, transcripts):
