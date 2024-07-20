@@ -36,7 +36,7 @@ class IngestQueue:
         try:
             with open(filepath, "w") as f:
                 json.dump(queue_item, f)
-            logger.info(f"Added item to queue: {item_id}")
+            logger.debug(f"Added item to queue: {item_id}")
             return item_id
         except IOError as e:
             logger.error(f"Error adding item to queue: {e}")
