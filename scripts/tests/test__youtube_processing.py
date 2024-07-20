@@ -16,6 +16,7 @@ from youtube_utils import download_youtube_audio
 from transcription_utils import transcribe_media
 from pinecone_utils import store_in_pinecone, load_pinecone
 from s3_utils import upload_to_s3
+from test_utils import trim_audio
 
 YOUTUBE_URLS = [
     "https://youtu.be/MvyIpKLbayc?si=Nk9M7EDQ5oYngQkT",
@@ -63,20 +64,22 @@ dotenv_path = os.path.join(os.path.dirname(parent_dir), ".env")
 load_dotenv(dotenv_path)
 logger.debug(f"Loaded .env file from: {dotenv_path}")
 
-
 class TestYouTubeProcessing(unittest.TestCase):
     def setUp(self):
         self.test_video_url = random.choice(YOUTUBE_URLS)
         self.author = "Swami Kriyananda"
         self.library = "Ananda Sangha"
         self.audio_path = None
+        self.temp_files = []
         logger.debug(f"Set up test with video URL: {self.test_video_url}")
         self.queue = IngestQueue()
 
     def tearDown(self):
-        if self.audio_path and os.path.exists(self.audio_path):
-            os.remove(self.audio_path)
-            logger.debug(f"Cleaned up audio file: {self.audio_path}")
+        for temp_file in self.temp_files:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+                logger.debug(f"Cleaned up temporary file: {temp_file}")
+        self.temp_files = []
 
     def test_youtube_download(self):
         logger.debug("Starting YouTube download test")
@@ -84,39 +87,42 @@ class TestYouTubeProcessing(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(os.path.exists(result["audio_path"]))
         self.audio_path = result["audio_path"]
-        logger.debug(f"YouTube download test completed. Audio path: {self.audio_path}")
+        trimmed_path = trim_audio(self.audio_path)
+        self.temp_files.append(trimmed_path)
+        audio = MP3(trimmed_path)
+        self.assertLessEqual(audio.info.length, 300, "Audio should be 5 minutes or less")
+        logger.debug(f"YouTube download test completed. Trimmed audio path: {trimmed_path}")
 
     def test_transcription(self):
         logger.debug("Starting transcription test")
         youtube_data = download_youtube_audio(self.test_video_url)
         self.assertIsNotNone(youtube_data, "Failed to download YouTube audio")
         self.audio_path = youtube_data["audio_path"]
-        transcripts = transcribe_media(self.audio_path)
-        self.assertIsNotNone(transcripts)
-        self.assertTrue(len(transcripts) > 0)
-        logger.debug(
-            f"Transcription test completed. Number of transcripts: {len(transcripts)}"
-        )
+        trimmed_path = trim_audio(self.audio_path)
+        self.temp_files.append(trimmed_path)
+        transcription = transcribe_media(trimmed_path)
+        self.assertIsNotNone(transcription)
+        self.assertIsInstance(transcription, dict)
 
     def test_pinecone_storage(self):
         logger.debug("Starting Pinecone storage test")
         youtube_data = download_youtube_audio(self.test_video_url)
         self.assertIsNotNone(youtube_data, "Failed to download YouTube audio")
         self.audio_path = youtube_data["audio_path"]
-        transcripts = transcribe_media(self.audio_path)
+        transcription = transcribe_media(self.audio_path)
 
-        self.assertTrue(transcripts, "No transcripts were generated")
+        self.assertTrue(transcription, "No transcripts were generated")
 
-        logger.debug(f"Number of transcripts: {len(transcripts)}")
+        logger.debug(f"Number of transcripts: {len(transcription)}")
 
         # Create a single chunk for the entire transcript
         chunk = {
-            "text": transcripts[0]["text"],
+            "text": transcription["text"],
             "start": (
-                transcripts[0]["words"][0]["start"] if transcripts[0]["words"] else None
+                transcription["words"][0]["start"] if transcription["words"] else None
             ),
             "end": (
-                transcripts[0]["words"][-1]["end"] if transcripts[0]["words"] else None
+                transcription["words"][-1]["end"] if transcription["words"] else None
             ),
         }
 
@@ -164,18 +170,18 @@ class TestYouTubeProcessing(unittest.TestCase):
     def test_audio_metadata(self):
         logger.debug("Starting audio metadata test")
         youtube_data = download_youtube_audio(self.test_video_url)
-
         if youtube_data is None or "audio_path" not in youtube_data:
             self.fail("Failed to download YouTube audio or retrieve audio path")
-
         self.audio_path = youtube_data["audio_path"]
+        trimmed_path = trim_audio(self.audio_path)
+        self.temp_files.append(trimmed_path)
         self.assertTrue(
-            os.path.exists(self.audio_path),
-            f"Audio file does not exist: {self.audio_path}",
+            os.path.exists(trimmed_path),
+            f"Trimmed audio file does not exist: {trimmed_path}",
         )
-
         try:
-            audio = MP3(self.audio_path, ID3=ID3)
+            audio = MP3(trimmed_path, ID3=ID3)
+            self.assertLessEqual(audio.info.length, 300, "Audio should be 5 minutes or less")
 
             # Check if tags exist
             self.assertIsNotNone(audio.tags, "No ID3 tags found in the audio file")

@@ -7,6 +7,8 @@ from openai import OpenAI
 from pinecone.core.client.exceptions import PineconeException
 from unittest.mock import patch
 from IngestQueue import IngestQueue  
+from pydub import AudioSegment
+import tempfile
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +18,7 @@ from transcription_utils import transcribe_media, chunk_transcription
 from pinecone_utils import store_in_pinecone, load_pinecone, create_embeddings
 from s3_utils import upload_to_s3
 from media_utils import get_media_metadata
+from test_utils import trim_audio
 
 
 def configure_logging(debug=False):
@@ -60,23 +63,23 @@ class TestAudioProcessing(unittest.TestCase):
         self.author = "Paramhansa Yogananda"
         self.library = "Ananda Sangha"
         self.client = OpenAI()
-        self.temp_files = []
         self.queue = IngestQueue()
         logger.debug(f"Set up test with audio file: {self.test_audio_path}")
+        self.trimmed_audio_path = trim_audio(self.test_audio_path)
+        logger.debug(f"Created trimmed audio file: {self.trimmed_audio_path}")
 
     def tearDown(self):
-        for file_path in self.temp_files:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                logger.debug(f"Cleaned up temporary file: {file_path}")
-        self.temp_files.clear()
+        if os.path.exists(self.trimmed_audio_path):
+            os.remove(self.trimmed_audio_path)
+            logger.debug(f"Cleaned up trimmed audio file: {self.trimmed_audio_path}")
 
     def test_audio_metadata(self):
         logger.debug("Starting audio metadata test")
-        title, author, duration, url = get_media_metadata(self.test_audio_path)
+        title, author, duration, url = get_media_metadata(self.trimmed_audio_path)
         self.assertIsNotNone(title)
         self.assertIsNotNone(author)
         self.assertGreater(duration, 0)
+        self.assertLessEqual(duration, 300, "Audio should be 5 minutes or less")
         self.assertIsNone(url)  # URL should be None for non-YouTube audio
         logger.debug(
             f"Audio metadata test completed. Title: {title}, Author: {author}, Duration: {duration}"
@@ -84,17 +87,14 @@ class TestAudioProcessing(unittest.TestCase):
 
     def test_transcription(self):
         logger.debug("Starting transcription test")
-        transcripts = transcribe_media(self.test_audio_path)
-        self.assertIsNotNone(transcripts)
-        self.assertTrue(len(transcripts) > 0)
-        logger.debug(
-            f"Transcription test completed. Number of transcripts: {len(transcripts)}"
-        )
+        transcription = transcribe_media(self.trimmed_audio_path)
+        self.assertIsNotNone(transcription)
+        self.assertIsInstance(transcription, dict)
 
     def test_chunk_transcription(self):
         logger.debug("Starting process transcription test")
-        transcripts = transcribe_media(self.test_audio_path)
-        chunks = chunk_transcription(transcripts[0])
+        transcription = transcribe_media(self.trimmed_audio_path)
+        chunks = chunk_transcription(transcription)
         self.assertIsNotNone(chunks)
         self.assertTrue(len(chunks) > 0)
         logger.debug(
@@ -103,8 +103,8 @@ class TestAudioProcessing(unittest.TestCase):
 
     def test_pinecone_storage_success(self):
         logger.debug("Starting Pinecone storage success test")
-        transcripts = transcribe_media(self.test_audio_path)
-        chunks = chunk_transcription(transcripts[0])
+        transcription = transcribe_media(self.trimmed_audio_path)
+        chunks = chunk_transcription(transcription)
 
         self.assertTrue(chunks, "No chunks were generated")
 
@@ -124,7 +124,7 @@ class TestAudioProcessing(unittest.TestCase):
                 index,
                 chunks,
                 embeddings,
-                self.test_audio_path,
+                self.trimmed_audio_path,
                 self.author,
                 self.library,
             )
@@ -140,8 +140,8 @@ class TestAudioProcessing(unittest.TestCase):
 
     def test_pinecone_storage_error(self):
         logger.debug("Starting Pinecone storage error test")
-        transcripts = transcribe_media(self.test_audio_path)
-        chunks = chunk_transcription(transcripts[0])
+        transcription = transcribe_media(self.trimmed_audio_path)
+        chunks = chunk_transcription(transcription)
 
         self.assertTrue(chunks, "No chunks were generated")
 
@@ -166,7 +166,7 @@ class TestAudioProcessing(unittest.TestCase):
                     index,
                     chunks,
                     embeddings,
-                    self.test_audio_path,
+                    self.trimmed_audio_path,
                     self.author,
                     self.library,
                 )
@@ -179,7 +179,7 @@ class TestAudioProcessing(unittest.TestCase):
 
     def test_s3_upload(self):
         logger.debug("Starting S3 upload test")
-        result = upload_to_s3(self.test_audio_path)
+        result = upload_to_s3(self.trimmed_audio_path)
         self.assertIsNone(result)  # Should be None if upload is successful
         logger.debug("S3 upload test completed")
 

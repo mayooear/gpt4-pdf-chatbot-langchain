@@ -62,6 +62,8 @@ def transcribe_chunk(
 
             transcript = client.audio.transcriptions.create(**transcription_options)
 
+            transcription_options["file"].close()
+
         os.unlink(temp_file.name)
         transcript_dict = transcript.model_dump()
 
@@ -73,8 +75,8 @@ def transcribe_chunk(
 
         # Adjust timestamps for words
         for word in transcript_dict["words"]:
-            word["start"] += cumulative_time
-            word["end"] += cumulative_time
+            word["start"] = round(word["start"] + cumulative_time, 2)
+            word["end"] = round(word["end"] + cumulative_time, 2)
 
         # Create a simplified structure similar to the old 'segments' format
         simplified_transcript = {
