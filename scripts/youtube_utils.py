@@ -54,6 +54,9 @@ def download_youtube_audio(url: str, output_path: str = "."):
                         f"Could not find the downloaded MP3 file: {audio_path}"
                     )
 
+                # Get the file size of the MP3
+                file_size = os.path.getsize(audio_path)
+
             # Get and add metadata to MP3
             metadata = {
                 "title": info["title"],
@@ -71,6 +74,7 @@ def download_youtube_audio(url: str, output_path: str = "."):
                 "author": info["uploader"],
                 "url": url,
                 "youtube_id": youtube_id,
+                "file_size": file_size,  
             }
         except DownloadError as e:
             if "HTTP Error 403: Forbidden" in str(e):

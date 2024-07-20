@@ -11,8 +11,8 @@ from IngestQueue import IngestQueue
 from transcription_utils import (
     init_db,
     transcribe_media,
-    process_transcription,
-    get_transcription,
+    chunk_transcription,
+    get_saved_transcription,
     load_youtube_data_map,
     save_youtube_data_map,
     save_youtube_transcription,
@@ -30,6 +30,8 @@ from multiprocessing import Pool, cpu_count
 import atexit
 import signal
 from functools import partial
+from processing_time_estimates import save_estimate
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +80,9 @@ def process_file(
         youtube_id = None
         file_name = os.path.basename(file_path) if file_path else "Unknown_File"
 
-    existing_transcription = get_transcription(file_path, is_youtube_video, youtube_id)
+    existing_transcription = get_saved_transcription(file_path, is_youtube_video, youtube_id)
     if existing_transcription and not force:
-        transcripts = existing_transcription
+        transcription = existing_transcription
         local_report["skipped"] += 1
         logger.debug(f"Using existing transcription for {file_name}")
     else:
@@ -88,13 +90,13 @@ def process_file(
             f"\nTranscribing {'YouTube video' if is_youtube_video else 'audio'} for {file_name}"
         )
         try:
-            transcripts = transcribe_media(
+            transcription = transcribe_media(
                 file_path, force, is_youtube_video, youtube_id
             )
-            if transcripts:
+            if transcription:
                 local_report["processed"] += 1
                 if is_youtube_video:
-                    save_youtube_transcription(youtube_data, file_path, transcripts)
+                    save_youtube_transcription(youtube_data, file_path, transcription)
             else:
                 error_msg = f"Error transcribing {'YouTube video' if is_youtube_video else 'file'} {file_name}: No transcripts generated"
                 logger.error(error_msg)
@@ -114,47 +116,43 @@ def process_file(
                 f"Dry run mode: Would store chunks for {'YouTube video' if is_youtube_video else 'file'} {file_name} in Pinecone."
             )
 
-        logger.info(f"Number of transcripts to process: {len(transcripts)}")
-        for transcript in tqdm(
-            transcripts, desc=f"Processing transcripts for {file_name}"
-        ):
-            chunks = process_transcription(transcript)
-            local_report["chunk_lengths"].extend(
-                [len(chunk["words"]) for chunk in chunks]
-            )
-            if not dryrun:
-                try:
-                    embeddings = create_embeddings(chunks, client)
-                    
-                    # Use youtube_data for metadata if it's a YouTube video
-                    if is_youtube_video and youtube_data and "media_metadata" in youtube_data:
-                        metadata = youtube_data["media_metadata"]
-                        title = metadata.get("title", "Unknown Title")
-                        duration = metadata.get("duration")
-                        url = metadata.get("url")
-                    else:
-                        title, _, duration, url = get_media_metadata(file_path)
-                    
-                    store_in_pinecone(
-                        index,
-                        chunks,
-                        embeddings,
-                        file_path,
-                        author,
-                        library_name,
-                        is_youtube_video,
-                        youtube_id,
-                        title=title,
-                        duration=duration,
-                        url=url
-                    )
-                except Exception as e:
-                    error_msg = f"Error processing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
-                    logger.error(error_msg)
-                    logger.error(f"Caught exception: {e}")
-                    local_report["errors"] += 1
-                    local_report["error_details"].append(error_msg)
-                    return local_report
+        logger.info(f"Processing transcripts for {file_name}")
+        chunks = chunk_transcription(transcription)
+        local_report["chunk_lengths"].extend(
+            [len(chunk["words"]) for chunk in chunks]
+        )
+        if not dryrun:
+            try:
+                embeddings = create_embeddings(chunks, client)
+                logger.debug(f"{len(embeddings)} embeddings created for {file_name}")
+                
+                # Use youtube_data for metadata if it's a YouTube video
+                if is_youtube_video and youtube_data and "media_metadata" in youtube_data:
+                    metadata = youtube_data["media_metadata"]
+                    title = metadata.get("title", "Unknown Title")
+                    url = metadata.get("url")
+                else:
+                    title, _, duration, url = get_media_metadata(file_path)
+                
+                store_in_pinecone(
+                    index,
+                    chunks,
+                    embeddings,
+                    file_path,
+                    author,
+                    library_name,
+                    is_youtube_video,
+                    youtube_id,
+                    title=title,
+                    url=url
+                )
+            except Exception as e:
+                error_msg = f"Error processing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
+                logger.error(error_msg)
+                logger.error(f"Caught exception: {e}")
+                local_report["errors"] += 1
+                local_report["error_details"].append(error_msg)
+                return local_report
 
         # After successful processing, upload to S3 only if it's not a YouTube video and not a dry run
         if not dryrun and not is_youtube_video and file_path:
@@ -175,10 +173,26 @@ def process_file(
 
 def process_item(item, args):
     """Process a media item (audio file or YouTube video) in a separate process"""
+    # Ensure logging is configured for this process
+    configure_logging(args.debug)
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Processing item: {item}")
 
     # Initialize resources for this process
     client = OpenAI()
     index = load_pinecone()
+
+    logger.debug(f"Processing item: {item}")
+
+    error_report = {
+        "processed": 0,
+        "skipped": 0,
+        "errors": 1,
+        "error_details": [],
+        "warnings": [],
+        "fully_indexed": 0,
+        "chunk_lengths": [],
+    }
 
     if item["type"] == "audio_file":
         file_to_process = item["data"]["file_path"]
@@ -187,19 +201,25 @@ def process_item(item, args):
     elif item["type"] == "youtube_video":
         youtube_data, youtube_id = preprocess_youtube_video(item["data"]["url"], logger)
         if not youtube_data:
-            logger.error("Failed to process YouTube video.")
-            return item["id"], {"errors": 1, "error_details": ["Failed to process YouTube video"]}
+            logger.error(f"Failed to process YouTube video: {item['data']['url']}")
+            error_report["error_details"].append(f"Failed to process YouTube video: {item['data']['url']}")
+            return item["id"], error_report
+        # This may be None if transcript was cached
         file_to_process = youtube_data["audio_path"]
         is_youtube_video = True
     else:
         logger.error(f"Unknown item type: {item['type']}")
-        return item["id"], {"errors": 1, "error_details": [f"Unknown item type: {item['type']}"]}
+        error_report["error_details"].append(f"Unknown item type: {item['type']}")
+        return item["id"], error_report
+
+    logger.debug(f"File to process: {file_to_process}")
 
     author = item["data"]["author"]
     library = item["data"]["library"]
     logger.debug(f"Author: {author}")
     logger.debug(f"Library: {library}")
 
+    start_time = time.time()
     report = process_file(
         file_to_process,
         index,
@@ -211,6 +231,13 @@ def process_item(item, args):
         is_youtube_video=is_youtube_video,
         youtube_data=youtube_data,
     )
+    end_time = time.time()
+    processing_time = end_time - start_time
+
+    if file_to_process:
+        # Save the processing time estimate
+        file_size = os.path.getsize(file_to_process)
+        save_estimate(item["type"], processing_time, file_size)
 
     # Clean up temporary YouTube audio file if necessary
     if is_youtube_video and file_to_process and os.path.exists(file_to_process):
@@ -223,7 +250,7 @@ def process_item(item, args):
 def initialize_environment(args):
     load_dotenv()
     init_db()
-    logger = configure_logging(args.debug)
+    configure_logging(args.debug)
     return logger
 
 
@@ -233,7 +260,10 @@ def preprocess_youtube_video(url, logger):
     existing_youtube_data = youtube_data_map.get(youtube_id)
 
     if existing_youtube_data:
-        existing_transcription = get_transcription(
+        # Clear bogus audio_path from existing youtube data
+        existing_youtube_data["audio_path"] = None
+
+        existing_transcription = get_saved_transcription(
             None, is_youtube_video=True, youtube_id=youtube_id
         )
         if existing_transcription:
@@ -276,10 +306,10 @@ def merge_reports(reports):
     }
     for report in reports:
         for key in ["processed", "skipped", "errors", "fully_indexed"]:
-            combined_report[key] += report[key]
-        combined_report["error_details"].extend(report["error_details"])
-        combined_report["warnings"].extend(report["warnings"])
-        combined_report["chunk_lengths"].extend(report["chunk_lengths"])
+            combined_report[key] += report.get(key, 0)
+        combined_report["error_details"].extend(report.get("error_details", []))
+        combined_report["warnings"].extend(report.get("warnings", []))
+        combined_report["chunk_lengths"].extend(report.get("chunk_lengths", []))
     return combined_report
 
 
@@ -320,7 +350,7 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
-    logger = initialize_environment(args)
+    initialize_environment(args)
     queue = IngestQueue()
 
     if args.clear_vectors:

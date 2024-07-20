@@ -140,7 +140,7 @@ def init_db():
     conn.close()
 
 
-def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
+def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
     """
     Retrieve transcription for a given file or YouTube video.
 
@@ -155,7 +155,12 @@ def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
             raise ValueError("YouTube ID is required for YouTube videos")
         youtube_data_map = load_youtube_data_map()
         youtube_data = youtube_data_map.get(youtube_id)
+
+        # erase any audio path stored with youtube data as it's bogus (from prior run)
+        youtube_data["audio_path"] = None
+
         if youtube_data:
+            youtube_data.pop("audio_path", None)
             file_hash = youtube_data["file_hash"]
         else:
             return None
@@ -179,8 +184,14 @@ def get_transcription(file_path, is_youtube_video=False, youtube_id=None):
         if os.path.exists(full_json_path):
             # Load the transcription from the gzipped JSON file
             with gzip.open(full_json_path, "rt", encoding="utf-8") as f:
-                data = json.load(f)
-                return data
+                transcriptions = json.load(f)
+                # old format saved was an array of transcriptions and new format
+                # is a single transcription
+                if isinstance(transcriptions, list):
+                    combined_transcription = combine_transcriptions(transcriptions) 
+                    return combined_transcription
+                else:
+                    return transcriptions
         else:
             logger.warning(f"JSON file not found at {full_json_path}")
     return None
@@ -198,7 +209,6 @@ def save_transcription(file_path, transcripts):
 
     # Ensure the transcriptions directory exists
     os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
-    transcription_path = os.path.join(TRANSCRIPTIONS_DIR, f"{file_hash}.json.gz")
 
     # Save the transcription data as a gzipped JSON file
     with gzip.open(full_json_path, "wt", encoding="utf-8") as f:
@@ -214,6 +224,34 @@ def save_transcription(file_path, transcripts):
     conn.commit()
     conn.close()
 
+def combine_transcriptions(transcriptions):
+    """
+    Combine an array of transcriptions into a single transcription.
+
+    This function takes a list of transcription dictionaries and combines them into a single
+    transcription dictionary. The combined transcription will have concatenated text and merged
+    metadata, including words and duration.
+
+    Args:
+        transcriptions (list): A list of transcription dictionaries to combine.
+
+    Returns:
+        dict: A single combined transcription dictionary.
+    """
+    if not transcriptions:
+        return {}
+
+    combined_transcription = {
+        "text": "",
+        "words": [],
+    }
+
+    for transcription in transcriptions:
+        combined_transcription["text"] += " " + transcription["text"] + " "
+        combined_transcription["words"].extend(transcription["words"])
+
+    logger.debug(f"Combined transcription: {combined_transcription}")
+    return combined_transcription
 
 def transcribe_media(
     file_path,
@@ -231,7 +269,7 @@ def transcribe_media(
 
     file_name = os.path.basename(file_path) if file_path else f"YouTube_{youtube_id}"
 
-    existing_transcription = get_transcription(file_path, is_youtube_video, youtube_id)
+    existing_transcription = get_saved_transcription(file_path, is_youtube_video, youtube_id)
     if existing_transcription and not force:
         logger.debug(f"transcribe_media: Using existing transcription")
         return existing_transcription
@@ -286,8 +324,9 @@ def transcribe_media(
         return None
 
     if transcripts:
-        save_transcription(file_path, transcripts)
-        return transcripts
+        combined_transcription = combine_transcriptions(transcripts)    
+        save_transcription(file_path, combined_transcription)
+        return combined_transcription
 
     logger.error(f"No transcripts generated for {file_name}")
     return None
@@ -329,7 +368,7 @@ def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
     return chunks
 
 
-def process_transcription(transcript, target_chunk_size=150, overlap=75):
+def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
     adjusted_target_chunk_size = int(target_chunk_size * 1.8)
     chunks = []
@@ -414,5 +453,6 @@ def save_youtube_transcription(youtube_data, file_path, transcripts):
         logger.warning(f"Failed to get media metadata for YouTube video: {e}")
     
     youtube_data["file_hash"] = file_hash
+    youtube_data["file_size"] = youtube_data.get("file_size", os.path.getsize(file_path))
     youtube_data_map[youtube_data["youtube_id"]] = youtube_data
     save_youtube_data_map(youtube_data_map)

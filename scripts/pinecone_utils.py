@@ -43,7 +43,6 @@ def store_in_pinecone(
     is_youtube_video,
     youtube_id=None,
     title=None,
-    duration=None,
     url=None,
     interrupt_event=None,
 ):

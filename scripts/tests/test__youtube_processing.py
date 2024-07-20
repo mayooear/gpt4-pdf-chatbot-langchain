@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import random
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3
-from scripts.IngestQueue import IngestQueue
+from IngestQueue import IngestQueue
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

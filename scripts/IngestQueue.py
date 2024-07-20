@@ -3,7 +3,6 @@ import json
 import uuid
 from datetime import datetime
 import logging
-import shutil
 import fcntl
 import errno
 
@@ -159,6 +158,13 @@ class IngestQueue:
                 try:
                     with open(filepath, "r") as f:
                         item = json.load(f)
+                        if item["type"] == "audio_file":
+                            file_path = item["data"].get("file_path")
+                            if file_path and os.path.exists(file_path):
+                                item["file_size"] = os.path.getsize(file_path)
+                        elif item["type"] == "youtube_video":
+                            # For YouTube videos, use the size stored in the data, or a default size
+                            item["file_size"] = item["data"].get("file_size", 100 * 1024 * 1024)  # Default to 100 MB if not available
                         items.append(item)
                 except IOError as e:
                     logger.error(f"Error reading queue item {filename}: {e}")

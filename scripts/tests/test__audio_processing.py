@@ -6,13 +6,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pinecone.core.client.exceptions import PineconeException
 from unittest.mock import patch
-from scripts.IngestQueue import IngestQueue  # Add this import
+from IngestQueue import IngestQueue  
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 
-from transcription_utils import transcribe_media, process_transcription
+from transcription_utils import transcribe_media, chunk_transcription
 from pinecone_utils import store_in_pinecone, load_pinecone, create_embeddings
 from s3_utils import upload_to_s3
 from media_utils import get_media_metadata
@@ -91,10 +91,10 @@ class TestAudioProcessing(unittest.TestCase):
             f"Transcription test completed. Number of transcripts: {len(transcripts)}"
         )
 
-    def test_process_transcription(self):
+    def test_chunk_transcription(self):
         logger.debug("Starting process transcription test")
         transcripts = transcribe_media(self.test_audio_path)
-        chunks = process_transcription(transcripts[0])
+        chunks = chunk_transcription(transcripts[0])
         self.assertIsNotNone(chunks)
         self.assertTrue(len(chunks) > 0)
         logger.debug(
@@ -104,7 +104,7 @@ class TestAudioProcessing(unittest.TestCase):
     def test_pinecone_storage_success(self):
         logger.debug("Starting Pinecone storage success test")
         transcripts = transcribe_media(self.test_audio_path)
-        chunks = process_transcription(transcripts[0])
+        chunks = chunk_transcription(transcripts[0])
 
         self.assertTrue(chunks, "No chunks were generated")
 
@@ -141,7 +141,7 @@ class TestAudioProcessing(unittest.TestCase):
     def test_pinecone_storage_error(self):
         logger.debug("Starting Pinecone storage error test")
         transcripts = transcribe_media(self.test_audio_path)
-        chunks = process_transcription(transcripts[0])
+        chunks = chunk_transcription(transcripts[0])
 
         self.assertTrue(chunks, "No chunks were generated")
 

@@ -1,6 +1,5 @@
 import logging
 
-
 def configure_logging(debug=False):
     # Configure the root logger
     logging.basicConfig(
@@ -23,5 +22,3 @@ def configure_logging(debug=False):
         logging.getLogger(logger_name).setLevel(
             logging.INFO if debug else logging.WARNING
         )
-
-    return logging.getLogger(__name__)

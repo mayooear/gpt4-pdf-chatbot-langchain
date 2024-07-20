@@ -1,4 +1,5 @@
 import argparse
+from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from IngestQueue import IngestQueue
@@ -6,6 +7,7 @@ from logging_utils import configure_logging
 from youtube_utils import extract_youtube_id, get_playlist_videos
 from media_utils import get_file_hash
 import logging
+from processing_time_estimates import save_estimate, get_estimate, estimate_total_processing_time
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +210,17 @@ def list_queue_items(queue):
                 f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {'N/A'.ljust(max_author_len)}  {'N/A'.ljust(max_library_len)}"
             )
 
+    estimated_time = estimate_total_processing_time(items)
+    print(f"\nEstimated time to complete all pending items: {estimated_time}")
+
+    # Add individual estimates for audio and video
+    audio_estimate = get_estimate("audio_file")
+    video_estimate = get_estimate("youtube_video")
+    if audio_estimate:
+        print(f"Average processing time for audio files: {timedelta(seconds=int(audio_estimate['time']))} for {audio_estimate['size'] / (1024*1024):.2f} MB")
+    if video_estimate:
+        print(f"Average processing time for YouTube videos: {timedelta(seconds=int(video_estimate['time']))} for {video_estimate['size'] / (1024*1024):.2f} MB")
+
 
 def clear_queue(queue):
     queue.clear_queue()
@@ -304,7 +317,7 @@ def main():
         return
 
     queue_status = queue.get_queue_status()
-    logger.info(f"Queue status: {queue_status}")
+    print(f"Queue status: {queue_status}")
 
 
 if __name__ == "__main__":
