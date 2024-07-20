@@ -252,7 +252,6 @@ def combine_transcriptions(transcriptions):
         combined_transcription["text"] += " " + transcription["text"] + " "
         combined_transcription["words"].extend(transcription["words"])
 
-    logger.debug(f"Combined transcription: {combined_transcription}")
     return combined_transcription
 
 def transcribe_media(

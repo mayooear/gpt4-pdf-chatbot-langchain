@@ -61,7 +61,6 @@ def store_in_pinecone(
 
         # print chunk, but not the words list
         chunk_copy = {k: v for k, v in chunk.items() if k != "words"}
-        logger.debug(f"store_in_pinecone: chunk {i+1} of {len(chunks)}: {chunk_copy}")
 
         metadata = {
             "text": chunk["text"],

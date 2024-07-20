@@ -135,10 +135,18 @@ def save_youtube_data_map(youtube_data_map):
 
 
 def get_playlist_videos(playlist_url: str, output_path: str = "."):
+    def exponential_sleep(attempt):
+        return 5 * (2 ** attempt) + random.uniform(0, 1)
+
     ydl_opts = {
         "extract_flat": True,
         "force_generic_extractor": True,
         "ignoreerrors": True,
+        "retry_sleep_functions": {
+            "http": exponential_sleep,
+            "fragment": exponential_sleep,
+            "file_access": exponential_sleep,
+        },
     }
 
     try:

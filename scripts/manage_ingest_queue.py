@@ -9,14 +9,16 @@ from logging_utils import configure_logging
 from youtube_utils import extract_youtube_id, get_playlist_videos
 from media_utils import get_file_hash
 from processing_time_estimates import get_estimate, estimate_total_processing_time
+from openpyxl import load_workbook
+from collections import defaultdict
+import sys
 
 logger = logging.getLogger(__name__)
 
 
 def initialize_environment(args):
     load_dotenv()
-    logger = configure_logging(args.debug)
-    return logger
+    configure_logging(args.debug)
 
 
 def get_unique_files(directory_path):
@@ -242,6 +244,45 @@ def reprocess_all_items(queue):
     logger.info(f"Reset all {reset_count} items in the queue. Ready for reprocessing.")
 
 
+def process_playlists_file(args, queue):
+    workbook = load_workbook(filename=args.playlists_file, read_only=True)
+    sheet = workbook.active
+    
+    all_videos = []
+    video_sources = defaultdict(list)
+    processed_playlists = 0
+
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        title, author, library, playlist_url = row
+        videos = get_playlist_videos(playlist_url)
+        processed_playlists += 1
+        
+        for video in videos:
+            all_videos.append(video)
+            video_sources[video['url']].append(title)
+
+    unique_videos = {v['url']: v for v in all_videos}.values()
+    duplicates_removed = len(all_videos) - len(unique_videos)
+
+    for video in unique_videos:
+        # Modify args for each video
+        args.video = video['url']
+        args.author = author
+        args.library = library
+        
+        add_to_queue(args, queue)
+
+    logger.info(f"Processed {processed_playlists} playlists")
+    logger.info(f"Total videos found: {len(all_videos)}")
+    logger.info(f"Unique videos added to queue: {len(unique_videos)}")
+
+    if duplicates_removed > 0:
+        logger.info(f"{len(duplicates_removed)} duplicate videos (not added to queue):")
+        for url, sources in video_sources.items():
+            if len(sources) > 1:
+                logger.info(f"{url} (Found in: {', '.join(sources)})")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
 
@@ -275,13 +316,22 @@ def main():
         action="store_true",
         help="Reset all items in the queue for reprocessing",
     )
+    parser.add_argument("--playlists-file", help="Path to XLSX file containing playlist information")
+    parser.add_argument("--queue", default=None, help="Specify an alternative queue name")
 
     args = parser.parse_args()
 
-    logger = initialize_environment(args)
-    queue = IngestQueue()
+    initialize_environment(args)
+    
+    # Create the IngestQueue instance with the specified queue name
+    queue = IngestQueue(queue_dir=args.queue) if args.queue else IngestQueue()
 
-    if args.reprocess_all:
+    if args.queue:
+        logger.info(f"Using queue: {args.queue}")
+
+    if args.playlists_file:
+        process_playlists_file(args, queue)
+    elif args.reprocess_all:
         reprocess_all_items(queue)
     elif args.reprocess:
         reprocess_item(queue, args.reprocess)
@@ -295,9 +345,7 @@ def main():
         remove_completed_items(queue)
     elif any([args.video, args.playlist, args.audio, args.directory]):
         if not args.author or not args.library:
-            logger.error(
-                "For adding items, you must specify both --author and --library"
-            )
+            logger.error("For adding items, you must specify both --author and --library")
             parser.print_help()
             return
         add_to_queue(args, queue)
