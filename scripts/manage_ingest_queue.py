@@ -2,12 +2,13 @@ import argparse
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+import logging
+from tqdm import tqdm
 from IngestQueue import IngestQueue
 from logging_utils import configure_logging
 from youtube_utils import extract_youtube_id, get_playlist_videos
 from media_utils import get_file_hash
-import logging
-from processing_time_estimates import save_estimate, get_estimate, estimate_total_processing_time
+from processing_time_estimates import get_estimate, estimate_total_processing_time
 
 logger = logging.getLogger(__name__)
 
@@ -18,24 +19,23 @@ def initialize_environment(args):
     return logger
 
 
-def check_unique_filenames(directory_path):
-    conflicts = {}
-    processed_hashes = set()
+def get_unique_files(directory_path):
+    unique_files = {}
+    files_to_check = []
 
+    # Collect all relevant files
     for root, _, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith((".mp3", ".wav", ".flac", ".mp4", ".avi", ".mov")):
-                file_path = os.path.join(root, file)
-                file_hash = get_file_hash(file_path)
+                files_to_check.append(os.path.join(root, file))
 
-                if file_hash in processed_hashes:
-                    if file not in conflicts:
-                        conflicts[file] = []
-                    conflicts[file].append(file_path)
-                else:
-                    processed_hashes.add(file_hash)
+    # Process files with tqdm
+    for file_path in tqdm(files_to_check, desc="Checking for unique files", ncols=100):
+        file_hash = get_file_hash(file_path)
+        if file_hash not in unique_files:
+            unique_files[file_hash] = file_path
 
-    return conflicts
+    return list(unique_files.values())
 
 
 def process_audio_input(input_path, queue, author, library):
@@ -62,29 +62,19 @@ def process_audio_input(input_path, queue, author, library):
 
 
 def process_directory(directory_path, queue, author, library):
-    conflicts = check_unique_filenames(directory_path)
-    if conflicts:
-        logger.error("Filename conflicts found:")
-        for file, locations in conflicts.items():
-            logger.error(f"\n{file}:")
-            for location in locations:
-                logger.error(f"  - {location}")
-        return []
-
+    unique_files = get_unique_files(directory_path)
     added_items = []
-    for root, _, files in os.walk(directory_path):
-        for file in files:
-            if file.lower().endswith((".mp3", ".wav", ".flac")):
-                file_path = os.path.join(root, file)
-                item_id = queue.add_item(
-                    "audio_file",
-                    {"file_path": file_path, "author": author, "library": library},
-                )
-                if item_id:
-                    logger.info(f"Added audio file to queue: {item_id} - {file_path}")
-                    added_items.append(item_id)
-                else:
-                    logger.error(f"Failed to add audio file to queue: {file_path}")
+
+    # Process unique files with tqdm
+    for file_path in tqdm(unique_files, desc="Processing unique files"):
+        item_id = queue.add_item(
+            "audio_file",
+            {"file_path": file_path, "author": author, "library": library},
+        )
+        if item_id:
+            added_items.append(item_id)
+        else:
+            logger.error(f"Failed to add audio file to queue: {file_path}")
 
     return added_items
 
