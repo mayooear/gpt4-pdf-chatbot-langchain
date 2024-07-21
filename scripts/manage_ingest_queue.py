@@ -291,7 +291,7 @@ def process_playlists_file(args, queue):
     logger.info(f"Unique videos added to queue: {len(unique_videos)}")
 
     if duplicates_removed > 0:
-        logger.info(f"{len(duplicates_removed)} duplicate videos (not added to queue):")
+        logger.info(f"{duplicates_removed} duplicate videos (not added to queue):")
         for url, sources in video_sources.items():
             if len(sources) > 1:
                 logger.info(f"{url} (Found in: {', '.join(sources)})")

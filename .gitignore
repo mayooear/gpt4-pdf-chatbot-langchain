@@ -10,6 +10,7 @@
 /media/
 /ingestion_checkpoint.json
 /scripts/queue/
+/scripts/queue-*/
 /scripts/data/
 
 # IDE
