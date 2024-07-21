@@ -12,6 +12,7 @@
 /scripts/queue/
 /scripts/queue-*/
 /scripts/data/
+*.mp3
 
 # IDE
 /.idea/
