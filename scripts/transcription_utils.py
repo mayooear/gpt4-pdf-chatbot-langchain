@@ -158,10 +158,8 @@ def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
         youtube_data_map = load_youtube_data_map()
         youtube_data = youtube_data_map.get(youtube_id)
 
-        # erase any audio path stored with youtube data as it's bogus (from prior run)
-        youtube_data["audio_path"] = None
-
         if youtube_data:
+            # erase any audio path stored with youtube data as it's bogus (from prior run)
             youtube_data.pop("audio_path", None)
             file_hash = youtube_data["file_hash"]
         else:
