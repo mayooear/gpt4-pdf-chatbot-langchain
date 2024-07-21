@@ -23,8 +23,7 @@ from pinecone_utils import (
     store_in_pinecone,
     clear_library_vectors,
 )
-from s3_utils import upload_to_s3
-from pinecone_utils import clear_library_vectors
+from s3_utils import upload_to_s3, S3UploadError
 from youtube_utils import download_youtube_audio, extract_youtube_id
 from multiprocessing import Pool, cpu_count
 import atexit
@@ -156,9 +155,14 @@ def process_file(
 
         # After successful processing, upload to S3 only if it's not a YouTube video and not a dry run
         if not dryrun and not is_youtube_video and file_path:
-            s3_warning = upload_to_s3(file_path)
-            if s3_warning:
-                local_report["warnings"].append(s3_warning)
+            try:
+                upload_to_s3(file_path)
+            except S3UploadError as e:
+                error_msg = f"Error uploading {file_name} to S3: {str(e)}"
+                logger.error(error_msg)
+                local_report["errors"] += 1
+                local_report["error_details"].append(error_msg)
+                return local_report
 
         local_report["fully_indexed"] += 1
 

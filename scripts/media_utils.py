@@ -3,13 +3,27 @@ import hashlib
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3NoHeaderError
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from pydub.silence import split_on_silence, detect_nonsilent
 import logging
+import wave
 
 logger = logging.getLogger(__name__)
 
 
 def get_media_metadata(file_path):
+    file_extension = os.path.splitext(file_path)[1].lower()
+    try:
+        if file_extension == '.mp3':
+            return get_mp3_metadata(file_path)
+        elif file_extension == '.wav':
+            return get_wav_metadata(file_path)
+        else:
+            raise ValueError(f"Unsupported file format: {file_extension}")
+    except Exception as e:
+        logger.error(f"Error reading audio metadata for {file_path}: {e}")
+        raise
+
+def get_mp3_metadata(file_path):
     try:
         audio = MP3(file_path)
         if audio.tags:
@@ -35,6 +49,17 @@ def get_media_metadata(file_path):
         logger.error(f"Error reading MP3 metadata for {file_path}: {e}")
         raise
 
+def get_wav_metadata(file_path):
+    try:
+        with wave.open(file_path, 'rb') as wav_file:
+            params = wav_file.getparams()
+            duration = params.nframes / params.framerate
+            title = os.path.splitext(os.path.basename(file_path))[0]
+            return title, "Unknown", duration, None
+    except Exception as e:
+        logger.error(f"Error reading WAV metadata for {file_path}: {e}")
+        raise
+
 
 def get_file_hash(file_path):
     """Calculate MD5 hash of file content."""
@@ -44,12 +69,18 @@ def get_file_hash(file_path):
             hasher.update(chunk)
     return hasher.hexdigest()
 
-
 def split_audio(
-    file_path, min_silence_len=1000, silence_thresh=-26, chunk_length_ms=300000
+    file_path, min_silence_len=1000, silence_thresh=-32, max_chunk_size=25 * 1024 * 1024
 ):
-    """Split audio file into chunks based on silence or maximum length."""
-    audio = AudioSegment.from_mp3(file_path)
+    """Split audio file into chunks based on silence or maximum size."""
+    file_extension = os.path.splitext(file_path)[1].lower()
+    if file_extension == '.mp3':
+        audio = AudioSegment.from_mp3(file_path)
+    elif file_extension == '.wav':
+        audio = AudioSegment.from_wav(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_extension}")
+    
     chunks = split_on_silence(
         audio,
         min_silence_len=min_silence_len,
@@ -61,12 +92,11 @@ def split_audio(
     current_chunk = AudioSegment.empty()
 
     for chunk in chunks:
-        # If the current chunk length plus the new chunk length is within the limit, add the new chunk to the current chunk
-        if len(current_chunk) + len(chunk) <= chunk_length_ms:
+        if len(current_chunk.raw_data) + len(chunk.raw_data) <= max_chunk_size:
             current_chunk += chunk
         else:
-            # If the combined length exceeds the limit, add the current chunk to the combined chunks list and start a new chunk
-            combined_chunks.append(current_chunk)
+            if len(current_chunk) > 0:
+                combined_chunks.append(current_chunk)
             current_chunk = chunk
 
     # Add any remaining chunk to the combined chunks list
@@ -79,28 +109,50 @@ def split_audio(
         changes_made = False
         i = 0
         while i < len(combined_chunks):
-            if len(combined_chunks[i]) < chunk_length_ms / 4:
+            if len(combined_chunks[i].raw_data) < max_chunk_size / 4:
                 if i > 0:  # Prefer combining with the previous chunk
-                    combined_chunks[i-1] += combined_chunks[i]
-                    combined_chunks.pop(i)
-                    changes_made = True
+                    if len(combined_chunks[i-1].raw_data) + len(combined_chunks[i].raw_data) <= max_chunk_size:
+                        combined_chunks[i-1] += combined_chunks[i]
+                        combined_chunks.pop(i)
+                        changes_made = True
+                    else:
+                        i += 1
                 elif i < len(combined_chunks) - 1:  # If no previous chunk, combine with the next
-                    combined_chunks[i] += combined_chunks[i+1]
-                    combined_chunks.pop(i+1)
-                    changes_made = True
+                    if len(combined_chunks[i].raw_data) + len(combined_chunks[i+1].raw_data) <= max_chunk_size:
+                        combined_chunks[i] += combined_chunks[i+1]
+                        combined_chunks.pop(i+1)
+                        changes_made = True
+                    else:
+                        i += 1
             else:
                 i += 1
 
-    logger.debug("split_audio - List of chunk sizes:")
-    for i, chunk in enumerate(combined_chunks):
-        logger.debug(f"Chunk {i+1} size: {len(chunk)} ms")
+    # Split any chunks that are still too large
+    final_chunks = []
+    for chunk in combined_chunks:
+        if len(chunk.raw_data) > max_chunk_size:
+            sub_chunks = [chunk[i:i+max_chunk_size] for i in range(0, len(chunk), max_chunk_size)]
+            final_chunks.extend(sub_chunks)
+        else:
+            final_chunks.append(chunk)
 
-    return combined_chunks
+    logger.debug("split_audio - List of chunk sizes:")
+    for i, chunk in enumerate(final_chunks):
+        logger.debug(f"Chunk {i+1} size: {len(chunk.raw_data)} bytes")
+
+    return final_chunks
 
 
 def get_expected_chunk_count(file_path):
     """Calculate the expected number of chunks for an audio file."""
-    audio = AudioSegment.from_mp3(file_path)
+    file_extension = os.path.splitext(file_path)[1].lower()
+    if file_extension == '.mp3':
+        audio = AudioSegment.from_mp3(file_path)
+    elif file_extension == '.wav':
+        audio = AudioSegment.from_wav(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_extension}")
+
     total_duration_ms = len(audio)
     chunk_length_ms = 180000  # 3 minutes in milliseconds
     return -(-total_duration_ms // chunk_length_ms)  # Ceiling division

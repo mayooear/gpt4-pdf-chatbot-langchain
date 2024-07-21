@@ -5,10 +5,12 @@ import logging
 from dotenv import load_dotenv
 from openai import OpenAI
 from pinecone.core.client.exceptions import PineconeException
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from IngestQueue import IngestQueue  
 from pydub import AudioSegment
 import tempfile
+from botocore.exceptions import ClientError
+from s3_utils import S3UploadError, upload_to_s3
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -177,11 +179,53 @@ class TestAudioProcessing(unittest.TestCase):
 
         logger.debug("Pinecone storage error test completed with expected error")
 
-    def test_s3_upload(self):
-        logger.debug("Starting S3 upload test")
-        result = upload_to_s3(self.trimmed_audio_path)
-        self.assertIsNone(result)  # Should be None if upload is successful
-        logger.debug("S3 upload test completed")
+    def test_s3_upload_error_handling(self):
+        logger.debug("Starting S3 upload error handling test")
+        
+        # Mock the S3 client to simulate an error
+        with patch('s3_utils.get_s3_client') as mock_get_s3_client:
+            mock_s3 = MagicMock()
+            mock_s3.upload_file.side_effect = ClientError(
+                {'Error': {'Code': 'TestException', 'Message': 'Test error message'}},
+                'upload_file'
+            )
+            mock_get_s3_client.return_value = mock_s3
+
+            # Attempt to upload the file, expecting an S3UploadError
+            with self.assertRaises(S3UploadError) as context:
+                upload_to_s3(self.trimmed_audio_path)
+
+            # Check if the error message contains the expected content
+            self.assertIn("Error uploading", str(context.exception))
+            self.assertIn("Test error message", str(context.exception))
+
+        logger.debug("S3 upload error handling test completed")
+
+    def test_s3_upload_request_time_skewed(self):
+        logger.debug("Starting S3 upload RequestTimeTooSkewed test")
+        
+        # Mock the S3 client to simulate a RequestTimeTooSkewed error
+        with patch('s3_utils.get_s3_client') as mock_get_s3_client:
+            mock_s3 = MagicMock()
+            mock_s3.upload_file.side_effect = [
+                ClientError(
+                    {'Error': {'Code': 'RequestTimeTooSkewed', 'Message': 'Time skewed'}},
+                    'upload_file'
+                ),
+                None  # Successful on second attempt
+            ]
+            mock_get_s3_client.return_value = mock_s3
+
+            # Attempt to upload the file
+            result = upload_to_s3(self.trimmed_audio_path)
+
+            # Check that the upload was successful after retry
+            self.assertIsNone(result)
+
+            # Verify that upload_file was called twice
+            self.assertEqual(mock_s3.upload_file.call_count, 2)
+
+        logger.debug("S3 upload RequestTimeTooSkewed test completed")
 
 
 if __name__ == "__main__":

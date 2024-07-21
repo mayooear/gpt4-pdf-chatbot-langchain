@@ -251,6 +251,13 @@ def reset_processing_items(queue):
     )
 
 
+def remove_item(queue, item_id):
+    if queue.remove_item(item_id):
+        logger.info(f"Successfully removed item {item_id} from the queue")
+    else:
+        logger.error(f"Failed to remove item {item_id} from the queue")
+
+
 def process_playlists_file(args, queue):
     workbook = load_workbook(filename=args.playlists_file, read_only=True)
     sheet = workbook.active
@@ -330,6 +337,7 @@ def main():
         action="store_true",
         help="Reset items in processing state to pending",
     )
+    parser.add_argument("--remove", help="Remove a specific item from the queue by ID")
 
     args = parser.parse_args()
 
@@ -341,7 +349,9 @@ def main():
     if args.queue:
         logger.info(f"Using queue: {args.queue}")
 
-    if args.playlists_file:
+    if args.remove:
+        remove_item(queue, args.remove)
+    elif args.playlists_file:
         process_playlists_file(args, queue)
     elif args.reprocess_all:
         reprocess_all_items(queue)

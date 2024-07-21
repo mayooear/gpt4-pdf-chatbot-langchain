@@ -3,8 +3,14 @@ import boto3
 from botocore.exceptions import ClientError
 import logging
 from collections import defaultdict
+import time
+import random
 
 logger = logging.getLogger(__name__)
+
+class S3UploadError(Exception):
+    """Custom exception for S3 upload errors."""
+    pass
 
 
 def get_s3_client():
@@ -15,20 +21,35 @@ def get_bucket_name():
     return os.getenv("S3_BUCKET_NAME")
 
 
-def upload_to_s3(file_path):
+def exponential_backoff(attempt):
+    return min(5, (2 ** attempt) + random.uniform(0, 1))
+
+
+def upload_to_s3(file_path, max_attempts=5):
     file_type = "audio"
     s3_client = get_s3_client()
     bucket_name = get_bucket_name()
     object_name = f"public/{file_type}/{os.path.basename(file_path)}"
 
-    try:
-        s3_client.upload_file(file_path, bucket_name, object_name)
-        logger.info(f"Successfully uploaded {file_path} to {bucket_name}/{object_name}")
-        return None
-    except ClientError as e:
-        error_message = f"Failed to upload {file_path} to S3: {str(e)}"
-        logger.error(error_message)
-        return error_message
+    for attempt in range(max_attempts):
+        try:
+            s3_client.upload_file(file_path, bucket_name, object_name)
+            logger.info(f"Successfully uploaded {file_path} to {bucket_name}/{object_name}")
+            return None
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'RequestTimeTooSkewed':
+                if attempt < max_attempts - 1:
+                    wait_time = exponential_backoff(attempt)
+                    logger.info(f"RequestTimeTooSkewed error. Retrying in {wait_time:.2f} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    error_message = f"Failed to upload {file_path} after {max_attempts} attempts: {str(e)}"
+                    logger.error(error_message)
+                    raise S3UploadError(error_message)
+            else:
+                error_message = f"Error uploading {file_path}: {str(e)}"
+                logger.error(error_message)
+                raise S3UploadError(error_message)
 
 
 def check_unique_filenames(directory_path):
