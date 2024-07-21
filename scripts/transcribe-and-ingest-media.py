@@ -186,6 +186,7 @@ def worker(task_queue, result_queue, args, stop_event):
             if item is None:
                 break
             
+            logging.debug(f"Worker processing item: {item}")
             item_id, report = process_item(item, args, client, index)
             result_queue.put((item_id, report))
         except Empty:
@@ -383,10 +384,7 @@ def main():
                 logger.error("Exiting due to error in clearing vectors.")
                 sys.exit(1)
 
-    client = OpenAI()
-    index = load_pinecone()
 
-    items_to_process = []
     overall_report = {
         "processed": 0,
         "skipped": 0,
@@ -401,6 +399,8 @@ def main():
     result_queue = Queue()
     stop_event = Event()
 
+    # TODO: items_to_process handling missing
+    
     num_processes = min(4, cpu_count())
     with Pool(processes=num_processes, initializer=worker, initargs=(task_queue, result_queue, args, stop_event)) as pool:
         def graceful_shutdown(signum, frame):
@@ -416,29 +416,33 @@ def main():
         signal.signal(signal.SIGTERM, graceful_shutdown)
 
         total_items = 0  # Track the total number of items
+        items_processed = 0
+
         try:
-            while True:
+            # Initially fill the task queue with the number of processes
+            for _ in range(num_processes):
                 item = queue.get_next_item()
                 if not item:
                     break
                 task_queue.put(item)
                 total_items += 1  # Increment the count for each item added
 
-            # Signal workers to stop
-            for _ in range(num_processes):
-                task_queue.put(None)
-
-            # Process results
-            items_processed = 0
             with tqdm(total=total_items, desc="Processing items") as pbar:
                 while items_processed < total_items:
                     try:
-                        item_id, report = result_queue.get(timeout=120) 
+                        item_id, report = result_queue.get(timeout=120)
                         if item_id is not None:
                             queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
                         overall_report = merge_reports([overall_report, report])
                         items_processed += 1
                         pbar.update(1)
+
+                        # Fetch and add a new item to the task queue
+                        item = queue.get_next_item()
+                        if item:
+                            task_queue.put(item)
+                            total_items += 1  # Increment the count for each new item added
+
                     except Empty:
                         logging.warning("Main loop:Timeout while waiting for results. Continuing...")
 
