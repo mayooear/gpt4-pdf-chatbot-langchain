@@ -170,23 +170,26 @@ class IngestQueue:
                     logger.error(f"Error reading queue item {filename}: {e}")
         return items
 
-    def reset_stuck_items(self):
-        """Reset status to 'pending' for all items in 'error' or 'interrupted' state."""
+    def _reset_items_by_status(self, status_list):
+        """Internal method to reset items matching the given status list."""
         count = 0
         for filename in os.listdir(self.queue_dir):
             if filename.endswith(".json"):
                 filepath = os.path.join(self.queue_dir, filename)
                 try:
-                    with open(filepath, "r") as f:
+                    with open(filepath, "r+") as f:
                         item = json.load(f)
-                    if item["status"] in ["error", "interrupted"]:
-                        item["status"] = "pending"
-                        item["updated_at"] = datetime.utcnow().isoformat()
-                        with open(filepath, "w") as f:
+                        if item["status"] in status_list:
+                            item["status"] = "pending"
+                            item["updated_at"] = datetime.utcnow().isoformat()
+                            f.seek(0)
                             json.dump(item, f)
-                        count += 1
+                            f.truncate()
+                            count += 1
+                            logger.info(f"Reset item to pending: {item['id']} (was {item['status']})")
                 except IOError as e:
                     logger.error(f"Error resetting item {filename}: {e}")
+        logger.info(f"Reset {count} items to pending state.")
         return count
 
     def remove_completed_items(self):
@@ -206,6 +209,14 @@ class IngestQueue:
                     logger.error(f"Error reading queue item {filename}: {e}")
 
         return removed_count
+    
+    def reset_stuck_items(self):
+        """Reset status to 'pending' for all items in 'error' or 'interrupted' state."""
+        return self._reset_items_by_status(["error", "interrupted"])
+
+    def reset_processing_items(self):
+        """Reset status to 'pending' for all items in 'processing' state."""
+        return self._reset_items_by_status(["processing"])
 
     def reprocess_item(self, item_id):
         item = self.get_item(item_id)

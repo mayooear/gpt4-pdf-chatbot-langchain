@@ -361,11 +361,6 @@ def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
         else:
             i += 1
 
-    if combined:
-        logger.debug("Chunk sizes after combination:")
-        for idx, chunk in enumerate(chunks):
-            logger.debug(f"Chunk {idx + 1}: {len(chunk['words'])} words")
-
     return chunks
 
 

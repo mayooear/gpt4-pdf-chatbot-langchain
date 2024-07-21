@@ -244,6 +244,13 @@ def reprocess_all_items(queue):
     logger.info(f"Reset all {reset_count} items in the queue. Ready for reprocessing.")
 
 
+def reset_processing_items(queue):
+    reset_count = queue.reset_processing_items()
+    logger.info(
+        f"Reset {reset_count} items from processing state to pending. Ready for processing."
+    )
+
+
 def process_playlists_file(args, queue):
     workbook = load_workbook(filename=args.playlists_file, read_only=True)
     sheet = workbook.active
@@ -318,6 +325,11 @@ def main():
     )
     parser.add_argument("--playlists-file", help="Path to XLSX file containing playlist information")
     parser.add_argument("--queue", default=None, help="Specify an alternative queue name")
+    parser.add_argument(
+        "--reset-processing-items",
+        action="store_true",
+        help="Reset items in processing state to pending",
+    )
 
     args = parser.parse_args()
 
@@ -341,6 +353,8 @@ def main():
         clear_queue(queue)
     elif args.reset:
         reset_stuck_items(queue)
+    elif args.reset_processing_items:
+        reset_processing_items(queue)
     elif args.remove_completed:
         remove_completed_items(queue)
     elif any([args.video, args.playlist, args.audio, args.directory]):

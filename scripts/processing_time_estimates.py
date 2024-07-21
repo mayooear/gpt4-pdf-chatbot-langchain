@@ -2,14 +2,38 @@ import json
 import os
 from datetime import timedelta
 import logging
+import time
+import fcntl
 
 logger = logging.getLogger(__name__)
 ESTIMATES_FILE = 'data/processing_time_estimates.json'
+MAX_RETRIES = 3
+RETRY_DELAY = 0.1  # seconds
 
 def load_estimates():
-    if os.path.exists(ESTIMATES_FILE):
-        with open(ESTIMATES_FILE, 'r') as f:
-            return json.load(f)
+    for attempt in range(MAX_RETRIES):
+        try:
+            with open(ESTIMATES_FILE, 'r') as f:
+                fcntl.flock(f, fcntl.LOCK_SH)  # Acquire a shared lock
+                try:
+                    content = f.read()
+                    if not content.strip():  # Check if file is empty
+                        logger.warning(f"Estimates file is empty. Returning default values.")
+                        return {"audio_file": None, "youtube_video": None}
+                    return json.loads(content)
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)  # Release the lock
+        except json.JSONDecodeError as e:
+            logger.error(f"Attempt {attempt + 1}: Error decoding JSON from {ESTIMATES_FILE}: {str(e)}")
+        except IOError as e:
+            logger.error(f"Attempt {attempt + 1}: IO Error reading {ESTIMATES_FILE}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Attempt {attempt + 1}: Unexpected error reading {ESTIMATES_FILE}: {str(e)}")
+        
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    
+    logger.warning(f"Failed to load estimates after {MAX_RETRIES} attempts. Returning default values.")
     return {"audio_file": None, "youtube_video": None}
 
 def save_estimate(item_type, processing_time, file_size):
