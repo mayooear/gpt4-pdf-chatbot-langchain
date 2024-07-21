@@ -398,9 +398,8 @@ def main():
     task_queue = Queue()
     result_queue = Queue()
     stop_event = Event()
+    items_to_process = []  # Initialize the list to track items being processed
 
-    # TODO: items_to_process handling missing
-    
     num_processes = min(4, cpu_count())
     with Pool(processes=num_processes, initializer=worker, initargs=(task_queue, result_queue, args, stop_event)) as pool:
         def graceful_shutdown(signum, frame):
@@ -410,6 +409,10 @@ def main():
                 task_queue.put(None)
             pool.close()
             pool.join()
+            for item in items_to_process:
+                queue.update_item_status(item["id"], "interrupted")
+            print_report(overall_report)
+            reset_terminal()
             sys.exit(0)
 
         signal.signal(signal.SIGINT, graceful_shutdown)
@@ -425,6 +428,7 @@ def main():
                 if not item:
                     break
                 task_queue.put(item)
+                items_to_process.append(item)  # Track the item being processed
                 total_items += 1  # Increment the count for each item added
 
             with tqdm(total=total_items, desc="Processing items") as pbar:
@@ -433,6 +437,7 @@ def main():
                         item_id, report = result_queue.get(timeout=120)
                         if item_id is not None:
                             queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
+                            items_to_process = [item for item in items_to_process if item["id"] != item_id]  # Remove processed item
                         overall_report = merge_reports([overall_report, report])
                         items_processed += 1
                         pbar.update(1)
@@ -441,10 +446,11 @@ def main():
                         item = queue.get_next_item()
                         if item:
                             task_queue.put(item)
+                            items_to_process.append(item)  # Track the new item being processed
                             total_items += 1  # Increment the count for each new item added
 
                     except Empty:
-                        logging.warning("Main loop:Timeout while waiting for results. Continuing...")
+                        logging.warning("Main loop: Timeout while waiting for results. Continuing...")
 
         except Exception as e:
             logging.error(f"Error processing items: {str(e)}")

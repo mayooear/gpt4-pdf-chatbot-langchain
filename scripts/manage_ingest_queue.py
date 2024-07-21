@@ -12,6 +12,8 @@ from processing_time_estimates import get_estimate, estimate_total_processing_ti
 from openpyxl import load_workbook
 from collections import defaultdict
 import sys
+import pytz
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -170,16 +172,13 @@ def list_queue_items(queue):
         ),
         default=50,
     )
-    max_author_len = max(
-        (len(item.get("data", {}).get("author", "")) for item in items), default=20
-    )
-    max_library_len = max(
-        (len(item.get("data", {}).get("library", "")) for item in items), default=20
+    max_updated_len = max(
+        (len(item.get("last_updated", "Unknown time")) for item in items), default=20
     )
 
     # Print the header with dynamic lengths and 2 spaces between columns
     print(
-        f"{'ID'.ljust(max_id_len)}  {'Type'.ljust(max_type_len)}  {'Status'.ljust(max_status_len)}  {'URL/File'.ljust(max(max_url_len, max_file_path_len))}  {'Author'.ljust(max_author_len)}  {'Library'.ljust(max_library_len)}"
+        f"{'ID'.ljust(max_id_len)}  {'Type'.ljust(max_type_len)}  {'Status'.ljust(max_status_len)}  {'URL/File'.ljust(max(max_url_len, max_file_path_len))}  {'Last Updated'.ljust(max_updated_len)}"
     )
 
     for item in items:
@@ -187,19 +186,29 @@ def list_queue_items(queue):
         item_type = item.get("type", "Unknown type")
         item_data = item.get("data", {})
         item_status = item.get("status", "Unknown status")
+        last_updated = item.get("updated_at", "Unknown time")
+
+        # Convert last_updated to PST
+        if last_updated != "Unknown time":
+            utc_time = datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%f")
+            utc_time = utc_time.replace(tzinfo=pytz.utc)
+            pst_time = utc_time.astimezone(pytz.timezone("America/Los_Angeles"))
+            last_updated = pst_time.strftime("%Y-%m-%d %H:%M")
+            debug_message = f"Last updated: {last_updated}"
+            logger.debug(debug_message)
 
         if item_type == "youtube_video":
             print(
-                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('url', '').ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}"
+                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('url', '').ljust(max(max_url_len, max_file_path_len))}  {last_updated.ljust(max_updated_len)}"
             )
         elif item_type == "audio_file":
             truncated_path = truncate_path(item_data.get("file_path", ""))
             print(
-                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {truncated_path.ljust(max(max_url_len, max_file_path_len))}  {item_data.get('author', '').ljust(max_author_len)}  {item_data.get('library', '').ljust(max_library_len)}"
+                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {truncated_path.ljust(max(max_url_len, max_file_path_len))}  {last_updated.ljust(max_updated_len)}"
             )
         else:
             print(
-                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {'N/A'.ljust(max_author_len)}  {'N/A'.ljust(max_library_len)}"
+                f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {last_updated.ljust(max_updated_len)}"
             )
 
     estimated_time = estimate_total_processing_time(items)

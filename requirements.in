@@ -18,6 +18,7 @@ pinecone-plugin-interface==0.0.7
 pydub==0.25.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+pytz==2024.1
 s3transfer==0.10.2
 tqdm==4.66.4
 urllib3==2.2.2
