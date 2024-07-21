@@ -25,12 +25,13 @@ from pinecone_utils import (
 )
 from s3_utils import upload_to_s3, S3UploadError
 from youtube_utils import download_youtube_audio, extract_youtube_id
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Queue, Event
 import atexit
 import signal
 from functools import partial
 from processing_time_estimates import save_estimate
 import time
+from queue import Empty  
 
 logger = logging.getLogger(__name__)
 
@@ -175,16 +176,31 @@ def process_file(
     return local_report
 
 
-def process_item(item, args):
+def worker(task_queue, result_queue, args, stop_event):
+    client = OpenAI()
+    index = load_pinecone()
+    
+    while not stop_event.is_set():
+        try:
+            item = task_queue.get(timeout=1)
+            if item is None:
+                break
+            
+            item_id, report = process_item(item, args, client, index)
+            result_queue.put((item_id, report))
+        except Empty:
+            continue
+        except Exception as e:
+            logging.error(f"Worker error: {str(e)}")
+            result_queue.put((None, {"errors": 1, "error_details": [str(e)]}))
+
+
+def process_item(item, args, client, index):
     """Process a media item (audio file or YouTube video) in a separate process"""
     # Ensure logging is configured for this process
     configure_logging(args.debug)
     logger = logging.getLogger(__name__)
     logger.debug(f"Processing item: {item}")
-
-    # Initialize resources for this process
-    client = OpenAI()
-    index = load_pinecone()
 
     logger.debug(f"Processing item: {item}")
 
@@ -381,44 +397,60 @@ def main():
         "chunk_lengths": [],
     }
 
-    with Pool(processes=4) as pool:
-        signal_handler = partial(graceful_shutdown, pool, queue, items_to_process, overall_report)
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+    task_queue = Queue()
+    result_queue = Queue()
+    stop_event = Event()
 
+    num_processes = min(4, cpu_count())
+    with Pool(processes=num_processes, initializer=worker, initargs=(task_queue, result_queue, args, stop_event)) as pool:
+        def graceful_shutdown(signum, frame):
+            logging.info("\nReceived interrupt signal. Shutting down gracefully...")
+            stop_event.set()
+            for _ in range(num_processes):
+                task_queue.put(None)
+            pool.close()
+            pool.join()
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, graceful_shutdown)
+        signal.signal(signal.SIGTERM, graceful_shutdown)
+
+        total_items = 0  # Track the total number of items
         try:
             while True:
                 item = queue.get_next_item()
                 if not item:
                     break
+                task_queue.put(item)
+                total_items += 1  # Increment the count for each item added
 
-                items_to_process.append(item)
+            # Signal workers to stop
+            for _ in range(num_processes):
+                task_queue.put(None)
 
-                if len(items_to_process) >= 4:
-                    results = pool.starmap(process_item, [(item, args) for item in items_to_process])
-                    for item_id, report in results:
-                        queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
+            # Process results
+            items_processed = 0
+            with tqdm(total=total_items, desc="Processing items") as pbar:
+                while items_processed < total_items:
+                    try:
+                        item_id, report = result_queue.get(timeout=120) 
+                        if item_id is not None:
+                            queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
                         overall_report = merge_reports([overall_report, report])
-                    items_to_process = []
-
-            # Process any remaining items
-            if items_to_process:
-                results = pool.starmap(process_item, [(item, args) for item in items_to_process])
-                for item_id, report in results:
-                    queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
-                    overall_report = merge_reports([overall_report, report])
+                        items_processed += 1
+                        pbar.update(1)
+                    except Empty:
+                        logging.warning("Main loop:Timeout while waiting for results. Continuing...")
 
         except Exception as e:
-            logger.error(f"Error processing items: {str(e)}")
-            logger.exception("Full traceback:")
-            for item in items_to_process:
-                queue.update_item_status(item["id"], "error")
+            logging.error(f"Error processing items: {str(e)}")
+            logging.exception("Full traceback:")
 
     print("\nOverall Processing Report:")
     print_report(overall_report)
 
     queue_status = queue.get_queue_status()
-    logger.info(f"Final queue status: {queue_status}")
+    logging.info(f"Final queue status: {queue_status}")
 
     # Explicitly reset the terminal state
     reset_terminal()
