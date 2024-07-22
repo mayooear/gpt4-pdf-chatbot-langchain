@@ -41,8 +41,16 @@ def save_estimate(item_type, processing_time, file_size):
     if estimates[item_type] is None:
         estimates[item_type] = {"time": processing_time, "size": file_size}
     else:
-        estimates[item_type]["time"] = (estimates[item_type]["time"] + processing_time) / 2
-        estimates[item_type]["size"] = (estimates[item_type]["size"] + file_size) / 2
+        avg_time = estimates[item_type]["time"]
+        avg_size = estimates[item_type]["size"]
+        adjusted_time = (avg_time / avg_size) * file_size
+        
+        if processing_time > 5 * adjusted_time:
+            logger.warning(f"Processing time {processing_time} for {item_type} is considered an outlier and will not be saved.")
+        else:
+            estimates[item_type]["time"] = (avg_time + processing_time) / 2
+            estimates[item_type]["size"] = (avg_size + file_size) / 2
+    
     with open(ESTIMATES_FILE, 'w') as f:
         json.dump(estimates, f)
 
