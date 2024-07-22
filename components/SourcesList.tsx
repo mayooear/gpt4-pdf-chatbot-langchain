@@ -188,9 +188,6 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
                   >
                     <span className="font-medium">{renderSourceTitle(doc)}</span>
                   </a>
-                  {doc.metadata.library && (
-                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
-                  )}
                 </div>
               ) : doc.metadata.title ? (
                 <span className="flex items-center flex-grow">
@@ -202,16 +199,10 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = nul
               ) : doc.metadata['pdf.info.Title'] ? (
                 <span className="text-blue-600 flex items-center flex-grow">
                   <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
-                  {doc.metadata.library && (
-                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
-                  )}
                 </span>
               ) : (
                 <span className="text-blue-600 flex items-center flex-grow">
                   <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
-                  {doc.metadata.library && (
-                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
-                  )}
                 </span>
               )}
             </summary>
