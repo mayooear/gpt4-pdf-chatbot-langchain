@@ -183,7 +183,7 @@ const SharedAnswers = () => {
                     <div className="markdownanswer">
                       <TruncatedMarkdown markdown={answers[share.answerId].answer} maxCharacters={600} />
                       {answers[share.answerId].sources && (
-                        <SourcesList sources={answers[share.answerId].sources || []} useAccordion={true} />
+                        <SourcesList sources={answers[share.answerId].sources || []} />
                       )}
                       {/* Render the interaction buttons */}
                       <div className="flex items-center">

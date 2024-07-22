@@ -93,7 +93,7 @@ export const useChat = (collection: string, history: [string, string][], private
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      setError('An error occurred while fetching the data. Please try again.');
+      setError('An error occurred while fetching the data. Please email Michael and let him know!');
       console.log('error', error);
     }
   };

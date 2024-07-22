@@ -354,7 +354,6 @@ const AllAnswers = () => {
                       {answer.sources && (
                         <SourcesList
                           sources={answer.sources}
-                          useAccordion={false}
                           collectionName={answer.collection}
                         />
                       )}

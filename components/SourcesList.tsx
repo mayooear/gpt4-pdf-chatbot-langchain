@@ -10,11 +10,10 @@ import { AudioPlayer } from './AudioPlayer';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
-  useAccordion?: boolean;
   collectionName?: string;
 }
 
-const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collectionName = null }) => {
+const SourcesList: React.FC<SourcesListProps> = ({ sources, collectionName = null }) => {
   const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
   const [expandedAccordionSource, setExpandedAccordionSource] = useState<number | null>(null);
 
@@ -25,7 +24,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
         <div className="pt-1 pb-2">
           <AudioPlayer
             key={audioId}
-            src={`/api/audio/${doc.metadata.file_name}`}
+            src={`/api/audio/${doc.metadata.filename}`}
             startTime={doc.metadata.start_time}
             audioId={audioId}
             lazyLoad={true}
@@ -36,6 +35,40 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     }
     return null;
   }, [expandedSources]);
+
+  const transformYouTubeUrl = (url: string, startTime: number) => {
+    const urlObj = new URL(url);
+    let videoId = '';
+    if (urlObj.hostname === 'youtu.be') {
+      videoId = urlObj.pathname.slice(1);
+    } else if (urlObj.hostname === 'www.youtube.com' && urlObj.pathname.includes('watch')) {
+      videoId = urlObj.searchParams.get('v') || '';
+    }
+    const baseUrl = `https://www.youtube.com/embed/${videoId}`;
+    const params = new URLSearchParams(urlObj.search);
+    params.set('start', Math.floor(startTime).toString());
+    params.set('rel', '0');
+    return `${baseUrl}?${params.toString()}`;
+  };
+
+  const renderYouTubePlayer = useCallback((doc: Document<Record<string, any>>, index: number) => {
+    if (doc.metadata.type === 'youtube') {
+      const embedUrl = transformYouTubeUrl(doc.metadata.url, doc.metadata.start_time);
+      return (
+        <div className="aspect-video mb-7">
+          <iframe
+            className="h-full w-full rounded-lg"
+            src={embedUrl}
+            title={doc.metadata.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+    return null;
+  }, []);
 
   // double colon separates parent title from the (child) source title, 
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here 
@@ -82,6 +115,17 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
     return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : text;
   };
 
+  const getSourceIcon = (doc: Document<Record<string, any>>) => {
+    switch (doc.metadata.type) {
+      case 'audio':
+        return 'mic';
+      case 'youtube':
+        return 'videocam';
+      default:
+        return 'description';
+    }
+  };
+
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
     return (
       <span className="text-black-600 font-medium">
@@ -90,51 +134,6 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
       </span>
     );
   };
-
-  if (useAccordion) {
-    return (
-      <>
-      {sources.length > 0 && (
-        <div className="bg-gray-200 p-3 rounded-lg mt-2 mb-2">
-          <Accordion 
-            type="single" 
-            collapsible 
-            onValueChange={(value) => handleAccordionExpand(value ? parseInt(value) : null)}
-          >
-            <AccordionItem value="sources">
-              <AccordionTrigger className="text-base font-semibold text-blue-500">
-                Sources
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="text-base">
-                  {sources.map((doc, index) => (
-                    <li key={index} className={`${expandedAccordionSource === index && index !== 0 ? 'mt-4' : ''}`}>
-                      <a 
-                        href={doc.metadata.source} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="hover:underline"
-                        onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-                      >
-                        {renderSourceTitle(doc)}
-                      </a>
-                      {doc.metadata.type === 'audio' && (
-                        <p>{doc.pageContent}</p>
-                      )}
-                      {doc.metadata.type === 'audio' && (
-                        renderAudioPlayer(doc, index)
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      )}
-      </>
-    );
-  }
 
   return (
     <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2 sourcesContainer"> 
@@ -165,42 +164,68 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources, useAccordion, collec
             className={`${styles.sourceDocsContainer} ${isExpanded && index !== 0 ? 'mt-4' : ''}`}
             open={isExpanded}
           >
-            <summary onClick={(e) => {
-              e.preventDefault();
-              handleSourceToggle(index);
-            }}>
+            <summary 
+              onClick={(e) => {
+                e.preventDefault();
+                handleSourceToggle(index);
+              }}
+              className="flex items-center cursor-pointer list-none"
+            >
+              <div className="flex items-center mr-2 w-8">
+                <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90">
+                  ▶
+                </span>
+                <span className="material-icons text-sm ml-1">{getSourceIcon(doc)}</span>
+              </div>
               {doc.metadata && doc.metadata.source ? (
-                <a 
-                  href={doc.metadata.source} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  style={{ color: 'blue' }}
-                  onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-                >
-                  {renderSourceTitle(doc)}
-                </a>
+                <div className="flex items-center flex-grow">
+                  <a 
+                    href={doc.metadata.source} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-600 hover:underline mr-4"
+                    onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+                  >
+                    <span className="font-medium">{renderSourceTitle(doc)}</span>
+                  </a>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
+                </div>
               ) : doc.metadata.title ? (
-                <span>
-                  {renderSourceTitle(doc)}
+                <span className="flex items-center flex-grow">
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               ) : doc.metadata['pdf.info.Title'] ? (
-                <span style={{ color: 'blue' }}>
-                  {renderSourceTitle(doc)}
+                <span className="text-blue-600 flex items-center flex-grow">
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               ) : (
-                <span style={{ color: 'blue' }}>
-                  Unknown source
+                <span className="text-blue-600 flex items-center flex-grow">
+                  <span className="font-medium mr-4">{renderSourceTitle(doc)}</span>
+                  {doc.metadata.library && (
+                    <span className="text-gray-500 font-normal">{doc.metadata.library}</span>
+                  )}
                 </span>
               )}
             </summary>
-            <div className={`${styles.sourceDocContent}`}>
+            <div className="pl-5 mt-2">
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                 {doc.pageContent}
               </ReactMarkdown>
+              {doc.metadata && doc.metadata.type === 'audio' && expandedSources.has(index) && (
+                renderAudioPlayer(doc, index)
+              )}
+              {doc.metadata && doc.metadata.type === 'youtube' && expandedSources.has(index) && (
+                renderYouTubePlayer(doc, index)
+              )}
             </div>
-            {doc.metadata && doc.metadata.type === 'audio' && isExpanded && (
-              renderAudioPlayer(doc, index)
-            )}
           </details>
         );
       })}

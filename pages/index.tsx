@@ -30,7 +30,7 @@ export default function Home() {
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [privateSession, setPrivateSession] = useState<boolean>(false);
-  const [mediaTypes, setMediaTypes] = useState<{ text: boolean; audio: boolean }>({ text: true, audio: true });
+  const [mediaTypes, setMediaTypes] = useState<{ text: boolean; audio: boolean; youtube: boolean }>({ text: true, audio: true, youtube: true });
   const { messageState, loading, error, handleSubmit } = useChat(collection, [], privateSession, mediaTypes);
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
@@ -42,7 +42,7 @@ export default function Home() {
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleMediaTypeChange = (type: 'text' | 'audio') => {
+  const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
     setMediaTypes(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
@@ -280,7 +280,6 @@ export default function Home() {
                             {message.sourceDocs && (
                               <SourcesList 
                                 sources={message.sourceDocs} 
-                                useAccordion={false} 
                                 collectionName={collectionChanged ? message.collection : undefined}
                               />
                             )}
