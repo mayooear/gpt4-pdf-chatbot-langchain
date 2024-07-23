@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 from datetime import timedelta
 import os
@@ -210,17 +211,7 @@ def list_queue_items(queue):
             print(
                 f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {'N/A'.ljust(max(max_url_len, max_file_path_len))}  {last_updated.ljust(max_updated_len)}"
             )
-
-    estimated_time = estimate_total_processing_time(items)
-    print(f"\nEstimated time to complete all pending items: {estimated_time}")
-
-    # Add individual estimates for audio and video
-    audio_estimate = get_estimate("audio_file")
-    video_estimate = get_estimate("youtube_video")
-    if audio_estimate:
-        print(f"Average processing time for audio files: {timedelta(seconds=int(audio_estimate['time']))} for {audio_estimate['size'] / (1024*1024):.2f} MB")
-    if video_estimate:
-        print(f"Average processing time for YouTube videos: {timedelta(seconds=int(video_estimate['time']))} for {video_estimate['size'] / (1024*1024):.2f} MB")
+    print_queue_status(queue, items)
 
 
 def clear_queue(queue):
@@ -234,11 +225,9 @@ def reset_stuck_items(queue):
         f"Reset {reset_count} items from error or interrupted state. Ready for processing."
     )
 
-
 def remove_completed_items(queue):
     removed_count = queue.remove_completed_items()
     logger.info(f"Removed {removed_count} completed items from the queue")
-
 
 def reprocess_item(queue, item_id):
     success, message = queue.reprocess_item(item_id)
@@ -306,6 +295,21 @@ def process_playlists_file(args, queue):
                 logger.info(f"{url} (Found in: {', '.join(sources)})")
 
 
+def print_queue_status(queue, items=None):
+    if items is None:
+        items = queue.get_all_items()
+
+    estimated_time = estimate_total_processing_time(items)
+    print(f"Estimated time to complete all pending items: {estimated_time}")
+
+    audio_estimate = get_estimate("audio_file")
+    video_estimate = get_estimate("youtube_video")
+    if audio_estimate:
+        print(f"Average processing time for audio files: {timedelta(seconds=int(audio_estimate['time']))} for {audio_estimate['size'] / (1024*1024):.2f} MB")
+    if video_estimate:
+        print(f"Average processing time for YouTube videos: {timedelta(seconds=int(video_estimate['time']))} for {video_estimate['size'] / (1024*1024):.2f} MB")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
 
@@ -347,6 +351,7 @@ def main():
         help="Reset items in processing state to pending",
     )
     parser.add_argument("--remove", help="Remove a specific item from the queue by ID")
+    parser.add_argument("--status", action="store_true", help="Print the queue status")
 
     args = parser.parse_args()
 
@@ -358,7 +363,9 @@ def main():
     if args.queue:
         logger.info(f"Using queue: {args.queue}")
 
-    if args.remove:
+    if args.status:
+        print_queue_status(queue)
+    elif args.remove:
         remove_item(queue, args.remove)
     elif args.playlists_file:
         process_playlists_file(args, queue)

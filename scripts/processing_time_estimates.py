@@ -45,7 +45,7 @@ def save_estimate(item_type, processing_time, file_size):
         avg_size = estimates[item_type]["size"]
         adjusted_time = (avg_time / avg_size) * file_size
         
-        if processing_time > 5 * adjusted_time:
+        if processing_time > 3 * adjusted_time:
             logger.warning(f"Processing time {processing_time} for {item_type} is considered an outlier and will not be saved.")
         else:
             estimates[item_type]["time"] = (avg_time + processing_time) / 2
@@ -59,6 +59,7 @@ def get_estimate(item_type):
     return estimates.get(item_type)
 
 def estimate_total_processing_time(items):
+    num_processes = 4  # assume 4 processes for now
     estimates = load_estimates()
     total_time = 0
     for item in items:
@@ -74,4 +75,4 @@ def estimate_total_processing_time(items):
                     avg_time = estimate["time"]
                     avg_size = estimate["size"]
                     total_time += (avg_time / avg_size) * file_size
-    return timedelta(seconds=int(total_time))
+    return timedelta(seconds=int(total_time/num_processes))
