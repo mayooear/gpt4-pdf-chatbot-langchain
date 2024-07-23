@@ -73,6 +73,7 @@ def split_audio(
     file_path, min_silence_len=1000, silence_thresh=-32, max_chunk_size=25 * 1024 * 1024
 ):
     """Split audio file into chunks based on silence or maximum size."""
+    logger.debug(f"Starting split_audio for file: {file_path}")
     file_extension = os.path.splitext(file_path)[1].lower()
     if file_extension == '.mp3':
         audio = AudioSegment.from_mp3(file_path)
@@ -81,12 +82,16 @@ def split_audio(
     else:
         raise ValueError(f"Unsupported file format: {file_extension}")
     
+    logger.debug(f"Audio duration: {len(audio)} ms")
+
     chunks = split_on_silence(
         audio,
         min_silence_len=min_silence_len,
         silence_thresh=silence_thresh,
         keep_silence=True,
     )
+
+    logger.debug(f"Initial number of chunks: {len(chunks)}")
 
     combined_chunks = []
     current_chunk = AudioSegment.empty()
@@ -103,29 +108,49 @@ def split_audio(
     if len(current_chunk) > 0:
         combined_chunks.append(current_chunk)
 
+    logger.debug(f"Number of combined chunks before merging small chunks: {len(combined_chunks)}")
+
     # Combine short chunks with adjacent chunks
     changes_made = True
-    while changes_made:
+    max_iterations = 1000  # Safety limit to prevent infinite loops
+    iteration_count = 0
+
+    while changes_made and iteration_count < max_iterations:
         changes_made = False
         i = 0
         while i < len(combined_chunks):
+            logger.debug(f"Processing chunk {i+1}/{len(combined_chunks)}")
             if len(combined_chunks[i].raw_data) < max_chunk_size / 4:
+                logger.debug(f"Chunk {i+1} is smaller than the threshold. Attempting to combine.")
                 if i > 0:  # Prefer combining with the previous chunk
                     if len(combined_chunks[i-1].raw_data) + len(combined_chunks[i].raw_data) <= max_chunk_size:
+                        logger.debug(f"Combining chunk {i+1} with previous chunk {i}")
                         combined_chunks[i-1] += combined_chunks[i]
                         combined_chunks.pop(i)
                         changes_made = True
                     else:
+                        logger.debug(f"Cannot combine chunk {i+1} with previous chunk {i} due to size limit.")
                         i += 1
                 elif i < len(combined_chunks) - 1:  # If no previous chunk, combine with the next
                     if len(combined_chunks[i].raw_data) + len(combined_chunks[i+1].raw_data) <= max_chunk_size:
+                        logger.debug(f"Combining chunk {i+1} with next chunk {i+2}")
                         combined_chunks[i] += combined_chunks[i+1]
                         combined_chunks.pop(i+1)
                         changes_made = True
                     else:
+                        logger.debug(f"Cannot combine chunk {i+1} with next chunk {i+2} due to size limit.")
                         i += 1
+                else:
+                    i += 1
             else:
+                logger.debug(f"Chunk {i+1} is larger than the threshold. Moving to the next chunk.")
                 i += 1
+        iteration_count += 1
+
+    if iteration_count >= max_iterations:
+        logger.error("Reached maximum iteration limit while combining chunks. Possible infinite loop detected.")
+
+    logger.debug(f"Number of combined chunks after merging small chunks: {len(combined_chunks)}")
 
     # Split any chunks that are still too large
     final_chunks = []
