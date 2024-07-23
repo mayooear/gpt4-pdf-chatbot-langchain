@@ -54,6 +54,9 @@ export default function Login() {
         You can get the password from&nbsp;
         <a href="https://www.anandalibrary.org/content/ai-chatbot-intro/" className="text-blue-500 underline">this page in the Ananda Library</a>
       </p>
+      <p className="mt-4">
+        <a href="https://github.com/anandaworldwide/ananda-library-chatbot" className="text-blue-400 hover:underline mx-2">Open Source Project</a>
+      </p>
     </div>
   );
 }
