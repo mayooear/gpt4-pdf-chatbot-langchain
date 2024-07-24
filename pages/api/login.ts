@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { rateLimiter } from 'utils/server/rateLimiter';
 import { isDevelopment } from '@/utils/env';
-
+ 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
 
