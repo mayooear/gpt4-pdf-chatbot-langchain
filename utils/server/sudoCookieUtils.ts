@@ -29,11 +29,20 @@ function decrypt(text: string) {
   }
 }
 
+function getClientIp(req: NextApiRequest): string {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ips = (xForwardedFor as string).split(',');
+    return ips[0].trim();
+  }
+  return req.socket.remoteAddress || '';
+}
+
 async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password: string) {
   const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const userIp = getClientIp(req);
   const storedHashedPassword = process.env.SUDO_PASSWORD;
 
   if (!password || !storedHashedPassword) {
@@ -64,14 +73,15 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
   const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const userIp = getClientIp(req);
   const encryptedToken = cookies.get(sudoCookieName);
 
   if (encryptedToken) {
     try {
       const textParts = encryptedToken.split(':');
       if (textParts.length !== 2) {
-        throw new Error('Invalid token format');
+        console.error('Invalid token format');
+        return { sudoCookieValue: false };
       }
       const decryptedToken = decrypt(encryptedToken);
       const tokenIndex = decryptedToken.indexOf(':');
@@ -83,11 +93,12 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
       if (ip === userIp) {
         return { sudoCookieValue: true };
       } else {
-        throw new Error('Invalid token or IP mismatch');
+        console.error('IP mismatch: Extracted IP does not match User IP');
+        return { sudoCookieValue: false };
       }
     } catch (error) {
       console.error('Token validation error:', error);
-      throw new Error('Invalid token');
+      return { sudoCookieValue: false };
     }
   } else {
     return { sudoCookieValue: false };
