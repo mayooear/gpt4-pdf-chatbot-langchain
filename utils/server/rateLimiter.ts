@@ -4,7 +4,7 @@ import { isDevelopment } from '@/utils/env';
 
 // 15 minutes for prod, 5 minutes for dev
 const RATE_LIMIT_WINDOW_MS = isDevelopment() ? 5 * 60 * 1000 : 15 * 60 * 1000;
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 8;
 
 // Rate limiting by IP address. All uses of this contribute to counts against IP addresses. 
 export async function rateLimiter(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
