@@ -21,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     const { password, redirect } = req.body;
+    console.log('Received login request with redirect:', redirect);
     const storedHashedPassword = process.env.SITE_PASSWORD;
 
     if (!password || !storedHashedPassword) {

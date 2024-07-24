@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Login() {
@@ -7,8 +7,13 @@ export default function Login() {
   const router = useRouter();
   const { redirect } = router.query;
 
+  useEffect(() => {
+    console.log('Redirect query parameter:', redirect);
+  }, [redirect]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting login with redirect:', redirect);
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: {
@@ -19,6 +24,7 @@ export default function Login() {
 
     if (res.ok) {
       const data = await res.json();
+      console.log('Login successful, redirecting to:', data.redirect);
       router.push(data.redirect || '/');
     } else if (res.status === 429) {
       alert("Too many login attempts. Please try again later.");
