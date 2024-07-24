@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { rateLimiter } from 'utils/server/rateLimiter';
 import { isDevelopment } from '@/utils/env';
- 
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
 
@@ -20,6 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     const { password, redirect } = req.body;
+    console.log('Received login request with redirect:', redirect);
     const storedHashedPassword = process.env.SITE_PASSWORD;
     const storedHashedToken = process.env.SECURE_TOKEN_HASH;
     const fixedToken = process.env.SECURE_TOKEN;
