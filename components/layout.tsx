@@ -3,6 +3,7 @@ import Navbar from './Navbar';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
+import Footer from './Footer';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
+  const isLoggedIn = Cookies.get('isLoggedIn') === 'true';
 
   const isActive = (pathname: string) => router.pathname === pathname;
 
@@ -51,9 +53,15 @@ export default function Layout({ children }: LayoutProps) {
             <a href="https://www.anandalibrary.org/content/ai-chatbot-intro/" className="hover:text-slate-600 cursor-pointer" onClick={handleHelp}>
               Help
             </a>
-            <a href="#" onClick={handleLogout} className="hover:text-slate-600 cursor-pointer">
-              Logout
-            </a>
+            {isLoggedIn ? (
+              <a href="#" onClick={handleLogout} className="hover:text-slate-600 cursor-pointer">
+                Logout
+              </a>
+            ) : (
+              <Link href="/login" className="hover:text-slate-600 cursor-pointer">
+                Login
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -62,6 +70,7 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+      <Footer /> 
     </div>
   );
 }

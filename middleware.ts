@@ -18,13 +18,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const allowed_paths_starts = ['/login', '/robots.txt', '/favicon.ico', '/contact', '/api/', '/_next'];
+
   const pathname_is_private = (
-    url.pathname !== '/login' &&
+    !allowed_paths_starts.some(path => url.pathname.startsWith(path)) &&
     !(url.pathname.startsWith('/answers/') && url.pathname !== '/answers/') && 
-    !url.pathname.startsWith('/_next') &&
-    !url.pathname.startsWith('/api') &&
-    !url.pathname.startsWith('/favicon.ico') &&
-    !url.pathname.startsWith('/robots.txt') &&
     !url.pathname.endsWith('.png') &&
     !url.pathname.endsWith('.jpg') &&
     !url.pathname.endsWith('.gif')
