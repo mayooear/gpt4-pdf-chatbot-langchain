@@ -1,8 +1,10 @@
-# Ask Ananda Library - A RAG ChatGPT Chatbot for Your PDF Files
+# Ask Ananda Library - A RAG Chatbot for Your PDF Files, Audio Files, and YouTube Videos!
 
-Build a chatGPT chatbot for multiple Large PDF files. Optionally generate the PDF fileset from a Wordpress database. Allow users to share the best answers they get with each other through a social, sharing interface.
+Build a chatGPT chatbot for multiple Large PDF files, audio files, and YouTube videos. Optionally generate the PDF fileset from a Wordpress database. Transcribe mp3 files en masse. Download YouTube videos en masse and transcribe their audio. Allow users to share the best answers they get with each other through a social, sharing interface.
 
-Tech stack used includes LangChain, Pinecone, Typescript, Openai, Next.js, Google Firestore, and Python. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings and your PDF in text to later retrieve similar docs.
+Audio and video results are shown inline with a player queued to the moment matched in the transcript.
+
+Tech stack used includes LangChain, Pinecone, Typescript, Openai, Next.js, Google Firestore, AWS, and Python. LangChain is a framework that makes it easier to build scalable AI/LLM apps and chatbots. Pinecone is a vectorstore for storing embeddings to later retrieve similar docs.
 
 [Tutorial video from project we forked from](https://www.youtube.com/watch?v=ih9PBGVVOO4)
 
@@ -20,16 +22,16 @@ This is a fork of gpt4-pdf-chatbot-langchain. This version looks for a specified
 
 For the Ananda Library, we have provided code that can take a wordpress MySQL database and generate PDF files for all of the published content. For us, that is about 7,000 documents.
 
-This is completely optional.
+700 Audio files and 800+ YouTube videos.
 
 ## Enhanced Frontend with Social Media Sharing
 
 The runtime website code is significantly extended from the forked project. We have added
 
-- Display of sources with links
-- Thumbs up, and thumbs down for system feedback
+- Display of sources with links and inline audio/video players
+- Thumbs up for social feedback and thumbs down for system feedback
 - Copy button
-- All Answers page for social sharing, including heart button to indicate user likes
+- All Answers page for social sharing
 
 ## Development
 
@@ -99,11 +101,11 @@ yarn run ingest -- --dryrun
 
 1. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
-## Transcribe MP3 files and convert to embeddings
+## Transcribe MP3 files and YouTube videos and convert to embeddings
 
-Put your MP3 files in audio/media, in subfolders.
+Put your MP3 files in audio/media, in subfolders. Create a list of YouTube videos or playlists.
 
-Run `python scripts/transcribe-and-ingest-audio.py` to transcribe and embed your audio files!
+Run `python scripts/transcribe-and-ingest-audio.py` to transcribe and embed your audio files and YouTube videos!
 
 ## Run the app
 
