@@ -136,7 +136,7 @@ export default async function handler(
       }
       const sudo = getSudoCookie(req, res);
       if (!sudo.sudoCookieValue) {
-        return res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
+        return res.status(403).json({ message: `Forbidden: ${sudo.message}` });
       }
       await deleteAnswerById(answerId);
       res.status(200).json({ message: 'Answer deleted successfully.' });

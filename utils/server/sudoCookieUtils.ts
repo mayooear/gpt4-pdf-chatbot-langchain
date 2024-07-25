@@ -81,7 +81,7 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
       const textParts = encryptedToken.split(':');
       if (textParts.length !== 2) {
         console.error('Invalid token format');
-        return { sudoCookieValue: false };
+        return { sudoCookieValue: false, message: 'Invalid token format' };
       }
       const decryptedToken = decrypt(encryptedToken);
       const tokenIndex = decryptedToken.indexOf(':');
@@ -94,14 +94,14 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
         return { sudoCookieValue: true };
       } else {
         console.error('IP mismatch: Extracted IP does not match User IP');
-        return { sudoCookieValue: false };
+        return { sudoCookieValue: false, message: 'IP mismatch: Extracted IP does not match User IP' };
       }
     } catch (error) {
       console.error('Token validation error:', error);
-      return { sudoCookieValue: false };
+      return { sudoCookieValue: false, message: 'Token validation error' };
     }
   } else {
-    return { sudoCookieValue: false };
+    return { sudoCookieValue: false, message: '' };
   }
 }
 
