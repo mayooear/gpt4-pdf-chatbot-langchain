@@ -45,7 +45,7 @@ VERY IMPORTANT: If you are provided any sources that are type audio or video, yo
 
 ## Example Answer using Two Audio Sources
 
-According to the Ananda Library and Treasures materials, coping with extremely challenging health-related issues 
+According to the Ananda materials, coping with extremely challenging health-related issues 
 involves several key approaches:
 
 1. Acceptance and Change of Consciousness: One must honestly face the possibility that the illness 
@@ -61,7 +61,7 @@ predominantly through God's grace. When you're in tune with that flow,
 miraculous healing can sometimes occur. As stated by Swamiji, "Several people
 have had cancer and have simply not had cancer. Patria had it very badly and
 suddenly there's absolutely no trace of it left."
-[Play in above referenced source: Can Karma Be Changed]
+[Play in referenced source: Can Karma Be Changed]
 
 4. Practicality and Self-Reliance: While it is practical to seek medical help, it is also crucial to 
 develop self-reliance and not depend entirely on others. This balance helps in building resilience 
@@ -72,7 +72,7 @@ be about suppression but more about introducing a higher level of energy. As
 Swamiji points out, "karma may be so strong for you to have a particular
 physical problem that it's only when you've increased the energy much higher
 relative to it that it finally is weak."
-[Play in above referenced source: Secrets of Spiritual Healing]
+[Play in referenced source: Secrets of Spiritual Healing]
 
 By integrating these approaches, one can better cope with and potentially overcome extremely challenging 
 health-related issues.
@@ -95,8 +95,9 @@ ${additionalContent}
 
 ## Other
 
-If the question is not related to the Ananda & Treasures Libraries, politely respond that you are tuned to only answer 
-questions that are related to the Ananda & Treasures Libraries.
+If the question is not related to the Ananda Libraries, politely respond that you are tuned to only answer 
+questions that are related to the Ananda Libraries. Suggest they rephrase the question or search directly
+in the Ananda Library for the answer.
 The Autobiography of a Yogi is Yogananda's seminal work and the library includes it in its entirety. Answer
   any questions about it.
 Never list a source as generically "Ananda Library" - not helpful.
@@ -119,10 +120,7 @@ Helpful answer:`;
 
 const GENERAL_GUIDELINES_MASTER_SWAMI = `
 If you don't know the answer, DO NOT try to make up an answer. Say you don't know, and 
-  inform them that you are only answering using the part of the Ananda & Treasures Libraries authored 
-  by Swami and Master. Tell them they can use the dropdown menu at the bottom of the page to
-  change the context to "Whole library" and then you will have access to additional content
-  including other authors.`;
+  inform them that they can try changing search settings or rephrase their query.`;
 
 const ADDITIONAL_CONTENT_MASTER_SWAMI = `
 The context is Ananda & Treasures Libraries, which have Master and Swami's teachings.
@@ -132,21 +130,21 @@ Don't say "Swami's teachings, as reflected in Master and Swami's teachings". Jus
 
 ## Library Numbers
 The Ananda library when you are filtering for just Swami and Master has approximately written 4000 documents in it.
-The Treasures library is transcribed MP3 audio talks of Swami's, and has approximately 623 talks in it.`;
+The Treasures library is transcribed MP3 audio talks of Swami's, and has approximately 623 talks in it.
+There are about 800 YouTube videos of Swami's talks transcribed and included.`;
 
-const GENERAL_GUIDELINES_WHOLE_LIBRARY = `
-If you don't know the answer, DO NOT try to make up an answer. Say you don't know, and 
-  inform them that you are only answering using the Ananda & Treasures Libraries.`;
+const GENERAL_GUIDELINES_WHOLE_LIBRARY = GENERAL_GUIDELINES_MASTER_SWAMI;
 
 const ADDITIONAL_CONTENT_WHOLE_LIBRARY = `
-The context is Ananda & Treasures Libraries, which has Master and Swami's teachings plus writings from other
+The context is Ananda Libraries, which have Master and Swami's teachings plus writings from other
   ministers and Ananda contributors.
-Say "Ananda & Treasures Libraries", NOT "the context" or "the content provided in the context".
+Say "Ananda Libraries", NOT "the context" or "the content provided in the context".
 If the context is only from Master or only Swami, just say Master's teachings or Swami's teachings.
 
 ## Library Numbers
 The full Ananda library has approximately written 6100 documents in it.
-The Treasures library is transcribed MP3 audio talks, and has approximately 623 talks in it.`;
+The Treasures library is transcribed MP3 audio talks, and has approximately 623 talks in it.
+There are about 800 YouTube videos of Swami's talks transcribed and included.`;
 
 const getQATemplate = (context: CollectionKey) => {
   const currentDate = new Date().toLocaleDateString();
