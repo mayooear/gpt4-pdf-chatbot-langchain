@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import AWS from 'aws-sdk';
-// import fetch from 'node-fetch';
 
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -10,31 +9,9 @@ AWS.config.update({
 
 const ses = new AWS.SES({ apiVersion: '2010-12-01' });
 
-// const verifyRecaptcha = async (token: string) => {
-//   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-//   const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/x-www-form-urlencoded',
-//     },
-//     body: `secret=${secretKey}&response=${token}`,
-//   });
-//   const data = await response.json();
-//   return data.success;
-// };
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
-    const { name, email, message /*, recaptchaToken */ } = req.body;
-
-    // if (!recaptchaToken) {
-    //   return res.status(400).json({ message: 'reCAPTCHA token is missing' });
-    // }
-
-    // const isHuman = await verifyRecaptcha(recaptchaToken);
-    // if (!isHuman) {
-    //   return res.status(400).json({ message: 'reCAPTCHA verification failed' });
-    // }
+    const { name, email, message } = req.body;
 
     const sourceEmail = process.env.CONTACT_EMAIL;
     if (!sourceEmail) {

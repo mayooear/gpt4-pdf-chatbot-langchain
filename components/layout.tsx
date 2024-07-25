@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Navbar from './Navbar';
 import Link from 'next/link';
@@ -11,7 +12,11 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
-  const isLoggedIn = Cookies.get('isLoggedIn') === 'true';
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(Cookies.get('isLoggedIn') === 'true');
+  }, []);
 
   const isActive = (pathname: string) => router.pathname === pathname;
 

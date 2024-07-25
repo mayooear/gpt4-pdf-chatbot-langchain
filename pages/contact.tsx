@@ -1,37 +1,25 @@
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 import Layout from '@/components/layout';
-import Head from 'next/head';
-
-// Dynamically import the ReCAPTCHA component
-// const ReCAPTCHA = dynamic(() => import('react-google-recaptcha'), { ssr: false });
 
 const Contact: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
-  // const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // if (!recaptchaToken) {
-    //   alert('Please complete the reCAPTCHA.');
-    //   return;
-    // }
     const res = await fetch('/api/contact', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name, email, message /*, recaptchaToken */ }),
+      body: JSON.stringify({ name, email, message }),
     });
     if (res.ok) {
-      alert('Message sent! We will get back to you soon.');
+      alert('Message sent successfully!');
       setName('');
       setEmail('');
       setMessage('');
-      // setRecaptchaToken(null);
     } else {
       alert('Failed to send message.');
     }
@@ -39,10 +27,6 @@ const Contact: React.FC = () => {
 
   return (
     <Layout>
-      <Head>
-        <title>Contact Us</title>
-        {/* <script src="https://www.google.com/recaptcha/api.js" async defer></script> */}
-      </Head>
       <div className="container mx-auto p-4">
         <h1 className="text-2xl mb-4">Contact Us</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,10 +61,6 @@ const Contact: React.FC = () => {
               required
             />
           </div>
-          {/* <ReCAPTCHA
-            sitekey="::YOUR_RECAPTCHA_SITE_KEY::"
-            onChange={(token) => setRecaptchaToken(token)}
-          /> */}
           <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md">Send</button>
         </form>
       </div>
