@@ -17,6 +17,7 @@ from youtube_utils import load_youtube_data_map, save_youtube_data_map
 import logging
 from moviepy.editor import VideoFileClip
 from pydub import AudioSegment
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -366,6 +367,7 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
     chunks = []
     words = transcript["words"]
+    original_text = transcript["text"]
     total_words = len(words)
 
     # Calculate the number of chunks needed
@@ -381,9 +383,23 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
         if not current_chunk:
             break
 
-        chunk_text = " ".join([w["word"] for w in current_chunk])
+        # Extract the corresponding text segment from the original text
         start_time = current_chunk[0]["start"]
         end_time = current_chunk[-1]["end"]
+
+        # Build a regex pattern to match the words in the current chunk
+        pattern = r'\b' + r'\W*'.join(re.escape(word["word"]) for word in current_chunk) + r'[\W]*'
+        match = re.search(pattern, original_text)
+
+        if match:
+            chunk_text = match.group(0)
+            # Ensure the chunk ends with punctuation if present
+            end_pos = match.end()
+            while end_pos < len(original_text) and re.match(r'\W', original_text[end_pos]):
+                end_pos += 1
+            chunk_text = original_text[match.start():end_pos]
+        else:
+            chunk_text = " ".join(word["word"] for word in current_chunk)
 
         chunks.append(
             {
