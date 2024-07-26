@@ -24,12 +24,19 @@ def load_pinecone(index_name=None):
     pc = Pinecone()
     if index_name not in pc.list_indexes().names():
         logger.info(f"Creating pinecone index {index_name}")
-        pc.create_index(
-            index_name,
-            dimension=1536,
-            metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-west-2"),
-        )
+        try:
+            pc.create_index(
+                index_name,
+                dimension=1536,
+                metric="cosine",
+                spec=ServerlessSpec(cloud="aws", region="us-west-2"),
+            )
+        except PineconeException as e:
+            if e.status_code == 409:
+                logger.warning(f"Index {index_name} already exists. Proceeding with existing index.")
+            else:
+                logger.error(f"Failed to create index {index_name}: {e}")
+                raise
     return pc.Index(index_name)
 
 
@@ -58,9 +65,6 @@ def store_in_pinecone(
         sanitized_title = re.sub(r'[^\x00-\x7F]+', '', title) if title else 'Unknown_Title'
         
         chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{sanitized_title}||{content_hash}||chunk{i+1}"
-
-        # print chunk, but not the words list
-        chunk_copy = {k: v for k, v in chunk.items() if k != "words"}
 
         metadata = {
             "text": chunk["text"],
