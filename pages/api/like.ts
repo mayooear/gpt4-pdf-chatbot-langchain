@@ -2,13 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase'; 
 import firebase from 'firebase-admin';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getEnvName } from '@/utils/env';
 
 // Create a cache object to store the fetched like statuses
 const likeStatusCache: Record<string, Record<string, boolean>> = {};
 
-import { isDevelopment } from '@/utils/env';
-
-const envName = isDevelopment() ? 'dev' : 'prod';
+const envName = getEnvName();
 
 // New handler for GET request to check like statuses
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {

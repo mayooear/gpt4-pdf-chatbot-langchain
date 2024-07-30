@@ -3,6 +3,7 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersByIds } from '@/utils/server/answersUtils';
 
 // 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
 async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<any[]> {
@@ -50,37 +51,6 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
     };
   });
 
-  return answers;
-}
-
-async function getAnswersByIds(ids: string[]): Promise<any[]> {
-  const answers: any[] = [];
-  const chunkSize = 10;
-  for (let i = 0; i < ids.length; i += chunkSize) {
-    const chunk = ids.slice(i, i + chunkSize);
-    try {
-      const snapshot = await db.collection(getChatLogsCollectionName())
-                               .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
-                               .get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        try {
-          if (typeof data.sources === 'string') {
-            const sanitizedSources = data.sources.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
-            data.sources = JSON.parse(sanitizedSources);
-          } else {
-            data.sources =  [];
-          }
-        } catch (error) {
-          data.sources = []
-        }
-        answers.push({ id: doc.id, ...data });
-      });
-    } catch (error) {
-      console.error('Error fetching chunk: ', error);
-      throw error; // Rethrow the error to be caught in the handler
-    }
-  }
   return answers;
 }
 
@@ -148,4 +118,3 @@ export default async function handler(
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
-

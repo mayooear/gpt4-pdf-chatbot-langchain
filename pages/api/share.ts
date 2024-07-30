@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
-import { isDevelopment } from '@/utils/env';
+import { getEnvName } from '@/utils/env';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-    const envName = isDevelopment() ? 'dev' : 'prod';
+    const envName = getEnvName();
 
     if (req.method === 'GET') {
       // Fetch shares with pagination and reverse chronological order

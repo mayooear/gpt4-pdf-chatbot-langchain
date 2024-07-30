@@ -1,6 +1,6 @@
-import { isDevelopment } from '@/utils/env';
+import { getEnvName } from '@/utils/env';
 
 export const getChatLogsCollectionName = () => {
-  const env = isDevelopment() ? 'dev' : 'prod';
+  const env = getEnvName();
   return `${env}_chatLogs`;
 };

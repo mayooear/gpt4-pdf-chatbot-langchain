@@ -24,6 +24,7 @@ const SingleAnswer = () => {
   const [notFound, setNotFound] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [relatedQuestions, setRelatedQuestions] = useState<Answer[]>([]);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
@@ -80,6 +81,18 @@ const SingleAnswer = () => {
       fetchLikeStatuses([answer.id]);
     }
   }, [answer]);
+
+  useEffect(() => {
+    const fetchRelatedQuestions = async () => {
+      if (answerId) {
+        const response = await fetch(`/api/relatedQuestions?questionId=${answerId}`);
+        const data = await response.json();
+        setRelatedQuestions(data);
+      }
+    };
+
+    fetchRelatedQuestions();
+  }, [answerId]);
 
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     if (answer) {
@@ -228,6 +241,20 @@ const SingleAnswer = () => {
             </div>
           </div>
         </div>
+        {relatedQuestions.length > 0 && (
+          <div className="bg-white p-2.5 m-2.5 mt-4">
+            <h2 className="text-xl font-bold mb-2">Related Questions</h2>
+            <ul className="list-disc list-inside">
+              {relatedQuestions.map((relatedQuestion) => (
+                <li key={relatedQuestion.id}>
+                  <a href={`/answers/${relatedQuestion.id}`} className="text-blue-600 hover:underline">
+                    {relatedQuestion.question}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </Layout>
   );

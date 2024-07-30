@@ -17,13 +17,16 @@ if (!fbadmin.apps.length) {
   // Initialize Firestore with preferRest to improve cold start times
   const db = initializeFirestore(app, { preferRest: true });
 
-  // Connect to Firestore emulator if in development mode
-  if (isDevelopment()) {
-    db.settings({
-      host: 'localhost:8080',
-      ssl: false,
-    });
-  }
+  // Remove the emulator settings
+  // if (isDevelopment()) {
+  //   db.settings({
+  //     host: 'localhost:8080',
+  //     ssl: false,
+  //   });
+  // }
+  console.log('Firestore initialized');
+} else {
+  console.log('Firebase app already initialized');
 }
 
 // Export the Firestore database
