@@ -6,8 +6,8 @@
   },
   "crons": [
     {
-      "path": "/api/pruneRateLimits",
-      "schedule": "0 0 * * 0"
+      "path": "/api/relatedQuestions/updateAll",
+      "schedule": "0 11 * * *"
     }
   ]
 }

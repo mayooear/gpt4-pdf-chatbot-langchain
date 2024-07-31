@@ -8,6 +8,8 @@ import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase'; 
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
+import { getEnvName } from '@/utils/env';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 
@@ -99,7 +101,6 @@ export default async function handler(
       const answerWordCount = response.split(/\s+/).length;
       const sourceDocuments = await documentPromise;
       const processedSourceDocuments = [...sourceDocuments];
-      console.log('Processed Source Documents:', processedSourceDocuments); 
       let sourceTitlesString = '';
       if (processedSourceDocuments && processedSourceDocuments.length > 0) {
         const sourceTitles = processedSourceDocuments.map((doc: any) => {
@@ -139,6 +140,13 @@ export default async function handler(
       };
       const docRef = await chatLogRef.add(logEntry);
       const docId = docRef.id;
+
+      // Call the updateRelatedQuestions function to update related questions
+      const envName = getEnvName();
+      console.time('updateRelatedQuestions');
+      await updateRelatedQuestions(envName, docId);
+      console.timeEnd('updateRelatedQuestions');
+
       res.status(200).json({ text: response, sourceDocuments: processedSourceDocuments, docId });
 
     } catch (error: any) {
