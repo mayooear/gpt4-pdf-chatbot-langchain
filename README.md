@@ -32,6 +32,8 @@ The runtime website code is significantly extended from the forked project. We h
 - Thumbs up for social feedback and thumbs down for system feedback
 - Copy button
 - All Answers page for social sharing
+- Dedicate page for an answer
+- Related questions
 
 ## Development
 
@@ -60,6 +62,7 @@ After installation, you should now see a `node_modules` folder.
 
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key) to retrieve API keys and insert into your `.env` file.
 - Visit [pinecone](https://pinecone.io/) to create and retrieve your API keys, and also retrieve your environment and index name from the dashboard. Be sure to use 1,536 as dimensions when setting up your pinecone index.
+- Visit [upstash](https://upstash.com/) to create an upstash function to cache keywords for related questions.
 
 1. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store your embeddings on Pinecone when you run `npm run ingest`. This namespace will later be used for queries and retrieval.
 
@@ -77,6 +80,20 @@ Command line:
 1. firebase login
 2. firebase init emulators
 3. npm run emulator
+
+### Setup python virtual environment
+
+Create a virtual environment with pyenv
+
+```
+pyenv virtualenv 3.12.3 ananda-library-chatbot
+```
+
+Activate it automatically when you enter the directory:
+
+```
+pyenv local ananda-library-chatbot
+```
 
 ## Optional: generate PDF files from Wordpress Database
 
