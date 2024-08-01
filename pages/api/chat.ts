@@ -142,9 +142,8 @@ export default async function handler(
       const docId = docRef.id;
 
       // Call the updateRelatedQuestions function to update related questions
-      const envName = getEnvName();
       console.time('updateRelatedQuestions');
-      await updateRelatedQuestions(envName, docId);
+      await updateRelatedQuestions(docId);
       console.timeEnd('updateRelatedQuestions');
 
       res.status(200).json({ text: response, sourceDocuments: processedSourceDocuments, docId });

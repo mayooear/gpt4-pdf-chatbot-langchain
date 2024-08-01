@@ -1,55 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/services/firebase';
-import { getAnswersByIds, parseAndRemoveWordsFromSources } from '@/utils/server/answersUtils';
-import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
-import { getEnvName } from '@/utils/env';
-
-async function getRelatedQuestions(questionId: string): Promise<any[]> {
-  const envName = getEnvName();
-  console.log('getRelatedQuestions: Question ID:', questionId);
-  const doc = await db.collection(`${envName}_chatLogs`).doc(questionId).get();
-  if (!doc.exists) {
-    throw new Error('QA document not found');
-  }
-
-  const docData = doc.data();
-  if (!docData) {
-    throw new Error('Document data is undefined');
-  }
-
-  const sources = parseAndRemoveWordsFromSources(docData.sources);
-
-  console.log('Doc:', {
-    ...docData,
-    sources: sources // Log all sources
-  });
-
-  // Add debug log for related_questions field
-  console.log('Related questions field:', docData.related_questions);
-
-  console.log('Has related questions:', !!docData.related_questions?.length);
-  const relatedQuestionIds = docData.related_questions || [];
-  console.log('Related question IDs:', relatedQuestionIds);
-  const relatedQuestions = await getAnswersByIds(relatedQuestionIds);
-  console.log('Fetched related questions:', relatedQuestions);
-  return relatedQuestions;
-}
-
-async function updateAllRelatedQuestions(): Promise<void> {
-  const envName = getEnvName();
-  await updateRelatedQuestions(envName);
-}
+import { getRelatedQuestions, updateRelatedQuestionsBatch } from '@/utils/server/relatedQuestionsUtils';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
       const { questionId } = req.query;
 
-      // Calling /api/relatedQuestions/updateAll will update all related questions
-      if (req.url?.includes('/updateAll')) {
-        console.log('Updating all related questions');
+      // Calling /api/relatedQuestions?updateBatch=100 will update the next 100 questions with
+      // related questions.
+      if (req.query.updateBatch) {
+        const batchSize = parseInt(req.query.updateBatch as string);
+        console.log('Batch updating related questions with batch size:', batchSize);
         try {
-          await updateAllRelatedQuestions();
+          await updateRelatedQuestionsBatch(batchSize);
           return res.status(200).json({ message: 'Related questions updated successfully' });
         } catch (error: any) {
           console.error('Error updating related questions: ', error);

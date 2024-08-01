@@ -25,8 +25,6 @@ if (!fbadmin.apps.length) {
   //   });
   // }
   console.log('Firestore initialized');
-} else {
-  console.log('Firebase app already initialized');
 }
 
 // Export the Firestore database
