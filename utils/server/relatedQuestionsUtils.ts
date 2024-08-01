@@ -126,9 +126,21 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
       console.warn(`Skipping question ID ${question.id} due to missing 'question' field`);
       continue;
     }
+
+    let rakeKeywords;
+    try {
+      rakeKeywords = rake.generate(question.question);
+      if (!rakeKeywords || !Array.isArray(rakeKeywords)) {
+        throw new Error('Invalid keywords generated');
+      }
+    } catch (error) {
+      console.warn(`Skipping question ID ${question.id} due to error generating keywords:`, error);
+      continue;
+    }
+
     // Use the combined keywords to find related questions
     const relatedQuestions = await findRelatedQuestionsUsingKeywords(
-      rake.generate(question.question), 
+      rakeKeywords, 
       allKeywords, 
       0.1, 
       question.id
@@ -274,7 +286,8 @@ export async function findRelatedQuestionsUsingKeywords(
         similarity: calculateJaccardSimilarity(questionKeywordsSet, new Set<string>(k.keywords)),
         text: k.keywords.join(' ') 
         // Using keywords to represent the question text
-        // TODO: this is a bit of a hack, we should use the question text directly
+        // TODO: this is a bit of a hack, we should use the question text directly.
+        // Should also suppress related questions with same title as target Q.
       }))
       .filter(k => k.similarity >= threshold)
       .sort((a, b) => b.similarity - a.similarity);
