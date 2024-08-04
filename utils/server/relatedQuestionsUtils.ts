@@ -51,7 +51,7 @@ async function getQuestionsBatch(envName: string, lastProcessedId: string | null
   
   let query = db.collection(getChatLogsCollectionName())
                 .where('question', '!=', 'private')
-                .orderBy('timestamp', 'asc')
+                .orderBy('timestamp', 'desc')
                 .limit(batchSize);
   if (lastProcessedId) {
     console.log(`Last processed ID found: ${lastProcessedId}. Fetching last document...`);
