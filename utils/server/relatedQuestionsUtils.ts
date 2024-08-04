@@ -16,6 +16,11 @@ const redis = new Redis({
 
 const CACHE_EXPIRATION = isDevelopment() ? 3600 : 86400; // 1 hour for dev, 24 hours for prod
 
+function getCacheKeyForKeywords(): string {
+  const envName = getEnvName();
+  return `${envName}_keywords_cache_v2`;
+}
+
 export async function getRelatedQuestions(questionId: string): Promise<any[]> {
   console.log('getRelatedQuestions: Question ID:', questionId);
   const doc = await db.collection(getChatLogsCollectionName()).doc(questionId).get();
@@ -139,13 +144,13 @@ function removeNonAscii(text: string): string {
   return text.replace(/[^\x00-\x7F]/g, '');
 }
 
-export async function extractAndStoreKeywords(questions: { id: string, question: string }[]) {
+export async function extractAndStoreKeywords(questions: Answer[]) {
   const tfidf = new TfIdf();
   const batch = db.batch();
   const envName = getEnvName();
 
   // Fetch existing cache
-  const cacheKey = envName + '_keywords_cache';
+  const cacheKey = getCacheKeyForKeywords();
   let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
   if (!cachedKeywords) {
     cachedKeywords = [];
@@ -184,8 +189,7 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
 }
 
 export async function fetchKeywords(): Promise<{ id: string, keywords: string[], title: string }[]> {
-  const envName = getEnvName();
-  const cacheKey = envName + '_keywords_cache';
+  const cacheKey = getCacheKeyForKeywords();
   const cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
 
   if (cachedKeywords) {
@@ -198,6 +202,7 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[],
   }
 
   const keywords: { id: string, keywords: string[], title: string }[] = [];
+  const envName = getEnvName();
   const snapshot = await db.collection(`${envName}_keywords`).get();
   snapshot.forEach(doc => {
     const data = doc.data();
