@@ -13,10 +13,15 @@ export type Answer = {
   collection?: string;
   ip?: string;
   likeCount: number;
+  relatedQuestionsV2?: {
+    id: string;
+    title: string;
+    similarity: number;
+  }[];
+  related_questions?: string[];
 };
 
 export interface Timestamp {
     _seconds: number;
     _nanoseconds: number;
 }
-  

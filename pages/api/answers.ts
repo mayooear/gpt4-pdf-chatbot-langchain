@@ -42,12 +42,13 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
         }
       }
     }
-    // console.log(`${index + 1}. ${data.question}`);
+    // console.log(`${index + 1}. ${data.relatedQuestionsV2}`);
     return {
       id: doc.id,
       ...data,
       sources,
       likeCount: data.likeCount || 0,
+      relatedQuestions: data.relatedQuestionsV2 || []
     };
   });
 

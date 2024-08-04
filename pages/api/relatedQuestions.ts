@@ -25,7 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const relatedQuestions = await getRelatedQuestions(questionId as string);
-      res.status(200).json(relatedQuestions);
+      res.status(200).json(relatedQuestions.map(q => ({
+        id: q.id,
+        title: q.title,
+        similarity: q.similarity 
+      })));
 
     } catch (error: any) {
       console.error('Error fetching related questions: ', error);

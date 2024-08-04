@@ -14,13 +14,25 @@ export async function getAnswersByIds(ids: string[]): Promise<any[]> {
       snapshot.forEach(doc => {
         const data = doc.data();
         data.sources = parseAndRemoveWordsFromSources(data.sources);
-        answers.push({ id: doc.id, ...data });
+
+        const relatedQuestions = data.relatedQuestionsV2 || [];
+
+        // Suppress related_questions if it is returned from Firestore - abandoned data
+        if ('related_questions' in data) {
+          delete data.related_questions;
+        }
+
+        console.log(`Title: ${data.question}`);
+        console.log('Related Questions:', relatedQuestions);
+        console.log('Doc data:', data);
+        answers.push({ id: doc.id, ...data, relatedQuestionsV2: relatedQuestions });
       });
     } catch (error) {
       console.error('Error fetching chunk: ', error);
       throw error; // Rethrow the error to be caught in the handler
     }
   }
+  
   return answers;
 }
 

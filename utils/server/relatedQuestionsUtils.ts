@@ -28,7 +28,7 @@ export async function getRelatedQuestions(questionId: string): Promise<any[]> {
     throw new Error('Document data is undefined');
   }
 
-  const relatedQuestionIds = docData.related_questions || [];
+  const relatedQuestionIds = docData.relatedQuestionsV2 || [];
   const relatedQuestions = await getAnswersByIds(relatedQuestionIds);
   return relatedQuestions;
 }
@@ -102,15 +102,19 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
       continue;
     }
 
-    // Use the combined keywords to find related questions
     const relatedQuestions = await findRelatedQuestionsUsingKeywords(
       rakeKeywords, 
       allKeywords, 
       0.1, 
-      question.id
+      question.id,
+      question.question 
     );
     await db.collection(getChatLogsCollectionName()).doc(question.id).update({
-      related_questions: relatedQuestions.slice(0, 5).map(q => q.id)
+      relatedQuestionsV2: relatedQuestions.slice(0, 5).map(q => ({
+        id: q.id,
+        title: q.title,
+        similarity: q.similarity
+      }))
     });
   }
 
@@ -142,7 +146,7 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
 
   // Fetch existing cache
   const cacheKey = envName + '_keywords_cache';
-  let cachedKeywords: { id: string, keywords: string[] }[] | null = await redis.get(cacheKey);
+  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
   if (!cachedKeywords) {
     cachedKeywords = [];
   }
@@ -164,10 +168,10 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
 
       // Add keywords to Firestore
       const keywordDocRef = db.collection(`${envName}_keywords`).doc(q.id);
-      batch.set(keywordDocRef, { keywords });
+      batch.set(keywordDocRef, { keywords, title: q.question });
 
       // Add keywords to cache
-      cachedKeywords.push({ id: q.id, keywords });
+      cachedKeywords.push({ id: q.id, keywords, title: q.question });
     } catch (error) {
       console.error(`Error generating keywords for question ID ${q.id} with text "${q.question}":`, error);
     }
@@ -179,10 +183,10 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
   await redis.set(cacheKey, cachedKeywords, { ex: CACHE_EXPIRATION });
 }
 
-export async function fetchKeywords(): Promise<{ id: string, keywords: string[] }[]> {
+export async function fetchKeywords(): Promise<{ id: string, keywords: string[], title: string }[]> {
   const envName = getEnvName();
   const cacheKey = envName + '_keywords_cache';
-  const cachedKeywords: { id: string, keywords: string[] }[] | null = await redis.get(cacheKey);
+  const cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
 
   if (cachedKeywords) {
     try {
@@ -193,10 +197,11 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[] 
     }
   }
 
-  const keywords: { id: string, keywords: string[] }[] = [];
+  const keywords: { id: string, keywords: string[], title: string }[] = [];
   const snapshot = await db.collection(`${envName}_keywords`).get();
   snapshot.forEach(doc => {
-    keywords.push({ id: doc.id, keywords: doc.data().keywords });
+    const data = doc.data();
+    keywords.push({ id: doc.id, keywords: data.keywords, title: data.title });
   });
 
   try {
@@ -225,7 +230,7 @@ export async function updateRelatedQuestions(questionId: string) {
     }
     const newQuestion = { id: questionDoc.id, ...questionDoc.data() } as { id: string, question: string };
 
-    let allKeywords: { id: string, keywords: string[] }[];
+    let allKeywords: { id: string, keywords: string[], title: string }[];
     try {
         allKeywords = await fetchKeywords();
     } catch (error) {
@@ -237,43 +242,46 @@ export async function updateRelatedQuestions(questionId: string) {
     const newQuestionKeywords = rake.generate(newQuestion.question);
     const combinedKeywords = allKeywords.map(k => ({
         id: k.id,
-        keywords: k.id === questionId ? newQuestionKeywords : k.keywords
+        keywords: k.id === questionId ? newQuestionKeywords : k.keywords,
+        title: k.id === questionId ? newQuestion.question : k.title
     }));
 
     // Use the combined keywords to find related questions
-    const relatedQuestions = await findRelatedQuestionsUsingKeywords(newQuestionKeywords, combinedKeywords, 0.1, questionId);
+    const relatedQuestions = await findRelatedQuestionsUsingKeywords(newQuestionKeywords, combinedKeywords, 0.1, questionId, newQuestion.question);
     await db.collection(getChatLogsCollectionName()).doc(questionId).update({
-        related_questions: relatedQuestions.slice(0, 5).map(q => q.id)
+        relatedQuestionsV2: relatedQuestions.slice(0, 5).map(q => ({
+            id: q.id,
+            title: q.title,
+            similarity: q.similarity
+        }))
     });
 }
-
 export async function findRelatedQuestionsUsingKeywords(
     newQuestionKeywords: string[], 
-    keywords: { id: string, keywords: string[] }[], 
+    keywords: { id: string, keywords: string[], title: string }[], 
     threshold: number, 
-    questionId: string) {
+    questionId: string,
+    questionTitle: string
+) {
   try {
     const questionKeywordsSet = new Set<string>(newQuestionKeywords);
     const relatedQuestions = keywords
-      .filter(k => k.id !== questionId)
+      .filter(k => k.id !== questionId && k.title !== questionTitle) // Exclude same title
       .map(k => ({
         id: k.id,
+        title: k.title,
         similarity: calculateJaccardSimilarity(questionKeywordsSet, new Set<string>(k.keywords)),
-        text: k.keywords.join(' ') 
-        // Using keywords to represent the question text
-        // TODO: this is a bit of a hack, we should use the question text directly.
-        // Should also suppress related questions with same title as target Q.
       }))
       .filter(k => k.similarity >= threshold)
       .sort((a, b) => b.similarity - a.similarity);
 
     // Filter out duplicates, keeping only the highest-ranking one
     const uniqueRelatedQuestions = [];
-    const seenTexts = new Set<string>();
+    const seenTitles = new Set<string>();
     for (const question of relatedQuestions) {
-      if (!seenTexts.has(question.text)) {
+      if (!seenTitles.has(question.title)) {
         uniqueRelatedQuestions.push(question);
-        seenTexts.add(question.text);
+        seenTitles.add(question.title);
       }
     }
 

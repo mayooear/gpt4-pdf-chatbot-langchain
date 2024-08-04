@@ -70,9 +70,9 @@ def fetch_and_print_question(db, env_prefix, question_id):
     serializable_data = convert_to_serializable(data)
     print(json.dumps(serializable_data, indent=2))
 
-    if 'related_questions' in serializable_data and serializable_data['related_questions']:
+    if 'relatedQuestionsV2' in serializable_data and serializable_data['relatedQuestionsV2']:
         print("\n\nrelated questions:")
-        print(json.dumps(serializable_data['related_questions'], indent=2))
+        print(json.dumps(serializable_data['relatedQuestionsV2'], indent=2))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Fetch and print a Firestore question document, stripping out words from sources.')

@@ -146,16 +146,16 @@ def update_related_questions(db, env_prefix, new_question_id=None):
         
         # Store related question IDs in Firestore
         db.collection(f"{env_prefix}_chatLogs").document(new_question_id).update({
-            'related_questions': [q[1]['id'] for q in related_questions[:5]]
+            'relatedQuestionsV2': [{'id': q[1]['id'], 'title': q[1]['question'], 'similarity': q[0]} for q in related_questions[:5]]
         })
     else:
         for question in tqdm(questions, desc="Updating related questions"):
             related_questions = find_related_questions(question['question'], questions, all_keywords, exclude_question_id=question['id'])
-            related_question_ids = [q[1]['id'] for q in related_questions[:5]]
+            related_question_data = [{'id': q[1]['id'], 'title': q[1]['question'], 'similarity': q[0]} for q in related_questions[:5]]
 
             try:
                 doc_ref = db.collection(f"{env_prefix}_chatLogs").document(question['id'])
-                update_data = {'related_questions': related_question_ids}
+                update_data = {'relatedQuestionsV2': related_question_data}
                 doc_ref.update(update_data)
 
             except Exception as e:

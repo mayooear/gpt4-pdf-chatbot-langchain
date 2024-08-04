@@ -15,6 +15,12 @@ import { logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import Head from 'next/head';
 
+type RelatedQuestion = {
+  id: string;
+  title: string;
+  similarity: number;
+};
+
 const SingleAnswer = () => {
   const router = useRouter();
   const { answerId } = router.query;
@@ -24,7 +30,7 @@ const SingleAnswer = () => {
   const [notFound, setNotFound] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [relatedQuestions, setRelatedQuestions] = useState<Answer[]>([]);
+  const [relatedQuestions, setRelatedQuestions] = useState<RelatedQuestion[]>([]);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
@@ -83,16 +89,14 @@ const SingleAnswer = () => {
   }, [answer]);
 
   useEffect(() => {
-    const fetchRelatedQuestions = async () => {
-      if (answerId) {
-        const response = await fetch(`/api/relatedQuestions?questionId=${answerId}`);
-        const data = await response.json();
-        setRelatedQuestions(data);
-      }
-    };
-
-    fetchRelatedQuestions();
-  }, [answerId]);
+    if (answer && answer.relatedQuestionsV2) {
+      setRelatedQuestions(answer.relatedQuestionsV2);
+      console.log("Related Q's:");
+      answer.relatedQuestionsV2.forEach(q => {
+        console.log(`(${q.similarity.toFixed(2)}) ${q.title}`);
+      });
+    }
+  }, [answer]);
 
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     if (answer) {
@@ -248,7 +252,7 @@ const SingleAnswer = () => {
               {relatedQuestions.map((relatedQuestion) => (
                 <li key={relatedQuestion.id}>
                   <a href={`/answers/${relatedQuestion.id}`} className="text-blue-600 hover:underline">
-                    {relatedQuestion.question}
+                    {relatedQuestion.title}
                   </a>
                 </li>
               ))}
