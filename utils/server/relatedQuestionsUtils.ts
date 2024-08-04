@@ -96,9 +96,16 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
       continue;
     }
 
+    const text = question.question;
+    if (!text) {
+      console.error('Text for RAKE is null or undefined -- ignoring question');
+      continue;
+    }
+
+    console.log('Text for RAKE:', text);
     let rakeKeywords;
     try {
-      rakeKeywords = rake.generate(question.question);
+      rakeKeywords = rake.generate(text);
       if (!rakeKeywords || !Array.isArray(rakeKeywords)) {
         throw new Error('Invalid keywords generated');
       }
