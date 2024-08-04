@@ -28,21 +28,8 @@ export async function getRelatedQuestions(questionId: string): Promise<any[]> {
     throw new Error('Document data is undefined');
   }
 
-  const sources = parseAndRemoveWordsFromSources(docData.sources);
-
-  console.log('Doc:', {
-    ...docData,
-    sources: sources // Log all sources
-  });
-
-  // Add debug log for related_questions field
-  console.log('Related questions field:', docData.related_questions);
-
-  console.log('Has related questions:', !!docData.related_questions?.length);
   const relatedQuestionIds = docData.related_questions || [];
-  console.log('Related question IDs:', relatedQuestionIds);
   const relatedQuestions = await getAnswersByIds(relatedQuestionIds);
-  console.log('Fetched related questions:', relatedQuestions);
   return relatedQuestions;
 }
 
@@ -59,14 +46,6 @@ async function getQuestionsBatch(envName: string, lastProcessedId: string | null
     query = query.startAfter(lastDoc);
   }
   
-  // Log the query parameters
-  console.log('Query parameters:', {
-    collection: getChatLogsCollectionName(),
-    orderBy: 'id',
-    limit: batchSize,
-    startAfter: lastProcessedId ? lastProcessedId : 'none'
-  });
-
   const snapshot = await query.get();
   console.log(`Fetched ${snapshot.docs.length} documents from Firestore`);
   
@@ -207,7 +186,6 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[] 
 
   if (cachedKeywords) {
     try {
-        console.log(`Returning ${cachedKeywords.length} cached keywords`);
         return cachedKeywords;
     } catch (error) {
         console.error('Error parsing cached keywords:', error);
@@ -223,8 +201,7 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[] 
 
   try {
     await redis.set(cacheKey, keywords, { ex: CACHE_EXPIRATION });
-    console.log(`Caching ${keywords.length} keywords`);
-    
+    console.log(`Caching ${keywords.length} keywords`);   
   } catch (error) {
     console.error('Error serializing keywords:', error);
     console.error('Keywords data:', keywords);
