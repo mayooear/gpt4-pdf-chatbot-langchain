@@ -8,8 +8,12 @@ import json
 import argparse
 from datetime import datetime
 
+# Determine the directory of the script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(script_dir, '../.env')
+
 # Load environment variables from .env file
-load_dotenv('../.env')
+load_dotenv(env_path)
 
 def initialize_firestore(env_prefix):
     # Load the service account credentials from the JSON string

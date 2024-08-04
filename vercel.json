@@ -6,8 +6,8 @@
   },
   "crons": [
     {
-      "path": "/api/relatedQuestions?updateBatch=40",
-      "schedule": "*/15 * * * *"
+      "path": "/api/relatedQuestions?updateBatch=50",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
