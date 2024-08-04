@@ -251,8 +251,12 @@ const SingleAnswer = () => {
             <ul className="list-disc list-inside">
               {relatedQuestions.map((relatedQuestion) => (
                 <li key={relatedQuestion.id}>
-                  <a href={`/answers/${relatedQuestion.id}`} className="text-blue-600 hover:underline">
-                    {relatedQuestion.title}
+                  <a
+                    href={`/answers/${relatedQuestion.id}`}
+                    className="text-blue-600 hover:underline"
+                    onClick={() => logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestion.id}, Title: ${relatedQuestion.title}`)}
+                  >
+                    {relatedQuestion.title.length > 150 ? `${relatedQuestion.title.slice(0, 150)}...` : relatedQuestion.title}
                   </a>
                 </li>
               ))}

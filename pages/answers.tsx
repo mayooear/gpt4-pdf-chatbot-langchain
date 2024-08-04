@@ -269,6 +269,14 @@ const AllAnswers = () => {
     });
   };
 
+  const truncateTitle = (title: string, maxLength: number) => {
+    return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
+  };
+
+  const handleRelatedQuestionClick = (relatedQuestionId: string, relatedQuestionTitle: string) => {
+    logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`);
+  };
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4">
@@ -356,6 +364,24 @@ const AllAnswers = () => {
                           sources={answer.sources}
                           collectionName={answer.collection}
                         />
+                      )}
+                      {answer.relatedQuestionsV2 && answer.relatedQuestionsV2.length > 0 && (
+                        <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
+                          <h3 className="text-lg !font-bold mb-2">Related Questions</h3>
+                          <ul className="list-disc pl-2">
+                            {answer.relatedQuestionsV2.map((relatedQuestion) => (
+                              <li key={relatedQuestion.id} className="ml-0">
+                                <a
+                                  href={`/answers/${relatedQuestion.id}`}
+                                  className="text-blue-600 hover:underline"
+                                  onClick={() => handleRelatedQuestionClick(relatedQuestion.id, relatedQuestion.title)}
+                                >
+                                  {truncateTitle(relatedQuestion.title, 150)}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                       <div className="flex items-center">
                         <CopyButton
