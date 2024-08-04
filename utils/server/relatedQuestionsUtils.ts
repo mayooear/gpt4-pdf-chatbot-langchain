@@ -13,7 +13,9 @@ const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   });
-  
+
+const CACHE_EXPIRATION = isDevelopment() ? 3600 : 86400; // 1 hour for dev, 24 hours for prod
+
 export async function getRelatedQuestions(questionId: string): Promise<any[]> {
   console.log('getRelatedQuestions: Question ID:', questionId);
   const doc = await db.collection(getChatLogsCollectionName()).doc(questionId).get();
@@ -79,22 +81,8 @@ async function getQuestionsBatch(envName: string, lastProcessedId: string | null
 }
 
 export async function updateRelatedQuestionsBatch(batchSize: number) {
-  // If we don't have a pretty full coverage of keywords, recalc all keywords
-  const { totalQuestions, questionsWithKeywords } = await countQuestionsAndKeywordQuestionsInDB();
-  let keywordsRecalculated = false;
-
-  if (!totalQuestions)
-    return;
-
-  if (questionsWithKeywords / totalQuestions < 0.9) {
-    console.log('updateRelatedQuestionsBatch: Keyword coverage is less than 90%, recalculating all keywords...');
-    console.time('fetchAndExtractKeywords');
-    const questions = await fetchAllQuestions();
-    await extractAndStoreKeywords(questions);
-    console.timeEnd('fetchAndExtractKeywords');
-    keywordsRecalculated = true;
-  }
-
+  // We may not have a full set of keywords, but by the second full pass-through,
+  // we should have a pretty good set of keywords.
   const envName = getEnvName();
   const progressDocRef = db.collection('progress').doc(`${envName}_relatedQuestions`);
   const progressDoc = await progressDocRef.get();
@@ -108,10 +96,7 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
     questions = await getQuestionsBatch(envName, null, batchSize);
   }
 
-  // Extract and store keywords for the current questions if all keywords were not recalculated above
-  if (!keywordsRecalculated) {
-    await extractAndStoreKeywords(questions);
-  }
+  await extractAndStoreKeywords(questions);  
   
   let allKeywords;
   try {
@@ -156,16 +141,16 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
   }
 }
 
-export async function fetchAllQuestions() {
-  const questions: { id: string, question: string }[] = [];
-  const snapshot = await db.collection(getChatLogsCollectionName())
-    .where('question', '!=', 'private')
-    .get();
-  snapshot.forEach(doc => {
-    questions.push({ id: doc.id, question: doc.data().question });
-  });
-  return questions;
-}
+// export async function fetchAllQuestions() {
+//   const questions: { id: string, question: string }[] = [];
+//   const snapshot = await db.collection(getChatLogsCollectionName())
+//     .where('question', '!=', 'private')
+//     .get();
+//   snapshot.forEach(doc => {
+//     questions.push({ id: doc.id, question: doc.data().question });
+//   });
+//   return questions;
+// }
 
 function removeNonAscii(text: string): string {
   return text.replace(/[^\x00-\x7F]/g, '');
@@ -175,6 +160,13 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
   const tfidf = new TfIdf();
   const batch = db.batch();
   const envName = getEnvName();
+
+  // Fetch existing cache
+  const cacheKey = envName + '_keywords_cache';
+  let cachedKeywords: { id: string, keywords: string[] }[] | null = await redis.get(cacheKey);
+  if (!cachedKeywords) {
+    cachedKeywords = [];
+  }
 
   for (const q of questions) {
     try {
@@ -191,14 +183,21 @@ export async function extractAndStoreKeywords(questions: { id: string, question:
       const tfidfKeywords = tfidf.listTerms(tfidf.documents.length - 1).map(term => term.term);
       const keywords = Array.from(new Set(rakeKeywords.concat(tfidfKeywords)));
 
+      // Add keywords to Firestore
       const keywordDocRef = db.collection(`${envName}_keywords`).doc(q.id);
       batch.set(keywordDocRef, { keywords });
+
+      // Add keywords to cache
+      cachedKeywords.push({ id: q.id, keywords });
     } catch (error) {
       console.error(`Error generating keywords for question ID ${q.id} with text "${q.question}":`, error);
     }
   }
 
   await batch.commit();
+
+  // Update the cache
+  await redis.set(cacheKey, cachedKeywords, { ex: CACHE_EXPIRATION });
 }
 
 export async function fetchKeywords(): Promise<{ id: string, keywords: string[] }[]> {
@@ -223,8 +222,7 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[] 
   });
 
   try {
-    const cacheExpiration = isDevelopment() ? 300 : 3600; // 5 minutes for dev, 1 hour for prod
-    await redis.set(cacheKey, keywords, { ex: cacheExpiration });
+    await redis.set(cacheKey, keywords, { ex: CACHE_EXPIRATION });
     console.log(`Caching ${keywords.length} keywords`);
     
   } catch (error) {
@@ -307,17 +305,4 @@ export async function findRelatedQuestionsUsingKeywords(
     console.error(`Error finding related questions for question ID: ${questionId}`, error);
     return [];
   }
-}
-
-export async function countQuestionsAndKeywordQuestionsInDB() {
-  const envName = getEnvName();
-  const questionsSnapshot = await db.collection(getChatLogsCollectionName())
-    .where('question', '!=', 'private')
-    .get();
-  const keywordsSnapshot = await db.collection(`${envName}_keywords`).get();
-
-  const totalQuestions = questionsSnapshot.size;
-  const questionsWithKeywords = keywordsSnapshot.size;
-
-  return { totalQuestions, questionsWithKeywords };
 }
