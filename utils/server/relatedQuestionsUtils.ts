@@ -9,10 +9,18 @@ import { getEnvName, isDevelopment } from '@/utils/env';
 import { getAnswersByIds, parseAndRemoveWordsFromSources } from '@/utils/server/answersUtils';
 import { Answer } from '@/types/answer';
 
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
+let redis: Redis | null = null;
+try {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    // Test the connection
+    await redis.ping();
+} catch (error) {
+    console.error("Redis Cache not available:", error);
+    redis = null; // Ensure redis is set to null if connection fails
+}
 
 const CACHE_EXPIRATION = isDevelopment() ? 3600 : 86400; // 1 hour for dev, 24 hours for prod
 
@@ -102,7 +110,6 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
       continue;
     }
 
-    console.log('Text for RAKE:', text);
     let rakeKeywords;
     try {
       rakeKeywords = rake.generate(text);
@@ -158,7 +165,14 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
 
   // Fetch existing cache
   const cacheKey = getCacheKeyForKeywords();
-  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
+  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = null;
+  if (redis) {
+    try {
+      cachedKeywords = await redis.get(cacheKey);
+    } catch (error) {
+      console.error("extractAndStoreKeywords: cache not available:", error);
+    }
+  }
   if (!cachedKeywords) {
     cachedKeywords = [];
   }
@@ -192,13 +206,25 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   await batch.commit();
 
   // Update the cache
-  await redis.set(cacheKey, cachedKeywords, { ex: CACHE_EXPIRATION });
+  if (redis) {
+    try {
+      await redis.set(cacheKey, cachedKeywords, { ex: CACHE_EXPIRATION });
+    } catch (error) {
+      console.error("extractAndStoreKeywords: can't update cache:", error);
+    }
+  }
 }
 
 export async function fetchKeywords(): Promise<{ id: string, keywords: string[], title: string }[]> {
   const cacheKey = getCacheKeyForKeywords();
-  const cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await redis.get(cacheKey);
-
+  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = null;
+  if (redis) {
+    try {
+      cachedKeywords = await redis.get(cacheKey);
+    } catch (error) {
+      console.error('Error fetching cached keywords:', error);
+    }
+  }
   if (cachedKeywords) {
     try {
         return cachedKeywords;
@@ -216,13 +242,15 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[],
     keywords.push({ id: doc.id, keywords: data.keywords, title: data.title });
   });
 
-  try {
-    await redis.set(cacheKey, keywords, { ex: CACHE_EXPIRATION });
-    console.log(`Caching ${keywords.length} keywords`);   
-  } catch (error) {
-    console.error('Error serializing keywords:', error);
-    console.error('Keywords data:', keywords);
-    throw error;
+  if (redis) {
+    try {
+      await redis.set(cacheKey, keywords, { ex: CACHE_EXPIRATION });
+      console.log(`Caching ${keywords.length} keywords`);   
+    } catch (error) {
+      console.error('Error serializing keywords:', error);
+      console.error('Keywords data:', keywords);
+      throw error;
+    }
   }
 
   return keywords;
@@ -268,6 +296,7 @@ export async function updateRelatedQuestions(questionId: string) {
         }))
     });
 }
+
 export async function findRelatedQuestionsUsingKeywords(
     newQuestionKeywords: string[], 
     keywords: { id: string, keywords: string[], title: string }[], 
