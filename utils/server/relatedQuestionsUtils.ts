@@ -208,7 +208,7 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   // Update the cache
   if (redis) {
     try {
-      await redis.set(cacheKey, cachedKeywords, { ex: CACHE_EXPIRATION });
+      await redis.set(cacheKey, cachedKeywords);
     } catch (error) {
       console.error("extractAndStoreKeywords: can't update cache:", error);
     }

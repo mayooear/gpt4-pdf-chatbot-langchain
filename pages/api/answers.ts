@@ -6,7 +6,7 @@ import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { getAnswersByIds } from '@/utils/server/answersUtils';
 
 // 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
-async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<any[]> {
+async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<{ answers: any[], totalPages: number }> {
   let answersQuery = db.collection(getChatLogsCollectionName())
     .where('question', '!=', 'private')
     .orderBy(sortBy === 'mostPopular' ? 'likeCount' : 'timestamp', 'desc');
@@ -15,23 +15,27 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
     answersQuery = answersQuery.orderBy('timestamp', 'desc');
   }
 
+  // Get the total number of documents
+  const totalDocsSnapshot = await answersQuery.get();
+  const totalDocs = totalDocsSnapshot.size;
+  const totalPages = Math.ceil(totalDocs / limit);
+
+  const offset = (page - 1) * limit;
+
   answersQuery = answersQuery
-    .offset(page * limit)
+    .offset(offset)
     .limit(limit);
 
   if (likedOnly) {
     answersQuery = answersQuery.where('likeCount', '>', 0);
   }
 
-  // console.log(`Executing query with page: ${page}, limit: ${limit}, sortBy: ${sortBy}`);
   const answersSnapshot = await answersQuery.get();
-  // console.log(`\nQuery returned ${answersSnapshot.size} documents for page: ${page}, limit: ${limit}`);
-
-  const answers = answersSnapshot.docs.map((doc, index) => {
+  const answers = answersSnapshot.docs.map((doc) => {
     const data = doc.data();
     let sources: Document[] = [];
     try {
-      sources = data.sources ? JSON.parse(data.sources) as Document[]: [];
+      sources = data.sources ? JSON.parse(data.sources) as Document[] : [];
     } catch (e) {
       // Very early sources were stored in non-JSON so recognize those and only log an error for other cases
       if (!data.sources.trim().substring(0, 50).includes("Sources:")) {
@@ -52,7 +56,7 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
     };
   });
 
-  return answers;
+  return { answers, totalPages };
 }
 
 async function deleteAnswerById(id: string): Promise<void> {
@@ -84,12 +88,12 @@ export default async function handler(
         res.status(200).json(answers);
       } else {
         const { page, limit, likedOnly, sortBy } = req.query;
-        const pageNumber = parseInt(page as string) || 0;
+        const pageNumber = parseInt(page as string) || 1; // Default to page 1 if not provided
         const limitNumber = parseInt(limit as string) || 10;
         const likedOnlyFlag = likedOnly === 'true';
         const sortByValue = sortBy as string || 'mostRecent'; 
-        const answers = await getAnswers(pageNumber, limitNumber, likedOnlyFlag, sortByValue); 
-        res.status(200).json(answers);
+        const { answers, totalPages } = await getAnswers(pageNumber, limitNumber, likedOnlyFlag, sortByValue); 
+        res.status(200).json({ answers, totalPages });
       }
     } catch (error: any) {
       console.error('Error fetching answers: ', error);

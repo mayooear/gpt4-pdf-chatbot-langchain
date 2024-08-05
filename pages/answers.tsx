@@ -4,7 +4,6 @@ import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { useEffect, useState, useCallback } from 'react';
-import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
@@ -19,25 +18,19 @@ import { GetServerSideProps } from 'next';
 
 const AllAnswers = () => {
   const router = useRouter();
-  const { sortBy: urlSortBy } = router.query;
+  const { sortBy: urlSortBy, page: urlPage } = router.query;
   const [sortBy, setSortBy] = useState<string>('mostRecent');
   const [isSortByInitialized, setIsSortByInitialized] = useState(false);
 
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
-  const [page, setPage] = useState(0);
-  const { ref, inView } = useInView();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newContentLoaded, setNewContentLoaded] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [canLoadNextPage, setCanLoadNextPage] = useState(true);
-  const [contentLoadedByScroll, setContentLoadedByScroll] = useState(false); 
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
-
-  // State to track if there are more items to load
-  const [hasMore, setHasMore] = useState(true);
 
   // State to track if the data has been loaded at least once
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -61,12 +54,35 @@ const AllAnswers = () => {
 
   useEffect(() => {
     if (router.isReady) {
-      initGA();
-      if (isSortByInitialized) {
-        fetchAnswers();
+      const pageFromUrl = Number(urlPage) || 1;
+      setCurrentPage(pageFromUrl);
+      console.log('Initial load - currentPage:', pageFromUrl, 'urlSortBy:', urlSortBy, 'sortBy:', sortBy);
+
+      if (urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
+        setSortBy(urlSortBy);
+        console.log('Setting sortBy from URL:', urlSortBy);
+      } else {
+        setIsSortByInitialized(true);
+        console.log('Setting isSortByInitialized to true');
       }
     }
-  }, [router.isReady, isSortByInitialized]);
+  }, [router.isReady, urlPage, urlSortBy]);
+
+  useEffect(() => {
+    if (router.isReady && sortBy === urlSortBy) {
+      setIsSortByInitialized(true);
+      console.log('Setting isSortByInitialized to true after sortBy update');
+    }
+  }, [router.isReady, sortBy, urlSortBy]);
+
+  useEffect(() => {
+    if (router.isReady && isSortByInitialized) {
+      console.log('Router is ready and sortBy is initialized');
+      initGA();
+      console.log('Fetching answers on initial load');
+      fetchAnswers();
+    }
+  }, [router.isReady, isSortByInitialized, currentPage, sortBy]);
 
   const fetchAnswers = useCallback(async () => {
     if (!router.isReady) return;
@@ -75,16 +91,18 @@ const AllAnswers = () => {
     setError(null);
     setShowErrorPopup(false);
 
-    let newAnswers: Answer[] = [];
     try {
-      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${sortBy}`, {
+      console.log(`Fetching answers for page: ${currentPage}, sortBy: ${sortBy}`);
+      const answersResponse = await fetch(`/api/answers?page=${currentPage}&limit=10&sortBy=${sortBy}`, {
         method: 'GET',
       });
       if (!answersResponse.ok) {
         throw new Error(`HTTP error! status: ${answersResponse.status}`);
       }
-      newAnswers = await answersResponse.json();
-
+      const data = await answersResponse.json();
+      console.log('Fetched answers:', data);
+      setAnswers(data.answers);
+      setTotalPages(data.totalPages);
     } catch (error: any) {
       console.error("Failed to fetch answers:", error);
       if (error.message.includes('429')) {
@@ -97,27 +115,17 @@ const AllAnswers = () => {
       setIsLoading(false);
       setInitialLoadComplete(true);
     }
-
-    if (newAnswers.length === 0) {
-      setHasMore(false);
-    } else {
-      setAnswers(prevAnswers => {
-        const updatedAnswers = { ...prevAnswers };
-        newAnswers.forEach((answer: Answer) => {
-          updatedAnswers[answer.id] = answer;
-        });
-        return updatedAnswers;
-      });
-    }
-  }, [page, sortBy, router.isReady]);
+  }, [currentPage, sortBy, router.isReady]);
 
   useEffect(() => {
-    if (page === 0 || Object.keys(answers).length > 0) {
-      if (isSortByInitialized) {
-        fetchAnswers();
+    if (router.isReady && isSortByInitialized) {
+      const currentSortBy = router.query.sortBy as string | undefined;
+      if (sortBy !== currentSortBy) {
+        console.log('Pushing new sortBy to URL:', sortBy);
+        router.push(`/answers?page=${currentPage}&sortBy=${sortBy}`, undefined, { shallow: true });
       }
     }
-  }, [page, fetchAnswers, sortBy, isSortByInitialized]);
+  }, [sortBy, currentPage, router.isReady, isSortByInitialized]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -134,8 +142,9 @@ const AllAnswers = () => {
   useEffect(() => {
     // Reset answers and page when sortBy changes
     setAnswers({});
-    setPage(0);
-    setHasMore(true);
+    setCurrentPage(1);
+    setTotalPages(1);
+    console.log('Resetting answers and page due to sortBy change');
   }, [sortBy]);
 
   useEffect(() => {
@@ -143,44 +152,18 @@ const AllAnswers = () => {
       const cookies = document.cookie;
       const sudoStatus = await isSudo(cookies);
       setIsSudoUser(sudoStatus);
+      console.log('Checked sudo status:', sudoStatus);
     };
     checkSudoStatus();
   }, []);
 
-  // Intersection observer effect
-  useEffect(() => {
-    if (inView && hasMore && !isLoading && canLoadNextPage) {
-      setPage(prevPage => prevPage + 1);
-      setContentLoadedByScroll(true);
-      setCanLoadNextPage(false);
-
-      // Set a delay before allowing the next page to load. This is to avoid it loading
-      // two pages at a time.
-      setTimeout(() => {
-        setCanLoadNextPage(true);
-      }, 1000);
-    }
-  }, [inView, hasMore, isLoading, canLoadNextPage]);
-
-  // visual indication when new content loaded by infinite scroll
-  useEffect(() => {
-    if (newContentLoaded && contentLoadedByScroll) { 
-      window.scrollTo({
-        top: document.documentElement.scrollTop + 100, // Scroll down slightly
-        behavior: 'smooth',
-      });
-      setNewContentLoaded(false);
-      setContentLoadedByScroll(false);
-    }
-  }, [newContentLoaded, contentLoadedByScroll]);
-
   // fetch user like statuses for this user - what they have liked
-  // TODO: cache like statuses so not re-pulled during infinite scroll
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       const uuid = getOrCreateUUID();
       const statuses = await checkUserLikes(answerIds, uuid);
       setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+      console.log('Fetched like statuses:', statuses);
     };
 
     if (Object.keys(answers).length > 0) {
@@ -225,30 +208,11 @@ const AllAnswers = () => {
 
   const handleSortChange = (newSortBy: string) => {
     setAnswers({});
-    setPage(0);
-    setHasMore(true);
+    setCurrentPage(1);
+    setTotalPages(1);
     setSortBy(newSortBy);
     logEvent('change_sort', 'UI', newSortBy);
   };
-
-  useEffect(() => {
-    if (router.isReady && urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
-      setSortBy(urlSortBy);
-    } else {
-      setIsSortByInitialized(true);
-    }
-  }, [router.isReady, urlSortBy]);
-
-  useEffect(() => {
-    if (router.isReady && isSortByInitialized) {
-      const currentSortBy = router.query.sortBy as string | undefined;
-      if (sortBy === 'mostRecent' && currentSortBy !== undefined) {
-        router.push('/answers', undefined, { shallow: true });
-      } else if (sortBy !== 'mostRecent' && currentSortBy !== sortBy) {
-        router.push(`/answers?sortBy=${sortBy}`, undefined, { shallow: true });
-      }
-    }
-  }, [sortBy, router.isReady, isSortByInitialized]);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
@@ -275,6 +239,12 @@ const AllAnswers = () => {
 
   const handleRelatedQuestionClick = (relatedQuestionId: string, relatedQuestionTitle: string) => {
     logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    router.push(`/answers?page=${newPage}&sortBy=${sortBy}`, undefined, { shallow: true });
+    window.scrollTo(0, 0); // Scroll to the top of the page
   };
 
   return (
@@ -427,7 +397,27 @@ const AllAnswers = () => {
                   </div>
                 </div>
               ))}
-              {hasMore && <div ref={ref} style={{ height: 1 }} />}
+            </div>
+            
+            {/* Add pagination controls */}
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 mr-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+              >
+                Previous
+              </button>
+              <span className="px-4 py-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 ml-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
