@@ -345,7 +345,7 @@ const AllAnswers = () => {
 
   return (
     <Layout>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 px-4 sm:px-6 lg:px-8">
         <div></div>
         <div className="flex items-center mt-0.5">
           <label htmlFor="sortBy" className="mr-2 text-gray-700">Sort by:</label>
@@ -360,7 +360,7 @@ const AllAnswers = () => {
           </select>
         </div>
       </div>
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-full sm:max-w-4xl px-2 sm:px-6 lg:px-8">
         {showErrorPopup && error && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
             <p>{error}</p>
@@ -378,14 +378,14 @@ const AllAnswers = () => {
           <div key={`${currentPage}-${sortBy}`}>
             <div>
               {Object.values(answers).map((answer, index) => (
-                <div key={answer.id} className="bg-white p-2.5 m-2.5">
-                  <div className="flex items-center">
-                    <span className="material-icons">question_answer</span>
-                    <div className="ml-4 flex-grow">
+                <div key={answer.id} className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow">
+                  <div className="flex items-start">
+                    <span className="material-icons mt-1 mr-2 flex-shrink-0">question_answer</span>
+                    <div className="flex-grow min-w-0">
                       <div className="mb-2">
                         <Link href={`/answers/${answer.id}`} legacyBehavior>
                           <a className="text-black-600 hover:underline cursor-pointer">
-                            <b className="block">
+                            <b className="block break-words">
                               {expandedQuestions.has(answer.id) ? (
                                 answer.question.split('\n').map((line, i) => (
                                   <React.Fragment key={i}>
@@ -414,16 +414,18 @@ const AllAnswers = () => {
                           </button>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
-                        <span className="ml-4">
+                      <div className="text-sm text-gray-500 flex flex-wrap">
+                        <span className="mr-4">
+                          {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
+                        </span>
+                        <span>
                           {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
                         </span>            
                       </div>
                     </div>
                   </div>
-                  <div className="bg-gray-100 p-2.5 rounded">
-                    <div className="markdownanswer">
+                  <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
+                    <div className="markdownanswer overflow-x-auto">
                       <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
                       {answer.sources && (
                         <SourcesList
@@ -449,21 +451,21 @@ const AllAnswers = () => {
                           </ul>
                         </div>
                       )}
-                      <div className="flex items-center">
+                      <div className="flex flex-wrap items-center mt-2">
                         <CopyButton
                           markdown={answer.answer}
                           answerId={answer.id}
                         />
                         <button
                           onClick={() => handleCopyLink(answer.id)}
-                          className="ml-4 text-black-600 hover:underline flex items-center"
+                          className="ml-2 sm:ml-4 text-black-600 hover:underline flex items-center"
                           title="Copy link to clipboard"
                         >
                           <span className="material-icons">
                             {linkCopied === answer.id ? 'check' : 'link'}
                           </span>
                         </button>
-                        <div className="ml-4">
+                        <div className="ml-2 sm:ml-4">
                           <LikeButton
                             key={`${answer.id}-${likeStatuses[answer.id]}`}
                             answerId={answer.id}
