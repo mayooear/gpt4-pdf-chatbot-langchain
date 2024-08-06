@@ -3,7 +3,7 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
@@ -52,6 +52,62 @@ const AllAnswers = () => {
     });
   };
 
+  const [isRestoringScroll, setIsRestoringScroll] = useState(false);
+
+  // Function to save scroll position
+  const saveScrollPosition = () => {
+    const scrollY = window.scrollY;
+    sessionStorage.setItem('answersScrollPosition', scrollY.toString());
+    console.log('Saved scroll position:', scrollY);
+  };
+
+  // Function to get saved scroll position
+  const getSavedScrollPosition = () => {
+    const savedPosition = sessionStorage.getItem('answersScrollPosition');
+    return savedPosition ? parseInt(savedPosition, 10) : 0;
+  };
+
+  // Add this useEffect to save scroll position periodically
+  useEffect(() => {
+    const intervalId = setInterval(saveScrollPosition, 1000);
+  
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Modify this useEffect to save scroll position when navigating away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveScrollPosition();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Modify this useEffect to handle popstate
+  useEffect(() => {
+    const handlePopState = () => {
+      console.log('Popstate event triggered.');
+      setIsRestoringScroll(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Reset answers when sortBy changes
+    setAnswers({});
+    setTotalPages(1);
+    console.log('Resetting answers due to sortBy change');
+  }, [sortBy]);
+
   useEffect(() => {
     if (router.isReady) {
       const pageFromUrl = Number(urlPage) || 1;
@@ -84,21 +140,33 @@ const AllAnswers = () => {
   }, [router.isReady, sortBy, urlSortBy]);
 
   useEffect(() => {
-    // Reset answers when sortBy changes
-    setAnswers({});
-    setTotalPages(1);
-    console.log('Resetting answers due to sortBy change');
-  }, [sortBy]);
-
-  useEffect(() => {
     if (router.isReady && isSortByInitialized) {
       console.log('Router is ready and sortBy is initialized');
       initGA();
       const pageFromUrl = Number(urlPage) || 1;
       console.log(`Fetching answers. Current page from URL: ${pageFromUrl}`);
-      fetchAnswers(pageFromUrl);
+      fetchAnswers(pageFromUrl).then(() => {
+        console.log('Answers fetched. isRestoringScroll:', isRestoringScroll);
+        if (!isRestoringScroll) {
+          setIsRestoringScroll(true);
+        }
+      });
     }
   }, [router.isReady, isSortByInitialized, urlPage, sortBy]);
+
+  useEffect(() => {
+    if (isRestoringScroll && !isLoading && initialLoadComplete) {
+      const savedPosition = getSavedScrollPosition();
+      console.log('Attempting to restore scroll position to:', savedPosition);
+      setTimeout(() => {
+        window.scrollTo(0, savedPosition);
+        console.log('Scroll position restored. Current scroll:', window.scrollY);
+        setIsRestoringScroll(false);
+        // Clear the saved position after restoring
+        sessionStorage.removeItem('answersScrollPosition');
+      }, 100); // Small delay to ensure content is rendered
+    }
+  }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
   const fetchAnswers = useCallback(async (page: number) => {
     if (!router.isReady) return;
@@ -255,8 +323,10 @@ const AllAnswers = () => {
   const handlePageChange = (newPage: number) => {
     console.log('Changing to page:', newPage);
     setCurrentPage(newPage);
+    // Clear saved scroll position for manual page changes
+    sessionStorage.removeItem('answersScrollPosition');
+    console.log('Cleared saved scroll position for page change');
     router.push(`/answers?page=${newPage}&sortBy=${sortBy}`, undefined, { shallow: true });
-    window.scrollTo(0, 0); // Scroll to the top of the page
   };
 
   return (
@@ -291,7 +361,7 @@ const AllAnswers = () => {
             <p className="text-lg text-gray-600 ml-4">Loading...</p>
           </div>
         ) : (
-          <div>
+          <div key={`${currentPage}-${sortBy}`}>
             <div>
               {Object.values(answers).map((answer, index) => (
                 <div key={answer.id} className="bg-white p-2.5 m-2.5">
