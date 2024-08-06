@@ -4,10 +4,10 @@ import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import debounce from 'lodash/debounce';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
-import { isSudo } from '@/utils/client/cookieUtils';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
@@ -58,7 +58,6 @@ const AllAnswers = () => {
   const saveScrollPosition = () => {
     const scrollY = window.scrollY;
     sessionStorage.setItem('answersScrollPosition', scrollY.toString());
-    console.log('Saved scroll position:', scrollY);
   };
 
   // Function to get saved scroll position
@@ -90,7 +89,6 @@ const AllAnswers = () => {
   // Modify this useEffect to handle popstate
   useEffect(() => {
     const handlePopState = () => {
-      console.log('Popstate event triggered.');
       setIsRestoringScroll(true);
     };
 
@@ -105,90 +103,72 @@ const AllAnswers = () => {
     // Reset answers when sortBy changes
     setAnswers({});
     setTotalPages(1);
-    console.log('Resetting answers due to sortBy change');
   }, [sortBy]);
 
-  // Modify this useEffect to handle both page and sortBy changes from URL
+  const currentFetchRef = useRef<Promise<void> | null>(null);
+  const debouncedFetchRef = useRef<Function | null>(null);
+  const hasInitiallyFetched = useRef(false);
+  const hasFetchedLikeStatuses = useRef(false);
+
   useEffect(() => {
-    if (router.isReady) {
-      const pageFromUrl = Number(urlPage) || 1;
-      const sortByFromUrl = urlSortBy as string;
-      console.log('URL changed - page:', pageFromUrl, 'sortBy:', sortByFromUrl);
-      
-      setCurrentPage(pageFromUrl);
-      
-      if (sortByFromUrl && ['mostRecent', 'mostPopular'].includes(sortByFromUrl)) {
-        setSortBy(sortByFromUrl);
-        console.log('Setting sortBy from URL:', sortByFromUrl);
+    debouncedFetchRef.current = debounce((page: number, sortBy: string) => {
+      if (currentFetchRef.current) {
+        console.log('Fetch already in progress, skipping');
+        return;
       }
-      
-      // Fetch answers with the new page number and sort order
-      fetchAnswers(pageFromUrl, sortByFromUrl || sortBy);
-    }
-  }, [router.isReady, urlPage, urlSortBy]);
 
-  useEffect(() => {
-    if (router.isReady) {
-      const pageFromUrl = Number(urlPage) || 1;
-      setCurrentPage(pageFromUrl);
-      console.log('Initial load - currentPage:', pageFromUrl, 'urlSortBy:', urlSortBy, 'sortBy:', sortBy);
-
-      if (urlSortBy && typeof urlSortBy === 'string' && urlSortBy !== sortBy) {
-        setSortBy(urlSortBy);
-        console.log('Setting sortBy from URL:', urlSortBy);
-      } else {
-        setIsSortByInitialized(true);
-        console.log('Setting isSortByInitialized to true');
-      }
-    }
-  }, [router.isReady, urlPage, urlSortBy]);
-
-  useEffect(() => {
-    if (router.isReady && sortBy === urlSortBy) {
-      setIsSortByInitialized(true);
-      console.log('Setting isSortByInitialized to true after sortBy update');
-    }
-  }, [router.isReady, sortBy, urlSortBy]);
-
-  useEffect(() => {
-    if (router.isReady && isSortByInitialized) {
-      console.log('Router is ready and sortBy is initialized');
-      initGA();
-      const pageFromUrl = Number(urlPage) || 1;
-      console.log(`Fetching answers. Current page from URL: ${pageFromUrl}`);
-      fetchAnswers(pageFromUrl, sortBy).then(() => {
-        console.log('Answers fetched. isRestoringScroll:', isRestoringScroll);
-        if (!isRestoringScroll) {
+      currentFetchRef.current = fetchAnswers(page, sortBy).finally(() => {
+        currentFetchRef.current = null;
+        if (!hasInitiallyFetched.current) {
+          hasInitiallyFetched.current = true;
+          setInitialLoadComplete(true);
           setIsRestoringScroll(true);
         }
       });
+    }, 300);
+
+    return () => {
+      if (debouncedFetchRef.current) {
+        (debouncedFetchRef.current as any).cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (router.isReady && debouncedFetchRef.current) {
+      const pageFromUrl = Number(urlPage) || 1;
+      const sortByFromUrl = (urlSortBy as string) || 'mostRecent';
+      
+      setSortBy(sortByFromUrl);
+      setCurrentPage(pageFromUrl);
+      setIsSortByInitialized(true);
+      
+      if (debouncedFetchRef.current) {
+        debouncedFetchRef.current(pageFromUrl, sortByFromUrl);
+      }
+
+      initGA();
     }
-  }, [router.isReady, isSortByInitialized, urlPage, sortBy]);
+  }, [router.isReady, urlPage, urlSortBy]);
 
   useEffect(() => {
     if (isRestoringScroll && !isLoading && initialLoadComplete) {
       const savedPosition = getSavedScrollPosition();
-      console.log('Attempting to restore scroll position to:', savedPosition);
       setTimeout(() => {
         window.scrollTo(0, savedPosition);
-        console.log('Scroll position restored. Current scroll:', window.scrollY);
         setIsRestoringScroll(false);
         // Clear the saved position after restoring
         sessionStorage.removeItem('answersScrollPosition');
       }, 100); // Small delay to ensure content is rendered
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
-
-  // Modify fetchAnswers to accept sortBy as a parameter
+  
   const fetchAnswers = useCallback(async (page: number, currentSortBy: string) => {
-    if (!router.isReady) return;
-
     setIsLoading(true);
     setError(null);
     setShowErrorPopup(false);
 
     try {
-      console.log(`Fetching answers for page: ${page}, sortBy: ${currentSortBy}`);
       const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${currentSortBy}`, {
         method: 'GET',
       });
@@ -196,7 +176,6 @@ const AllAnswers = () => {
         throw new Error(`HTTP error! status: ${answersResponse.status}`);
       }
       const data = await answersResponse.json();
-      console.log('Fetched answers:', data);
       setAnswers(data.answers);
       setTotalPages(data.totalPages);
     } catch (error: any) {
@@ -209,16 +188,35 @@ const AllAnswers = () => {
       setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
-      setInitialLoadComplete(true);
     }
-  }, [router.isReady]);
+  }, []);
+
+  const updateUrl = (page: number, sortBy: string) => {
+    if (router.isReady) {
+      let url = '/answers';
+      const params = new URLSearchParams();
+      
+      if (page !== 1) {
+        params.append('page', page.toString());
+      }
+      
+      if (sortBy !== 'mostRecent') {
+        params.append('sortBy', sortBy);
+      }
+      
+      if (params.toString()) {
+        url += '?' + params.toString();
+      }
+      
+      router.push(url, undefined, { shallow: true });
+    }
+  };
 
   useEffect(() => {
     if (router.isReady && isSortByInitialized) {
       const currentSortBy = router.query.sortBy as string | undefined;
       if (sortBy !== currentSortBy) {
-        console.log('Pushing new sortBy to URL:', sortBy);
-        router.push(`/answers?page=${currentPage}&sortBy=${sortBy}`, undefined, { shallow: true });
+        updateUrl(currentPage, sortBy);
       }
     }
   }, [sortBy, currentPage, router.isReady, isSortByInitialized]);
@@ -236,25 +234,16 @@ const AllAnswers = () => {
   }, [isLoading]);
 
   useEffect(() => {
-    const checkSudoStatus = async () => {
-      const cookies = document.cookie;
-      const sudoStatus = await isSudo(cookies);
-      setIsSudoUser(sudoStatus);
-      console.log('Checked sudo status:', sudoStatus);
-    };
-    checkSudoStatus();
-  }, []);
-
-  // fetch user like statuses for this user - what they have liked
-  useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
+      if (hasFetchedLikeStatuses.current) return;
+      
       const uuid = getOrCreateUUID();
       const statuses = await checkUserLikes(answerIds, uuid);
       setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
-      console.log('Fetched like statuses:', statuses);
+      hasFetchedLikeStatuses.current = true;
     };
 
-    if (Object.keys(answers).length > 0) {
+    if (Object.keys(answers).length > 0 && !hasFetchedLikeStatuses.current) {
       fetchLikeStatuses(Object.keys(answers));
     }
   }, [answers]);
@@ -294,15 +283,21 @@ const AllAnswers = () => {
     }
   };
 
-  // Modify handleSortChange to use the new fetchAnswers signature
   const handleSortChange = (newSortBy: string) => {
     if (newSortBy !== sortBy) {
       setAnswers({});
       setCurrentPage(1);
       setTotalPages(1);
       setSortBy(newSortBy);
-      router.push(`/answers?page=1&sortBy=${newSortBy}`, undefined, { shallow: true });
-      fetchAnswers(1, newSortBy);
+      updateUrl(1, newSortBy);
+      
+      if (debouncedFetchRef.current) {
+        debouncedFetchRef.current(1, newSortBy);
+      } else {
+        console.warn('debouncedFetchRef.current is null in handleSortChange');
+        fetchAnswers(1, newSortBy);
+      }
+      
       logEvent('change_sort', 'UI', newSortBy);
     }
   };
@@ -341,12 +336,10 @@ const AllAnswers = () => {
 
   // Modify handlePageChange to include scrollToTop
   const handlePageChange = (newPage: number) => {
-    console.log('Changing to page:', newPage);
     setCurrentPage(newPage);
     // Clear saved scroll position for manual page changes
     sessionStorage.removeItem('answersScrollPosition');
-    console.log('Cleared saved scroll position for page change');
-    router.push(`/answers?page=${newPage}&sortBy=${sortBy}`, undefined, { shallow: true });
+    updateUrl(newPage, sortBy);
     scrollToTop();
   };
 
