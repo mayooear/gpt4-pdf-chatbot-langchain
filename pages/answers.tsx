@@ -163,8 +163,12 @@ const AllAnswers = () => {
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
   
-  const fetchAnswers = useCallback(async (page: number, currentSortBy: string) => {
+  const fetchAnswers = useCallback(async (page: number, currentSortBy: string, isPageChange: boolean = false) => {
     setIsLoading(true);
+    if (isPageChange) {
+      setIsChangingPage(true);
+      setAnswers({}); // Clear answers when changing page
+    }
     setError(null);
     setShowErrorPopup(false);
 
@@ -178,6 +182,11 @@ const AllAnswers = () => {
       const data = await answersResponse.json();
       setAnswers(data.answers);
       setTotalPages(data.totalPages);
+      
+      // Scroll to top after new content is loaded, with a small delay
+      if (isPageChange) {
+        setTimeout(scrollToTop, 100);
+      }
     } catch (error: any) {
       console.error("Failed to fetch answers:", error);
       if (error.message.includes('429')) {
@@ -188,6 +197,7 @@ const AllAnswers = () => {
       setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
+      setIsChangingPage(false);
     }
   }, []);
 
@@ -285,17 +295,19 @@ const AllAnswers = () => {
 
   const handleSortChange = (newSortBy: string) => {
     if (newSortBy !== sortBy) {
+      scrollToTop(); // Scroll to top immediately
       setAnswers({});
       setCurrentPage(1);
       setTotalPages(1);
       setSortBy(newSortBy);
       updateUrl(1, newSortBy);
+      setIsChangingPage(true);
       
       if (debouncedFetchRef.current) {
-        debouncedFetchRef.current(1, newSortBy);
+        debouncedFetchRef.current(1, newSortBy, true);
       } else {
         console.warn('debouncedFetchRef.current is null in handleSortChange');
-        fetchAnswers(1, newSortBy);
+        fetchAnswers(1, newSortBy, true);
       }
       
       logEvent('change_sort', 'UI', newSortBy);
@@ -331,17 +343,36 @@ const AllAnswers = () => {
 
   // Add this function to scroll to top
   const scrollToTop = () => {
-    window.scrollTo(0, 0);
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto'
+    });
+    // Force a reflow to ensure the scroll takes effect immediately
+    document.body.offsetHeight;
   };
 
-  // Modify handlePageChange to include scrollToTop
+  // Modify handlePageChange to scroll to top immediately
   const handlePageChange = (newPage: number) => {
+    scrollToTop(); // Scroll to top immediately
+    setIsChangingPage(true);
+    setAnswers({}); // Clear answers immediately
     setCurrentPage(newPage);
-    // Clear saved scroll position for manual page changes
     sessionStorage.removeItem('answersScrollPosition');
     updateUrl(newPage, sortBy);
-    scrollToTop();
+    
+    // Use setTimeout to ensure the UI updates before fetching
+    setTimeout(() => {
+      if (debouncedFetchRef.current) {
+        debouncedFetchRef.current(newPage, sortBy, true);
+      } else {
+        console.warn('debouncedFetchRef.current is null in handlePageChange');
+        fetchAnswers(newPage, sortBy, true);
+      }
+    }, 0);
   };
+
+  // Add a new state for tracking if we're changing pages
+  const [isChangingPage, setIsChangingPage] = useState(false);
 
   return (
     <Layout>
@@ -369,7 +400,7 @@ const AllAnswers = () => {
             </button>
           </div>
         )}
-        {isLoading && !initialLoadComplete ? (
+        {(isLoading && !initialLoadComplete) || isChangingPage ? (
           <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
             <p className="text-lg text-gray-600 ml-4">Loading...</p>
@@ -497,26 +528,28 @@ const AllAnswers = () => {
               ))}
             </div>
             
-            {/* Add pagination controls */}
-            <div className="flex justify-center mt-4">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-4 py-2 mr-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 ml-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-              >
-                Next
-              </button>
-            </div>
+            {/* Only render pagination controls when answers are loaded */}
+            {Object.keys(answers).length > 0 && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || isChangingPage}
+                  className="px-4 py-2 mr-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || isChangingPage}
+                  className="px-4 py-2 ml-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
