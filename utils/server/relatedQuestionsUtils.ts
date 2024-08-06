@@ -2,27 +2,12 @@
 
 import { TfIdf } from 'natural';
 import rake from 'node-rake'; 
-import { Redis } from '@upstash/redis';
 import { db } from '@/services/firebase';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
-import { getEnvName, isDevelopment } from '@/utils/env';
-import { getAnswersByIds, parseAndRemoveWordsFromSources } from '@/utils/server/answersUtils';
+import { getEnvName } from '@/utils/env';
+import { getAnswersByIds } from '@/utils/server/answersUtils';
 import { Answer } from '@/types/answer';
-
-let redis: Redis | null = null;
-try {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    });
-    // Test the connection
-    await redis.ping();
-} catch (error) {
-    console.error("Redis Cache not available:", error);
-    redis = null; // Ensure redis is set to null if connection fails
-}
-
-const CACHE_EXPIRATION = isDevelopment() ? 3600 : 86400; // 1 hour for dev, 24 hours for prod
+import { getFromCache, setInCache, CACHE_EXPIRATION } from '@/utils/server/redisUtils';
 
 function getCacheKeyForKeywords(): string {
   const envName = getEnvName();
@@ -165,14 +150,7 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
 
   // Fetch existing cache
   const cacheKey = getCacheKeyForKeywords();
-  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = null;
-  if (redis) {
-    try {
-      cachedKeywords = await redis.get(cacheKey);
-    } catch (error) {
-      console.error("extractAndStoreKeywords: cache not available:", error);
-    }
-  }
+  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = await getFromCache(cacheKey);
   if (!cachedKeywords) {
     cachedKeywords = [];
   }
@@ -206,32 +184,14 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   await batch.commit();
 
   // Update the cache
-  if (redis) {
-    try {
-      await redis.set(cacheKey, cachedKeywords);
-    } catch (error) {
-      console.error("extractAndStoreKeywords: can't update cache:", error);
-    }
-  }
+  await setInCache(cacheKey, cachedKeywords);
 }
 
 export async function fetchKeywords(): Promise<{ id: string, keywords: string[], title: string }[]> {
   const cacheKey = getCacheKeyForKeywords();
-  let cachedKeywords: { id: string, keywords: string[], title: string }[] | null = null;
-  if (redis) {
-    try {
-      cachedKeywords = await redis.get(cacheKey);
-    } catch (error) {
-      console.error('Error fetching cached keywords:', error);
-    }
-  }
+  const cachedKeywords = await getFromCache<{ id: string, keywords: string[], title: string }[]>(cacheKey);
   if (cachedKeywords) {
-    try {
-        return cachedKeywords;
-    } catch (error) {
-        console.error('Error parsing cached keywords:', error);
-        throw error;
-    }
+    return cachedKeywords;
   }
 
   const keywords: { id: string, keywords: string[], title: string }[] = [];
@@ -242,16 +202,8 @@ export async function fetchKeywords(): Promise<{ id: string, keywords: string[],
     keywords.push({ id: doc.id, keywords: data.keywords, title: data.title });
   });
 
-  if (redis) {
-    try {
-      await redis.set(cacheKey, keywords, { ex: CACHE_EXPIRATION });
-      console.log(`Caching ${keywords.length} keywords`);   
-    } catch (error) {
-      console.error('Error serializing keywords:', error);
-      console.error('Keywords data:', keywords);
-      throw error;
-    }
-  }
+  await setInCache(cacheKey, keywords, CACHE_EXPIRATION);
+  console.log(`Caching ${keywords.length} keywords`);
 
   return keywords;
 }

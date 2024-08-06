@@ -108,13 +108,24 @@ const AllAnswers = () => {
     console.log('Resetting answers due to sortBy change');
   }, [sortBy]);
 
+  // Modify this useEffect to handle both page and sortBy changes from URL
   useEffect(() => {
     if (router.isReady) {
       const pageFromUrl = Number(urlPage) || 1;
-      console.log('URL page changed:', pageFromUrl);
+      const sortByFromUrl = urlSortBy as string;
+      console.log('URL changed - page:', pageFromUrl, 'sortBy:', sortByFromUrl);
+      
       setCurrentPage(pageFromUrl);
+      
+      if (sortByFromUrl && ['mostRecent', 'mostPopular'].includes(sortByFromUrl)) {
+        setSortBy(sortByFromUrl);
+        console.log('Setting sortBy from URL:', sortByFromUrl);
+      }
+      
+      // Fetch answers with the new page number and sort order
+      fetchAnswers(pageFromUrl, sortByFromUrl || sortBy);
     }
-  }, [router.isReady, urlPage]);
+  }, [router.isReady, urlPage, urlSortBy]);
 
   useEffect(() => {
     if (router.isReady) {
@@ -145,7 +156,7 @@ const AllAnswers = () => {
       initGA();
       const pageFromUrl = Number(urlPage) || 1;
       console.log(`Fetching answers. Current page from URL: ${pageFromUrl}`);
-      fetchAnswers(pageFromUrl).then(() => {
+      fetchAnswers(pageFromUrl, sortBy).then(() => {
         console.log('Answers fetched. isRestoringScroll:', isRestoringScroll);
         if (!isRestoringScroll) {
           setIsRestoringScroll(true);
@@ -168,7 +179,8 @@ const AllAnswers = () => {
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
-  const fetchAnswers = useCallback(async (page: number) => {
+  // Modify fetchAnswers to accept sortBy as a parameter
+  const fetchAnswers = useCallback(async (page: number, currentSortBy: string) => {
     if (!router.isReady) return;
 
     setIsLoading(true);
@@ -176,8 +188,8 @@ const AllAnswers = () => {
     setShowErrorPopup(false);
 
     try {
-      console.log(`Fetching answers for page: ${page}, sortBy: ${sortBy}`);
-      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${sortBy}`, {
+      console.log(`Fetching answers for page: ${page}, sortBy: ${currentSortBy}`);
+      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${currentSortBy}`, {
         method: 'GET',
       });
       if (!answersResponse.ok) {
@@ -199,7 +211,7 @@ const AllAnswers = () => {
       setIsLoading(false);
       setInitialLoadComplete(true);
     }
-  }, [sortBy, router.isReady]);
+  }, [router.isReady]);
 
   useEffect(() => {
     if (router.isReady && isSortByInitialized) {
@@ -282,6 +294,7 @@ const AllAnswers = () => {
     }
   };
 
+  // Modify handleSortChange to use the new fetchAnswers signature
   const handleSortChange = (newSortBy: string) => {
     if (newSortBy !== sortBy) {
       setAnswers({});
@@ -289,6 +302,7 @@ const AllAnswers = () => {
       setTotalPages(1);
       setSortBy(newSortBy);
       router.push(`/answers?page=1&sortBy=${newSortBy}`, undefined, { shallow: true });
+      fetchAnswers(1, newSortBy);
       logEvent('change_sort', 'UI', newSortBy);
     }
   };
@@ -320,6 +334,12 @@ const AllAnswers = () => {
     logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`);
   };
 
+  // Add this function to scroll to top
+  const scrollToTop = () => {
+    window.scrollTo(0, 0);
+  };
+
+  // Modify handlePageChange to include scrollToTop
   const handlePageChange = (newPage: number) => {
     console.log('Changing to page:', newPage);
     setCurrentPage(newPage);
@@ -327,6 +347,7 @@ const AllAnswers = () => {
     sessionStorage.removeItem('answersScrollPosition');
     console.log('Cleared saved scroll position for page change');
     router.push(`/answers?page=${newPage}&sortBy=${sortBy}`, undefined, { shallow: true });
+    scrollToTop();
   };
 
   return (

@@ -1,6 +1,8 @@
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getEnvName } from '@/utils/env';
+import { getFromCache, setInCache, CACHE_EXPIRATION } from '@/utils/server/redisUtils';
 
 export async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
@@ -55,4 +57,37 @@ export function parseAndRemoveWordsFromSources(sources: any): any[] {
     }
     return { ...sourceWithoutWords, metadata };
   });
+}
+
+function getCacheKeyForDocumentCount(): string {
+  const envName = getEnvName();
+  return `${envName}_answers_count`;
+}
+
+export async function getTotalDocuments(): Promise<number> {
+  const cacheKey = getCacheKeyForDocumentCount();
+  
+  // Try to get the count from cache
+  const cachedCount = await getFromCache<string>(cacheKey);
+  if (cachedCount !== null) {
+    console.log(`Cached count of answers: ${cachedCount}`);
+    return parseInt(cachedCount, 10);
+  }
+
+  // If not in cache, count the documents
+  let count = 0;
+  const stream = db.collection(getChatLogsCollectionName())
+    .where('question', '!=', 'private')
+    .stream();
+
+  for await (const _ of stream) {
+    count++;
+  }
+
+  console.log(`Count of answers: ${count}`);
+
+  // Cache the result
+  await setInCache(cacheKey, count.toString(), CACHE_EXPIRATION);
+
+  return count;
 }

@@ -3,7 +3,7 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
-import { getAnswersByIds } from '@/utils/server/answersUtils';
+import { getTotalDocuments, getAnswersByIds } from '@/utils/server/answersUtils';
 
 // 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
 async function getAnswers(page: number, limit: number, likedOnly: boolean, sortBy: string): Promise<{ answers: any[], totalPages: number }> {
@@ -16,10 +16,8 @@ async function getAnswers(page: number, limit: number, likedOnly: boolean, sortB
   }
 
   // Get the total number of documents
-  const totalDocsSnapshot = await answersQuery.get();
-  const totalDocs = totalDocsSnapshot.size;
+  const totalDocs = await getTotalDocuments();
   const totalPages = Math.ceil(totalDocs / limit);
-
   const offset = (page - 1) * limit;
 
   answersQuery = answersQuery
