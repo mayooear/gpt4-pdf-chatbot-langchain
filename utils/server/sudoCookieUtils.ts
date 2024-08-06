@@ -87,13 +87,10 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
       const tokenIndex = decryptedToken.indexOf(':');
       const token = decryptedToken.slice(0, tokenIndex);
       const ip = decryptedToken.slice(tokenIndex + 1);
-      console.log('Decrypted token:', token);
-      console.log('Extracted IP:', ip);
-      console.log('User IP:', userIp);
       if (ip === userIp) {
         return { sudoCookieValue: true };
       } else {
-        console.error('IP mismatch: Extracted IP does not match User IP');
+        console.error('GetSudoCookie: IP mismatch: Extracted IP does not match User IP');
         return { sudoCookieValue: false, message: 'IP mismatch: Extracted IP does not match User IP' };
       }
     } catch (error) {
