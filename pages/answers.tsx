@@ -55,6 +55,14 @@ const AllAnswers = () => {
   useEffect(() => {
     if (router.isReady) {
       const pageFromUrl = Number(urlPage) || 1;
+      console.log('URL page changed:', pageFromUrl);
+      setCurrentPage(pageFromUrl);
+    }
+  }, [router.isReady, urlPage]);
+
+  useEffect(() => {
+    if (router.isReady) {
+      const pageFromUrl = Number(urlPage) || 1;
       setCurrentPage(pageFromUrl);
       console.log('Initial load - currentPage:', pageFromUrl, 'urlSortBy:', urlSortBy, 'sortBy:', sortBy);
 
@@ -76,15 +84,23 @@ const AllAnswers = () => {
   }, [router.isReady, sortBy, urlSortBy]);
 
   useEffect(() => {
+    // Reset answers when sortBy changes
+    setAnswers({});
+    setTotalPages(1);
+    console.log('Resetting answers due to sortBy change');
+  }, [sortBy]);
+
+  useEffect(() => {
     if (router.isReady && isSortByInitialized) {
       console.log('Router is ready and sortBy is initialized');
       initGA();
-      console.log('Fetching answers on initial load');
-      fetchAnswers();
+      const pageFromUrl = Number(urlPage) || 1;
+      console.log(`Fetching answers. Current page from URL: ${pageFromUrl}`);
+      fetchAnswers(pageFromUrl);
     }
-  }, [router.isReady, isSortByInitialized, currentPage, sortBy]);
+  }, [router.isReady, isSortByInitialized, urlPage, sortBy]);
 
-  const fetchAnswers = useCallback(async () => {
+  const fetchAnswers = useCallback(async (page: number) => {
     if (!router.isReady) return;
 
     setIsLoading(true);
@@ -92,8 +108,8 @@ const AllAnswers = () => {
     setShowErrorPopup(false);
 
     try {
-      console.log(`Fetching answers for page: ${currentPage}, sortBy: ${sortBy}`);
-      const answersResponse = await fetch(`/api/answers?page=${currentPage}&limit=10&sortBy=${sortBy}`, {
+      console.log(`Fetching answers for page: ${page}, sortBy: ${sortBy}`);
+      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${sortBy}`, {
         method: 'GET',
       });
       if (!answersResponse.ok) {
@@ -115,7 +131,7 @@ const AllAnswers = () => {
       setIsLoading(false);
       setInitialLoadComplete(true);
     }
-  }, [currentPage, sortBy, router.isReady]);
+  }, [sortBy, router.isReady]);
 
   useEffect(() => {
     if (router.isReady && isSortByInitialized) {
@@ -138,14 +154,6 @@ const AllAnswers = () => {
     // Clear the timeout if the component unmounts or isLoading changes to false
     return () => clearTimeout(timer);
   }, [isLoading]);
-
-  useEffect(() => {
-    // Reset answers and page when sortBy changes
-    setAnswers({});
-    setCurrentPage(1);
-    setTotalPages(1);
-    console.log('Resetting answers and page due to sortBy change');
-  }, [sortBy]);
 
   useEffect(() => {
     const checkSudoStatus = async () => {
@@ -207,11 +215,14 @@ const AllAnswers = () => {
   };
 
   const handleSortChange = (newSortBy: string) => {
-    setAnswers({});
-    setCurrentPage(1);
-    setTotalPages(1);
-    setSortBy(newSortBy);
-    logEvent('change_sort', 'UI', newSortBy);
+    if (newSortBy !== sortBy) {
+      setAnswers({});
+      setCurrentPage(1);
+      setTotalPages(1);
+      setSortBy(newSortBy);
+      router.push(`/answers?page=1&sortBy=${newSortBy}`, undefined, { shallow: true });
+      logEvent('change_sort', 'UI', newSortBy);
+    }
   };
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
@@ -242,6 +253,7 @@ const AllAnswers = () => {
   };
 
   const handlePageChange = (newPage: number) => {
+    console.log('Changing to page:', newPage);
     setCurrentPage(newPage);
     router.push(`/answers?page=${newPage}&sortBy=${sortBy}`, undefined, { shallow: true });
     window.scrollTo(0, 0); // Scroll to the top of the page
