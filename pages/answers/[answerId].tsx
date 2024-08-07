@@ -90,9 +90,11 @@ const SingleAnswer = () => {
 
   useEffect(() => {
     if (answer && answer.relatedQuestionsV2) {
-      setRelatedQuestions(answer.relatedQuestionsV2);
+      const SIMILARITY_THRESHOLD = 0.15;
+      const filteredQuestions = answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD);
+      setRelatedQuestions(filteredQuestions);
       console.log("Related Q's:");
-      answer.relatedQuestionsV2.forEach(q => {
+      filteredQuestions.forEach(q => {
         console.log(`(${q.similarity.toFixed(2)}) ${q.title}`);
       });
     }

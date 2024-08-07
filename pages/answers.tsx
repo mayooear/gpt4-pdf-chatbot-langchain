@@ -16,13 +16,15 @@ import React from 'react';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 
+const SIMILARITY_THRESHOLD = 0.15;
+
 const AllAnswers = () => {
   const router = useRouter();
   const { sortBy: urlSortBy, page: urlPage } = router.query;
   const [sortBy, setSortBy] = useState<string>('mostRecent');
   const [isSortByInitialized, setIsSortByInitialized] = useState(false);
 
-  const [answers, setAnswers] = useState<Record<string, Answer>>({});
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +103,7 @@ const AllAnswers = () => {
 
   useEffect(() => {
     // Reset answers when sortBy changes
-    setAnswers({});
+    setAnswers([]);
     setTotalPages(1);
   }, [sortBy]);
 
@@ -167,7 +169,7 @@ const AllAnswers = () => {
     setIsLoading(true);
     if (isPageChange) {
       setIsChangingPage(true);
-      setAnswers({}); // Clear answers when changing page
+      setAnswers([]); // Clear answers when changing page
     }
     setError(null);
     setShowErrorPopup(false);
@@ -253,19 +255,21 @@ const AllAnswers = () => {
       hasFetchedLikeStatuses.current = true;
     };
 
-    if (Object.keys(answers).length > 0 && !hasFetchedLikeStatuses.current) {
-      fetchLikeStatuses(Object.keys(answers));
+    if (answers.length > 0 && !hasFetchedLikeStatuses.current) {
+      fetchLikeStatuses(answers.map(answer => answer.id));
     }
   }, [answers]);
 
-  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
-    setAnswers(prevAnswers => ({
-      ...prevAnswers,
-      [answerId]: {
-        ...prevAnswers[answerId],
-        likeCount: newLikeCount,
-      },
-    }));
+  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {   
+    setAnswers(prevAnswers => {      
+      const updatedAnswers = prevAnswers.map(answer => {
+        if (answer.id === answerId) {
+          return { ...answer, likeCount: newLikeCount };
+        }
+        return answer;
+      });
+      return updatedAnswers;
+    });
 
     logEvent('like_answer', 'Engagement', answerId);
   };
@@ -280,11 +284,7 @@ const AllAnswers = () => {
         if (!response.ok) {
           throw new Error('Failed to delete answer (' + responseData.message + ')');
         }
-        setAnswers(prevAnswers => {
-          const updatedAnswers = { ...prevAnswers };
-          delete updatedAnswers[answerId];
-          return updatedAnswers;
-        });
+        setAnswers(prevAnswers => prevAnswers.filter(answer => answer.id !== answerId));
         logEvent('delete_answer', 'Admin', answerId);
       } catch (error) {
         console.error('Error deleting answer:', error);
@@ -296,7 +296,7 @@ const AllAnswers = () => {
   const handleSortChange = (newSortBy: string) => {
     if (newSortBy !== sortBy) {
       scrollToTop(); // Scroll to top immediately
-      setAnswers({});
+      setAnswers([]);
       setCurrentPage(1);
       setTotalPages(1);
       setSortBy(newSortBy);
@@ -315,6 +315,10 @@ const AllAnswers = () => {
   };
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
+    if (!question) {
+      console.error('renderTruncatedQuestion called with undefined question');
+      return null;
+    }
     const truncated = question.slice(0, maxLength);
     return truncated.split('\n').map((line, i, arr) => (
       <React.Fragment key={i}>
@@ -355,7 +359,7 @@ const AllAnswers = () => {
   const handlePageChange = (newPage: number) => {
     scrollToTop(); // Scroll to top immediately
     setIsChangingPage(true);
-    setAnswers({}); // Clear answers immediately
+    setAnswers([]); // Clear answers immediately
     setCurrentPage(newPage);
     sessionStorage.removeItem('answersScrollPosition');
     updateUrl(newPage, sortBy);
@@ -408,7 +412,7 @@ const AllAnswers = () => {
         ) : (
           <div key={`${currentPage}-${sortBy}`}>
             <div>
-              {Object.values(answers).map((answer, index) => (
+              {answers.map((answer, index) => (
                 <div key={answer.id} className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow">
                   <div className="flex items-start">
                     <span className="material-icons mt-1 mr-2 flex-shrink-0">question_answer</span>
@@ -464,11 +468,11 @@ const AllAnswers = () => {
                           collectionName={answer.collection}
                         />
                       )}
-                      {answer.relatedQuestionsV2 && answer.relatedQuestionsV2.length > 0 && (
+                      {answer.relatedQuestionsV2 && answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD).length > 0 && (
                         <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
                           <h3 className="text-lg !font-bold mb-2">Related Questions</h3>
                           <ul className="list-disc pl-2">
-                            {answer.relatedQuestionsV2.map((relatedQuestion) => (
+                            {answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD).map((relatedQuestion) => (
                               <li key={relatedQuestion.id} className="ml-0">
                                 <a
                                   href={`/answers/${relatedQuestion.id}`}
@@ -498,7 +502,6 @@ const AllAnswers = () => {
                         </button>
                         <div className="ml-2 sm:ml-4">
                           <LikeButton
-                            key={`${answer.id}-${likeStatuses[answer.id]}`}
                             answerId={answer.id}
                             initialLiked={likeStatuses[answer.id] || false}
                             likeCount={answer.likeCount}
@@ -529,7 +532,7 @@ const AllAnswers = () => {
             </div>
             
             {/* Only render pagination controls when answers are loaded */}
-            {Object.keys(answers).length > 0 && (
+            {answers.length > 0 && (
               <div className="flex justify-center mt-4">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}

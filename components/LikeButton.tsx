@@ -49,7 +49,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ answerId, initialLiked, likeCou
       onLikeCountChange(answerId, newLikedState ? likes + 1 : likes - 1);
 
     } catch (error) {
-      console.error('Like error:', error);
+      console.error('LikeButton: Like error:', error);
       setIsLiked(!newLikedState);
       // TODO: Optionally handle the error state in the UI, e.g., with a toast notification
     }
