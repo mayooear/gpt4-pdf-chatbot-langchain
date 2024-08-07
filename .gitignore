@@ -1,18 +1,18 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# ananda specific
-/docs/
-/docs-anandaLib/
-/docs-jram/
-/docs-*/
+# data ingestion specific
+/data-ingestion/docs/
+/data-ingestion/docs-*/
+/data-ingestion/media/
+/data-ingestion/ingestion_checkpoint.json
+/data-ingestion/scripts/queue/
+/data-ingestion/scripts/queue-*/
+/data-ingestion/scripts/data/
+*.mp3
+
+# firestore
 /*-debug.log
 /emulator-data/
-/media/
-/ingestion_checkpoint.json
-/scripts/queue/
-/scripts/queue-*/
-/scripts/data/
-*.mp3
 
 # IDE
 /.idea/

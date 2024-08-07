@@ -99,11 +99,11 @@ pyenv local ananda-library-chatbot
 
 First, you need to import a MySQL data dump from wordpress into local MySQL (or set up access to the DB).
 
-Second, you run *python db-to-pdfs.py* from the ananda-doc-gen/ directory to generate PDF files.
+Second, you run *python data-ingestion/ananda-doc-gen/db-to-pdfs.py* from the `data-ingestion/ananda-doc-gen/` directory to generate PDF files.
 
-Third, you optionally run *python filter-pdfs-to-new-dir.py* from same dir to get just a subset of the PDF’s, e.g., just swami and master.
+Third, you optionally run *python data-ingestion/ananda-doc-gen/filter-pdfs-to-new-dir.py* from the same directory to get just a subset of the PDFs, e.g., just swami and master.
 
-Fourth, put the file set you want in doc/ and make sure pinecone index is empty.
+Fourth, put the file set you want in `doc/` and make sure the Pinecone index is empty.
 
 ## Convert your PDF files to embeddings
 
@@ -120,9 +120,9 @@ yarn run ingest -- --dryrun
 
 ## Transcribe MP3 files and YouTube videos and convert to embeddings
 
-Put your MP3 files in audio/media, in subfolders. Create a list of YouTube videos or playlists.
+Put your MP3 files in `data-ingestion/media/`, in subfolders. Create a list of YouTube videos or playlists.
 
-Run `python scripts/transcribe-and-ingest-audio.py` to transcribe and embed your audio files and YouTube videos!
+Run `python data-ingestion/scripts/transcribe-and-ingest-media.py` to transcribe and embed your audio files and YouTube videos!
 
 ## Run the app
 
