@@ -40,6 +40,16 @@ function MyApp({ Component, pageProps }: AppProps) {
     };
   }, [router]);
 
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      console.log('Fetch request:', args);
+      console.log('Fetch response:', response);
+      return response;
+    };
+  }, []);
+
   return (
     <AudioProvider>
       <main className={inter.variable}>
