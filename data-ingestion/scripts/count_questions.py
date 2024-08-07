@@ -9,7 +9,7 @@ import json
 
 # Determine the directory of the script
 script_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(script_dir, '../.env')
+env_path = os.path.join(script_dir, '../../.env')
 
 # Load environment variables from .env file
 load_dotenv(env_path)

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    load_dotenv("../.env")
+    load_dotenv("../../.env")
 
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INGEST_INDEX_NAME")

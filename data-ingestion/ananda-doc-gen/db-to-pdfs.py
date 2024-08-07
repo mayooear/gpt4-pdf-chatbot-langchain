@@ -2,9 +2,8 @@ import os
 import shutil
 import requests
 from fpdf import FPDF
-import mysql.connector
+import pymysql
 from bs4 import BeautifulSoup
-from mysql.connector import errors
 import time
 import sys
 from dotenv import load_dotenv
@@ -35,8 +34,8 @@ unicode_font_path = '/System/Library/Fonts/Supplemental/Times New Roman.ttf'
 # Function to establish a new database connection
 def get_db_connection(db_config):
     try:
-        return mysql.connector.connect(**db_config)
-    except mysql.connector.Error as err:
+        return pymysql.connect(**db_config)
+    except pymysql.MySQLError as err:
         print(f"Error connecting to MySQL: {err}")
         return None
 
@@ -106,8 +105,8 @@ def get_data_from_wp(post_id, db, cursor):
             print(f"Attempt {attempt + 1}: Request failed: {e}")
             time.sleep(retry_delay)
             retry_delay *= 2
-        except mysql.connector.errors.DataError as e:
-            print(f"DataError encountered: {e}")
+        except pymysql.MySQLError as e:
+            print(f"MySQL Error encountered: {e}")
             sys.exit(1)
 
     print(f"Failed to retrieve data for post_id {post_id} after {max_retries} attempts.")
@@ -261,7 +260,7 @@ while attempt < max_retries:
         # After processing all rows without an error, break out of the while loop
         break
 
-    except mysql.connector.errors.OperationalError as e:
+    except pymysql.MySQLError as e:
         print(f"Error: {e}. Retrying...")
         attempt += 1
         time.sleep(2 ** attempt) 
