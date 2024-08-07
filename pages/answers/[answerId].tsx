@@ -93,10 +93,6 @@ const SingleAnswer = () => {
       const SIMILARITY_THRESHOLD = 0.15;
       const filteredQuestions = answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD);
       setRelatedQuestions(filteredQuestions);
-      console.log("Related Q's:");
-      filteredQuestions.forEach(q => {
-        console.log(`(${q.similarity.toFixed(2)}) ${q.title}`);
-      });
     }
   }, [answer]);
 
@@ -156,7 +152,7 @@ const SingleAnswer = () => {
         <title>Ask Ananda Library: {answer.question.substring(0, 150)}</title>
       </Head>
       <div className="flex justify-between items-center mb-4">
-        <button onClick={() => router.push('/answers')} className="text-blue-600 hover:underline">
+        <button onClick={() => window.history.back()} className="text-blue-600 hover:underline">
           &larr; Back to All Answers
         </button>
       </div>
