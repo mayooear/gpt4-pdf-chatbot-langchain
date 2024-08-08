@@ -4,7 +4,7 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
-from openai import OpenAI, AuthenticationError
+from openai import OpenAI
 from tqdm import tqdm
 from media_utils import get_media_metadata, print_chunk_statistics
 from logging_utils import configure_logging
@@ -15,7 +15,6 @@ from transcription_utils import (
     chunk_transcription,
     get_saved_transcription,
     load_youtube_data_map,
-    save_youtube_data_map,
     save_youtube_transcription,
 )
 from pinecone_utils import (
@@ -29,7 +28,6 @@ from youtube_utils import download_youtube_audio, extract_youtube_id
 from multiprocessing import Pool, cpu_count, Queue, Event
 import atexit
 import signal
-from functools import partial
 from processing_time_estimates import save_estimate
 import time
 from queue import Empty  
@@ -178,6 +176,7 @@ def process_file(
 
 
 def worker(task_queue, result_queue, args, stop_event):
+    configure_logging(args.debug) 
     client = OpenAI()
     index = load_pinecone()
     
@@ -374,6 +373,8 @@ def main():
 
     initialize_environment(args)
     queue = IngestQueue()
+
+    logger.info(f"Target pinecone collection: {os.environ.get('PINECONE_INGEST_INDEX_NAME')}")
 
     if args.clear_vectors:
         try:
