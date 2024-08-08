@@ -24,11 +24,9 @@ export async function getAnswersByIds(ids: string[]): Promise<any[]> {
           delete data.related_questions;
         }
 
-        console.log(`Title: ${data.question}`);
-        console.log('Related Questions:', relatedQuestions);
-        console.log('Doc data:', data);
         answers.push({ id: doc.id, ...data, relatedQuestionsV2: relatedQuestions });
       });
+
     } catch (error) {
       console.error('Error fetching chunk: ', error);
       throw error; // Rethrow the error to be caught in the handler
@@ -70,7 +68,6 @@ export async function getTotalDocuments(): Promise<number> {
   // Try to get the count from cache
   const cachedCount = await getFromCache<string>(cacheKey);
   if (cachedCount !== null) {
-    console.log(`Cached count of answers: ${cachedCount}`);
     return parseInt(cachedCount, 10);
   }
 
@@ -83,8 +80,6 @@ export async function getTotalDocuments(): Promise<number> {
   for await (const _ of stream) {
     count++;
   }
-
-  console.log(`Count of answers: ${count}`);
 
   // Cache the result
   await setInCache(cacheKey, count.toString(), CACHE_EXPIRATION);
