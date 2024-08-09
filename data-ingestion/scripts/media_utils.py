@@ -119,7 +119,6 @@ def split_audio(
         changes_made = False
         i = 0
         while i < len(combined_chunks):
-            logger.debug(f"Processing chunk {i+1}/{len(combined_chunks)}")
             if len(combined_chunks[i].raw_data) < max_chunk_size / 4:
                 logger.debug(f"Chunk {i+1} is smaller than the threshold. Attempting to combine.")
                 if i > 0:  # Prefer combining with the previous chunk
@@ -143,7 +142,6 @@ def split_audio(
                 else:
                     i += 1
             else:
-                logger.debug(f"Chunk {i+1} is larger than the threshold. Moving to the next chunk.")
                 i += 1
         iteration_count += 1
 
@@ -160,10 +158,6 @@ def split_audio(
             final_chunks.extend(sub_chunks)
         else:
             final_chunks.append(chunk)
-
-    logger.debug("split_audio - List of chunk sizes:")
-    for i, chunk in enumerate(final_chunks):
-        logger.debug(f"Chunk {i+1} size: {len(chunk.raw_data)} bytes")
 
     return final_chunks
 
