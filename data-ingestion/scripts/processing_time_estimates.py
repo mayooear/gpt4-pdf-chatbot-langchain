@@ -38,7 +38,12 @@ def load_estimates():
 
 def save_estimate(item_type, processing_time, file_size):
     estimates = load_estimates()
-    if estimates[item_type] is None:
+    
+    # Check if item_type exists in estimates, if not initialize it
+    if item_type not in estimates:
+        estimates[item_type] = {"time": None, "size": None}
+    
+    if estimates[item_type]["time"] is None:
         estimates[item_type] = {"time": processing_time, "size": file_size}
     else:
         avg_time = estimates[item_type]["time"]
