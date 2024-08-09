@@ -22,21 +22,21 @@ def load_pinecone(index_name=None):
     if not index_name:
         index_name = os.getenv("PINECONE_INGEST_INDEX_NAME")
     pc = Pinecone()
-    if index_name not in pc.list_indexes().names():
-        logger.info(f"Creating pinecone index {index_name}")
-        try:
-            pc.create_index(
-                index_name,
-                dimension=1536,
-                metric="cosine",
-                spec=ServerlessSpec(cloud="aws", region="us-west-2"),
-            )
-        except PineconeException as e:
-            if e.status_code == 409:
-                logger.warning(f"Index {index_name} already exists. Proceeding with existing index.")
-            else:
-                logger.error(f"Failed to create index {index_name}: {e}")
-                raise
+    try:
+        pc.create_index(
+            index_name,
+            dimension=1536,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region="us-west-2"),
+        )
+    except PineconeException as e:
+        if e.status == 409:
+            logger.info(f"Index {index_name} already exists. Proceeding with existing index.")
+        elif e.status == 500:
+            logger.error("Internal Server Error. Please try again later.")
+        else:
+            logger.error(f"Unexpected error: {e}")
+            raise
     return pc.Index(index_name)
 
 
@@ -45,7 +45,7 @@ def store_in_pinecone(
     chunks,
     embeddings,
     file_path,
-    author,
+    default_author,
     library_name,
     is_youtube_video,
     youtube_id=None,
@@ -66,17 +66,33 @@ def store_in_pinecone(
         
         chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{sanitized_title}||{content_hash}||chunk{i+1}"
 
+        # Remove the 'words' array from the chunk metadata
+        chunk_metadata = {k: v for k, v in chunk.items() if k != "words"}
+
+        # Calculate the duration of the chunk
+        duration = chunk["end"] - chunk["start"]
+
+        # Prioritize author from MP3 metadata over command line parameter
+        if not is_youtube_video and file_path:
+            _, mp3_author, _, _ = get_media_metadata(file_path)
+            author = mp3_author if mp3_author != "Unknown" else default_author
+        else:
+            author = default_author
+
         metadata = {
             "text": chunk["text"],
             "start_time": chunk["start"],
             "end_time": chunk["end"],
-            "full_info": json.dumps(chunk),
+            "duration": round(duration, 1), 
             "library": library_name,
             "author": author,
             "type": "youtube" if is_youtube_video else "audio",
             "title": title,
-            "filename": "" if not file_path else os.path.basename(file_path),
         }
+
+        # Only add the filename field if it's not a YouTube video
+        if not is_youtube_video and file_path:
+            metadata["filename"] = os.path.basename(file_path)
 
         # Only add the url field if it's not None
         if url is not None:

@@ -13,8 +13,8 @@ import { Document } from 'langchain/document';
 import pMap from 'p-map';
 import path from 'path';
 
-const CHECKPOINT_FILE = 'text_ingestion_checkpoint.json';
-const filePath = process.env.PDF_DIRECTORY || './docs';
+const CHECKPOINT_FILE = './data-ingestion/text_ingestion_checkpoint.json';
+const filePath = process.env.PDF_DIRECTORY || './data-ingestion/docs';
 
 /**
  * Creates a unique signature for the folder based on PDF file names and modification times.

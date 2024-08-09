@@ -30,7 +30,7 @@
             "name": "Python: update_related_answers.py",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/update_related_answers.py",
+            "program": "${workspaceFolder}/data-ingestion/scripts/update_related_answers.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": ["-e", "dev"]
@@ -39,12 +39,13 @@
             "name": "Python: transcribe-and-ingest-media.py",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/transcribe-and-ingest-media.py",
-            "cwd": "${workspaceFolder}/scripts",
+            "program": "${workspaceFolder}/data-ingestion/scripts/transcribe-and-ingest-media.py",
+            "cwd": "${workspaceFolder}/data-ingestion/scripts",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
-            }
+            },
+            "args": ["--debug"]
         }
     ]
 }

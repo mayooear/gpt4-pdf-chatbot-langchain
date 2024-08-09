@@ -17,6 +17,13 @@ def configure_logging(debug=False):
         "urllib3",
         "s3transfer",
         "subprocess",
+        "libavcodec",
+        "libavformat",
+        "libavdevice",
+        "libavfilter",
+        "libswscale",
+        "libswresample",
+        "libpostproc",
     ]
     for logger_name in loggers_to_adjust:
         logging.getLogger(logger_name).setLevel(

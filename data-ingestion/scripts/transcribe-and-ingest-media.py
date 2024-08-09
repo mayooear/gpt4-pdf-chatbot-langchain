@@ -53,13 +53,13 @@ def process_file(
     client,
     force,
     dryrun,
-    author,
+    default_author,
     library_name,
     is_youtube_video=False,
     youtube_data=None,
 ):
     logger.debug(
-        f"process_file called with params: file_path={file_path}, index={index}, client={client}, force={force}, dryrun={dryrun}, author={author}, library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}"
+        f"process_file called with params: file_path={file_path}, index={index}, client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}"
     )
 
     local_report = {
@@ -138,7 +138,7 @@ def process_file(
                     chunks,
                     embeddings,
                     file_path,
-                    author,
+                    default_author,
                     library_name,
                     is_youtube_video,
                     youtube_id,
@@ -188,12 +188,18 @@ def worker(task_queue, result_queue, args, stop_event):
             
             logging.debug(f"Worker processing item: {item}")
             item_id, report = process_item(item, args, client, index)
+            logging.debug(f"Worker processed item: {item_id}, report: {report}")
             result_queue.put((item_id, report))
         except Empty:
             continue
         except Exception as e:
             logging.error(f"Worker error: {str(e)}")
-            result_queue.put((None, {"errors": 1, "error_details": [str(e)]}))
+            logging.exception("Full traceback:")
+            # Ensure the item ID is included in the error report
+            if 'item' in locals():
+                result_queue.put((item["id"], {"errors": 1, "error_details": [str(e)]}))
+            else:
+                result_queue.put((None, {"errors": 1, "error_details": [str(e)]}))
 
 
 def process_item(item, args, client, index):
@@ -201,8 +207,6 @@ def process_item(item, args, client, index):
     # Ensure logging is configured for this process
     configure_logging(args.debug)
     logger = logging.getLogger(__name__)
-    logger.debug(f"Processing item: {item}")
-
     logger.debug(f"Processing item: {item}")
 
     error_report = {
@@ -237,8 +241,6 @@ def process_item(item, args, client, index):
 
     author = item["data"]["author"]
     library = item["data"]["library"]
-    logger.debug(f"Author: {author}")
-    logger.debug(f"Library: {library}")
 
     start_time = time.time()
     report = process_file(
@@ -247,7 +249,7 @@ def process_item(item, args, client, index):
         client,
         args.force,
         dryrun=args.dryrun,
-        author=author,
+        default_author=author,
         library_name=library,
         is_youtube_video=is_youtube_video,
         youtube_data=youtube_data,
@@ -372,9 +374,13 @@ def main():
     args = parser.parse_args()
 
     initialize_environment(args)
-    queue = IngestQueue()
+    ingest_queue = IngestQueue()
 
     logger.info(f"Target pinecone collection: {os.environ.get('PINECONE_INGEST_INDEX_NAME')}")
+    user_input = input("Is it OK to proceed? (yes/no): ")
+    if user_input.lower() not in ['yes', 'y']:
+        logger.info("Operation aborted by the user.")
+        sys.exit(0)
 
     if args.clear_vectors:
         try:
@@ -412,7 +418,7 @@ def main():
             pool.close()
             pool.join()
             for item in items_to_process:
-                queue.update_item_status(item["id"], "interrupted")
+                ingest_queue.update_item_status(item["id"], "interrupted")
             print_report(overall_report)
             reset_terminal()
             sys.exit(0)
@@ -426,7 +432,7 @@ def main():
         try:
             # Initially fill the task queue with the number of processes
             for _ in range(num_processes):
-                item = queue.get_next_item()
+                item = ingest_queue.get_next_item()
                 if not item:
                     break
                 task_queue.put(item)
@@ -438,14 +444,14 @@ def main():
                     try:
                         item_id, report = result_queue.get(timeout=120)
                         if item_id is not None:
-                            queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
+                            ingest_queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
                             items_to_process = [item for item in items_to_process if item["id"] != item_id]  # Remove processed item
                         overall_report = merge_reports([overall_report, report])
                         items_processed += 1
                         pbar.update(1)
 
                         # Fetch and add a new item to the task queue
-                        item = queue.get_next_item()
+                        item = ingest_queue.get_next_item()
                         if item:
                             task_queue.put(item)
                             items_to_process.append(item)  # Track the new item being processed
@@ -461,7 +467,7 @@ def main():
     print("\nOverall Processing Report:")
     print_report(overall_report)
 
-    queue_status = queue.get_queue_status()
+    queue_status = ingest_queue.get_queue_status()
     logging.info(f"Final queue status: {queue_status}")
 
     # Explicitly reset the terminal state

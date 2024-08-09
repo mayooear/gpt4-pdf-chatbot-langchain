@@ -43,12 +43,12 @@ def get_unique_files(directory_path):
     return list(unique_files.values())
 
 
-def process_audio_input(input_path, queue, author, library):
+def process_audio_input(input_path, queue, default_author, library):
     if os.path.isfile(input_path):
         if input_path.lower().endswith((".mp3", ".wav", ".flac")):
             item_id = queue.add_item(
                 "audio_file",
-                {"file_path": input_path, "author": author, "library": library},
+                {"file_path": input_path, "author": default_author, "library": library},
             )
             if item_id:
                 logger.info(f"Added audio file to queue: {item_id} - {input_path}")
@@ -60,13 +60,13 @@ def process_audio_input(input_path, queue, author, library):
             logger.error(f"Unsupported file type: {input_path}")
             return []
     elif os.path.isdir(input_path):
-        return process_directory(input_path, queue, author, library)
+        return process_directory(input_path, queue, default_author, library)
     else:
         logger.error(f"Invalid input path: {input_path}")
         return []
 
 
-def process_directory(directory_path, queue, author, library):
+def process_directory(directory_path, queue, default_author, library):
     unique_files = get_unique_files(directory_path)
     added_items = []
 
@@ -74,7 +74,7 @@ def process_directory(directory_path, queue, author, library):
     for file_path in tqdm(unique_files, desc="Processing unique files"):
         item_id = queue.add_item(
             "audio_file",
-            {"file_path": file_path, "author": author, "library": library},
+            {"file_path": file_path, "author": default_author, "library": library},
         )
         if item_id:
             added_items.append(item_id)
@@ -84,7 +84,7 @@ def process_directory(directory_path, queue, author, library):
     return added_items
 
 
-def add_to_queue(args, queue):
+def add_to_queue(args, queue, source=None):
     if args.video:
         youtube_id = extract_youtube_id(args.video)
         if youtube_id:
@@ -93,8 +93,9 @@ def add_to_queue(args, queue):
                 {
                     "url": args.video,
                     "youtube_id": youtube_id,
-                    "author": args.author,
+                    "author": args.default_author,
                     "library": args.library,
+                    "source": source,
                 },
             )
             if item_id:
@@ -113,8 +114,9 @@ def add_to_queue(args, queue):
                 {
                     "url": video["url"],
                     "youtube_id": video["youtube_id"],
-                    "author": args.author,
+                    "author": args.default_author,
                     "library": args.library,
+                    "source": args.playlist,
                 },
             )
             if item_id:
@@ -124,7 +126,7 @@ def add_to_queue(args, queue):
 
     elif args.audio or args.directory:
         input_path = args.audio or args.directory
-        added_items = process_audio_input(input_path, queue, args.author, args.library)
+        added_items = process_audio_input(input_path, queue, args.default_author, args.library)
         if added_items:
             logger.info(f"Added {len(added_items)} audio file(s) to queue")
         else:
@@ -265,7 +267,7 @@ def process_playlists_file(args, queue):
     processed_playlists = 0
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        title, author, library, playlist_url = row
+        title, default_author, library, playlist_url = row
         videos = get_playlist_videos(playlist_url)
         processed_playlists += 1
         
@@ -279,10 +281,10 @@ def process_playlists_file(args, queue):
     for video in unique_videos:
         # Modify args for each video
         args.video = video['url']
-        args.author = author
+        args.default_author = default_author
         args.library = library
         
-        add_to_queue(args, queue)
+        add_to_queue(args, queue, source=playlist_url)
 
     logger.info(f"Processed {processed_playlists} playlists")
     logger.info(f"Total videos found: {len(all_videos)}")
@@ -318,7 +320,7 @@ def main():
     parser.add_argument("--playlist", help="YouTube playlist URL")
     parser.add_argument("--audio", help="Path to audio file")
     parser.add_argument("--directory", help="Path to directory containing audio files")
-    parser.add_argument("--author", help="Author of the media")
+    parser.add_argument("--default-author", help="Default author of the media")
     parser.add_argument("--library", help="Name of the library")
     parser.add_argument(
         "--list", action="store_true", help="List all items in the processing queue"
@@ -384,8 +386,8 @@ def main():
     elif args.remove_completed:
         remove_completed_items(queue)
     elif any([args.video, args.playlist, args.audio, args.directory]):
-        if not args.author or not args.library:
-            logger.error("For adding items, you must specify both --author and --library")
+        if not args.default_author or not args.library:
+            logger.error("For adding items, you must specify both --default-author and --library")
             parser.print_help()
             return
         add_to_queue(args, queue)

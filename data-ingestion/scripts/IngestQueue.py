@@ -79,21 +79,19 @@ class IngestQueue:
 
     def update_item_status(self, item_id, status):
         filepath = os.path.join(self.queue_dir, f"{item_id}.json")
-        if os.path.exists(filepath):
-            try:
-                with open(filepath, "r") as f:
-                    item = json.load(f)
+        try:
+            with open(filepath, "r+") as f:
+                item = json.load(f)
                 item["status"] = status
                 item["updated_at"] = datetime.utcnow().isoformat()
-                with open(filepath, "w") as f:
-                    json.dump(item, f)
-                logger.info(f"Updated item status: {item_id} -> {status}")
-                return True
-            except IOError as e:
-                logger.error(f"Error updating item status: {e}")
-        else:
-            logger.warning(f"Item not found: {item_id}")
-        return False
+                f.seek(0)
+                json.dump(item, f)
+                f.truncate()
+                logger.info(f"Updated item {item_id} to status {status}")
+                return True 
+        except IOError as e:
+            logger.error(f"Error updating item {item_id}: {e}")
+            return False
 
     def remove_item(self, item_id):
         filepath = os.path.join(self.queue_dir, f"{item_id}.json")
@@ -179,7 +177,7 @@ class IngestQueue:
                 try:
                     with open(filepath, "r+") as f:
                         item = json.load(f)
-                        if item["status"] in status_list:
+                        if item["status"] in status_list and item["status"] != "pending":
                             item["status"] = "pending"
                             item["updated_at"] = datetime.utcnow().isoformat()
                             f.seek(0)

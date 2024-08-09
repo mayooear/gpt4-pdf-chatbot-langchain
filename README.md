@@ -109,7 +109,7 @@ Fourth, put the file set you want in `doc/` and make sure the Pinecone index is 
 
 This repo can load multiple PDF files.
 
-1. Inside `docs` folder, add your pdf files or folders that contain pdf files.
+1. Inside `data-ingestion/docs` folder, add your pdf files or folders that contain pdf files.
 
 1. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
