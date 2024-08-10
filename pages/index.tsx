@@ -299,7 +299,9 @@ export default function Home() {
                           </div>
                           {/* Action icons container */}
                           <div className="mt-4 flex gap-2">
-                            <CopyButton markdown={message.message} answerId={message.docId ?? ''} />
+                            {message.type === 'apiMessage' && message.docId && (
+                              <CopyButton markdown={message.message} answerId={message.docId ?? ''} />
+                            )}
                             {!privateSession && message.type === 'apiMessage' && message.docId && (
                               <>
                                 <button

@@ -15,7 +15,7 @@ export const useChat = (collection: string, history: [string, string][], private
   }>({
     messages: [
       {
-        message: 'Hi GuruBuddy! What would you like to learn about from the Ananda Library?',
+        message: 'Hi GuruBuddy! How can I help you on our path today?',
         type: 'apiMessage',
       },
     ],
