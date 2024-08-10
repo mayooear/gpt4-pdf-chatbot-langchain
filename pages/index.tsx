@@ -229,6 +229,16 @@ export default function Home() {
       <Layout>
         <LikePrompt show={showLikePrompt} />
         <div className={styles.main}>
+        {privateSession && (
+            <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
+              <span className="material-icons text-2xl mr-2">lock</span>
+              You are in a Private Session (<button
+                onClick={handlePrivateSessionChange}
+                className="underline hover:text-purple-900"
+              > end private session
+              </button> )
+            </div>
+          )}
           <div className={styles.cloud} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div ref={messageListRef} className={`${styles.messagelist} w-full overflow-y-auto`}>
               {messages.map((message, index) => {
@@ -288,36 +298,38 @@ export default function Home() {
                             </ReactMarkdown>
                           </div>
                           {/* Action icons container */}
-                          {message.type === 'apiMessage' && message.docId && (
-                            <div className="mt-4 flex gap-2">
-                              <CopyButton markdown={message.message} answerId={message.docId ?? ''} />
-                              <button
-                                onClick={() => handleCopyLink(message.docId ?? '')}
-                                className="text-black-600 hover:underline flex items-center"
-                                title="Copy link to clipboard"
-                              >
-                                <span className="material-icons">
-                                  {linkCopied === message.docId ? 'check' : 'link'}
-                                </span>
-                              </button>
-                              <LikeButton
-                                answerId={message.docId ?? ''}
-                                initialLiked={likeStatuses[message.docId ?? ''] || false}
-                                likeCount={0}
-                                onLikeCountChange={(answerId, newLikeCount) => handleLikeCountChange(answerId, newLikeCount > 0)}
-                                showLikeCount={false} 
-                              />
-                              <button
-                                onClick={() => handleVote(message.docId ?? '', false)}
-                                className={`${styles.voteButton} ${votes[message.docId ?? ''] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
-                                title="Downvote (private) for system training"
-                              >
-                                <span className="material-icons text-black">
-                                  {votes[message.docId ?? ''] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
-                                </span>
-                              </button>
-                            </div>
-                          )}
+                          <div className="mt-4 flex gap-2">
+                            <CopyButton markdown={message.message} answerId={message.docId ?? ''} />
+                            {!privateSession && message.type === 'apiMessage' && message.docId && (
+                              <>
+                                <button
+                                  onClick={() => handleCopyLink(message.docId ?? '')}
+                                  className="text-black-600 hover:underline flex items-center"
+                                  title="Copy link to clipboard"
+                                >
+                                  <span className="material-icons">
+                                    {linkCopied === message.docId ? 'check' : 'link'}
+                                  </span>
+                                </button>
+                                <LikeButton
+                                  answerId={message.docId ?? ''}
+                                  initialLiked={likeStatuses[message.docId ?? ''] || false}
+                                  likeCount={0}
+                                  onLikeCountChange={(answerId, newLikeCount) => handleLikeCountChange(answerId, newLikeCount > 0)}
+                                  showLikeCount={false} 
+                                />
+                                <button
+                                  onClick={() => handleVote(message.docId ?? '', false)}
+                                  className={`${styles.voteButton} ${votes[message.docId ?? ''] === -1 ? styles.voteButtonDownActive : ''} hover:bg-gray-200`}
+                                  title="Downvote (private) for system training"
+                                >
+                                  <span className="material-icons text-black">
+                                    {votes[message.docId ?? ''] === -1 ? 'thumb_down' : 'thumb_down_off_alt'}
+                                  </span>
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -348,6 +360,16 @@ export default function Home() {
               setIsControlsMenuOpen={setIsControlsMenuOpen}
             />
           </div>
+          {privateSession && (
+            <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
+              <span className="material-icons text-2xl mr-2">lock</span>
+              You are in a Private Session (<button
+                onClick={handlePrivateSessionChange}
+              className="underline hover:text-purple-900"
+            > end private session
+            </button> )
+          </div>
+        )}
         </div>
         {showShareDialog && (
           <div className={styles.shareDialogBackdrop}>

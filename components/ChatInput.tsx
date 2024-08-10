@@ -191,13 +191,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       <CollectionSelector onCollectionChange={handleCollectionChange} currentCollection={collection} />
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handlePrivateSessionChange}
-                    className={`${styles.privateButton} ${privateSession ? styles.buttonActive : ''} w-full sm:w-auto mt-2 sm:mt-1`}
-                  >
-                    {privateSession ? 'Reload Page to End Private Session' : 'Start Private Session'}
-                  </button>
+                  {!privateSession && (
+                    <button
+                      type="button"
+                      onClick={handlePrivateSessionChange}
+                      className="mt-2 px-2 py-1 text-xs sm:text-sm rounded w-1/2 sm:w-auto bg-purple-100 text-purple-800"
+                    >
+                      <span className="material-icons text-sm mr-1 align-middle">lock</span>
+                      <span className="align-middle">Start Private Session</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
