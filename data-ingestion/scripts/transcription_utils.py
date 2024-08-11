@@ -18,6 +18,7 @@ import logging
 from moviepy.editor import VideoFileClip
 from pydub import AudioSegment
 import re
+import signal
 
 logger = logging.getLogger(__name__)
 
@@ -363,6 +364,12 @@ def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):
     return chunks
 
 
+class TimeoutException(Exception):
+    pass
+
+def timeout_handler(signum, frame):
+    raise TimeoutException()
+
 def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
     chunks = []
@@ -370,76 +377,102 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     original_text = transcript["text"]
     total_words = len(words)
 
-    # Calculate the number of chunks needed
-    num_chunks = (total_words + target_chunk_size - 1) // target_chunk_size
+    logger.debug(f"Starting chunk_transcription with {total_words} words.")
 
-    # Adjust chunk size to ensure even distribution
-    adjusted_chunk_size = (total_words + num_chunks - 1) // num_chunks
+    if not words or not original_text.strip():
+        logger.warning("Transcription is empty or invalid.")
+        return chunks
 
-    i = 0
-    while i < total_words:
-        end_index = min(i + adjusted_chunk_size, total_words)
-        current_chunk = words[i:end_index]
-        if not current_chunk:
-            break
+    # Filter out music chunks
+    original_word_count = len(words)
+    words = [word for word in words if not re.match(r'^♪+$', word["word"])]
+    total_words = len(words)
+    if total_words != original_word_count:
+        logger.debug(f"Filtered out music chunks. Remaining words: {total_words}")
 
-        # Extract the corresponding text segment from the original text
-        start_time = current_chunk[0]["start"]
-        end_time = current_chunk[-1]["end"]
+    # Set a timeout for the function
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(60)  # Set timeout to 60 seconds
 
-        # Build a regex pattern to match the words in the current chunk
-        pattern = r'\b' + r'\W*'.join(re.escape(word["word"]) for word in current_chunk) + r'[\W]*'
-        match = re.search(pattern, original_text)
+    try:
+        # Calculate the number of chunks needed
+        num_chunks = (total_words + target_chunk_size - 1) // target_chunk_size
 
-        if match:
-            chunk_text = match.group(0)
-            # Ensure the chunk ends with punctuation if present
-            end_pos = match.end()
-            while end_pos < len(original_text) and re.match(r'\W', original_text[end_pos]):
-                end_pos += 1
-            chunk_text = original_text[match.start():end_pos]
-        else:
-            chunk_text = " ".join(word["word"] for word in current_chunk)
+        # Adjust chunk size to ensure even distribution
+        adjusted_chunk_size = (total_words + num_chunks - 1) // num_chunks
 
-        chunks.append(
-            {
-                "text": chunk_text,
-                "start": start_time,
-                "end": end_time,
-                "words": current_chunk,
-            }
-        )
+        i = 0
+        while i < total_words:
+            end_index = min(i + adjusted_chunk_size, total_words)
+            current_chunk = words[i:end_index]
+            if not current_chunk:
+                break
 
-        # Store the length of the current chunk
-        chunk_lengths.append(len(current_chunk))
+            # Extract the corresponding text segment from the original text
+            start_time = current_chunk[0]["start"]
+            end_time = current_chunk[-1]["end"]
 
-        i += adjusted_chunk_size - overlap
+            # Build a regex pattern to match the words in the current chunk
+            pattern = r'\b' + r'\W*'.join(re.escape(word["word"]) for word in current_chunk) + r'[\W]*'
 
-    min_chunk_size = target_chunk_size // 2
-    max_chunk_size = int(target_chunk_size * 1.2)
-    chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
+            match = re.search(pattern, original_text)
+            if match:
+                chunk_text = match.group(0)
+                # Ensure the chunk ends with punctuation if present
+                end_pos = match.end()
+                while end_pos < len(original_text) and re.match(r'\W', original_text[end_pos]):
+                    end_pos += 1
+                chunk_text = original_text[match.start():end_pos]
+            else:
+                chunk_text = " ".join(word["word"] for word in current_chunk)
 
-    chunks = split_large_chunks(chunks, target_chunk_size)
-
-    chunk_warning = False
-    for chunk in chunks:
-        if len(chunk["words"]) < 30:
-            logger.warning(
-                f"Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s"
+            chunks.append(
+                {
+                    "text": chunk_text,
+                    "start": start_time,
+                    "end": end_time,
+                    "words": current_chunk,
+                }
             )
-            logger.warning(
-                f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..."
-                + (" *****" if len(chunk["words"]) < 15 else "")
-            )
-            chunk_warning = True
 
-    if chunk_warning:
-        logger.warning("Full list of chunks:")
-        for idx, chunk in enumerate(chunks):
-            logger.warning(f"Chunk {idx + 1}:")
-            logger.warning(f"Text: {chunk['text']}")
-            logger.warning(f"Number of words: {len(chunk['words'])}")
-            logger.warning("\n")
+            # Store the length of the current chunk
+            chunk_lengths.append(len(current_chunk))
+
+            i += adjusted_chunk_size - overlap
+
+        min_chunk_size = target_chunk_size // 2
+        max_chunk_size = int(target_chunk_size * 1.2)
+        chunks = combine_small_chunks(chunks, min_chunk_size, max_chunk_size)
+
+        chunks = split_large_chunks(chunks, target_chunk_size)
+
+        chunk_warning = False
+        for chunk in chunks:
+            if len(chunk["words"]) < 30:
+                logger.warning(
+                    f"Chunk length is less than 30 words. Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s"
+                )
+                logger.warning(
+                    f"Transcription Chunk: Length = {len(chunk['words'])}, Start time = {chunk['start']:.2f}s, Word count = {len(chunk['words'])}, Text = {' '.join([word['word'] for word in chunk['words'][:5]])}..."
+                    + (" *****" if len(chunk["words"]) < 15 else "")
+                )
+                chunk_warning = True
+
+        if chunk_warning:
+            logger.warning("Full list of chunks:")
+            for idx, chunk in enumerate(chunks):
+                logger.warning(f"Chunk {idx + 1}:")
+                logger.warning(f"Text: {chunk['text']}")
+                logger.warning(f"Number of words: {len(chunk['words'])}")
+                logger.warning("\n")
+
+        logger.debug(f"Finished chunk_transcription with {len(chunks)} chunks.")
+
+    except TimeoutException:
+        logger.error("chunk_transcription timed out.")
+        return {"error": "chunk_transcription timed out."}
+    finally:
+        signal.alarm(0)  # Disable the alarm
 
     return chunks
 

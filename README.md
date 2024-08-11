@@ -122,7 +122,7 @@ yarn run ingest -- --dryrun
 
 Put your MP3 files in `data-ingestion/media/`, in subfolders. Create a list of YouTube videos or playlists.
 
-Run `python data-ingestion/scripts/transcribe-and-ingest-media.py` to transcribe and embed your audio files and YouTube videos!
+Run `python data-ingestion/scripts/transcribe_and_ingest_media.py` to transcribe and embed your audio files and YouTube videos!
 
 ## Run the app
 

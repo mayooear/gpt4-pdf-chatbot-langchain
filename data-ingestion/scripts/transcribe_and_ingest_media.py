@@ -117,6 +117,13 @@ def process_file(
 
         logger.info(f"Processing transcripts for {file_name}")
         chunks = chunk_transcription(transcription)
+        if isinstance(chunks, dict) and "error" in chunks:
+            error_msg = f"Error chunking transcription for {file_name}: {chunks['error']}"
+            logger.error(error_msg)
+            local_report["errors"] += 1
+            local_report["error_details"].append(error_msg)
+            return local_report
+
         local_report["chunk_lengths"].extend(
             [len(chunk["words"]) for chunk in chunks]
         )

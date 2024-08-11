@@ -36,10 +36,10 @@
             "args": ["-e", "dev"]
         },
         {
-            "name": "Python: transcribe-and-ingest-media.py",
+            "name": "Python: transcribe_and_ingest_media.py",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/data-ingestion/scripts/transcribe-and-ingest-media.py",
+            "program": "${workspaceFolder}/data-ingestion/scripts/transcribe_and_ingest_media.py",
             "cwd": "${workspaceFolder}/data-ingestion/scripts",
             "console": "integratedTerminal",
             "env": {

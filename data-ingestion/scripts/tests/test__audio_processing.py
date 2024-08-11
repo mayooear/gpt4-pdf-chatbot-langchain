@@ -16,7 +16,8 @@ from s3_utils import S3UploadError, upload_to_s3
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 
-from transcription_utils import transcribe_media, chunk_transcription
+from transcribe_and_ingest_media import process_file
+from transcription_utils import TimeoutException, transcribe_media, chunk_transcription
 from pinecone_utils import store_in_pinecone, load_pinecone, create_embeddings
 from s3_utils import upload_to_s3
 from media_utils import get_media_metadata
@@ -226,6 +227,40 @@ class TestAudioProcessing(unittest.TestCase):
             self.assertEqual(mock_s3.upload_file.call_count, 2)
 
         logger.debug("S3 upload RequestTimeTooSkewed test completed")
+
+    def test_chunk_transcription_timeout(self):
+        logger.debug("Starting chunk transcription timeout test")
+        
+        # Mock the signal.alarm to simulate a timeout
+        with patch('signal.alarm', side_effect=TimeoutException):
+            transcription = transcribe_media(self.trimmed_audio_path)
+            chunks = chunk_transcription(transcription)
+            self.assertIsInstance(chunks, dict)
+            self.assertIn("error", chunks)
+            self.assertEqual(chunks["error"], "chunk_transcription timed out.")
+        
+        logger.debug("Chunk transcription timeout test completed")
+
+    def test_process_file_chunk_transcription_timeout(self):
+        logger.debug("Starting process file chunk transcription timeout test")
+        
+        # Mock the chunk_transcription to simulate a timeout error
+        with patch('transcription_utils.chunk_transcription', return_value={"error": "chunk_transcription timed out."}):
+            report = process_file(
+                self.trimmed_audio_path,
+                MagicMock(),  # Mock index
+                self.client,
+                force=False,
+                dryrun=False,
+                default_author=self.author,
+                library_name=self.library,
+                is_youtube_video=False,
+                youtube_data=None,
+            )
+            self.assertEqual(report["errors"], 1)
+            self.assertIn("chunk_transcription timed out.", report["error_details"][0])
+        
+        logger.debug("Process file chunk transcription timeout test completed")
 
 
 if __name__ == "__main__":
