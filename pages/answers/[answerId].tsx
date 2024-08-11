@@ -30,7 +30,9 @@ const SingleAnswer = () => {
   const [notFound, setNotFound] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [relatedQuestions, setRelatedQuestions] = useState<RelatedQuestion[]>([]);
+  const [relatedQuestions, setRelatedQuestions] = useState<RelatedQuestion[]>(
+    [],
+  );
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     const truncated = question.slice(0, maxLength);
@@ -80,7 +82,7 @@ const SingleAnswer = () => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       const uuid = getOrCreateUUID();
       const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+      setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
     };
 
     if (answer) {
@@ -91,7 +93,9 @@ const SingleAnswer = () => {
   useEffect(() => {
     if (answer && answer.relatedQuestionsV2) {
       const SIMILARITY_THRESHOLD = 0.15;
-      const filteredQuestions = answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD);
+      const filteredQuestions = answer.relatedQuestionsV2.filter(
+        (q) => q.similarity >= SIMILARITY_THRESHOLD,
+      );
       setRelatedQuestions(filteredQuestions);
     }
   }, [answer]);
@@ -114,7 +118,9 @@ const SingleAnswer = () => {
         });
         const responseData = await response.json();
         if (!response.ok) {
-          throw new Error('Failed to delete answer (' + responseData.message + ')');
+          throw new Error(
+            'Failed to delete answer (' + responseData.message + ')',
+          );
         }
         router.push('/answers');
         logEvent('delete_answer', 'Admin', answerId);
@@ -151,11 +157,6 @@ const SingleAnswer = () => {
       <Head>
         <title>Ask Ananda Library: {answer.question.substring(0, 150)}</title>
       </Head>
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={() => window.history.back()} className="text-blue-600 hover:underline">
-          &larr; Back to All Answers
-        </button>
-      </div>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="bg-white p-2.5 m-2.5">
           <div className="flex items-center">
@@ -177,7 +178,7 @@ const SingleAnswer = () => {
                     </>
                   )}
                   {answer.question.length > 600 && !expanded && (
-                    <button 
+                    <button
                       onClick={() => setExpanded(true)}
                       className="text-black hover:underline ml-2"
                     >
@@ -187,32 +188,37 @@ const SingleAnswer = () => {
                 </b>
               </div>
               <div className="text-sm text-gray-500">
-                {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
+                {formatDistanceToNow(
+                  new Date(answer.timestamp._seconds * 1000),
+                  { addSuffix: true },
+                )}
                 <span className="ml-4">
-                  {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
-                </span>            
+                  {answer.collection
+                    ? collectionsConfig[
+                        answer.collection as keyof typeof collectionsConfig
+                      ].replace(/ /g, '\u00a0')
+                    : 'Unknown\u00a0Collection'}
+                </span>
               </div>
             </div>
           </div>
           <div className="bg-gray-100 p-2.5 rounded">
             <div className="markdownanswer">
-              <TruncatedMarkdown markdown={answer.answer} maxCharacters={4000} />
-              {answer.sources && (
-                <SourcesList sources={answer.sources} />
-              )}
+              <TruncatedMarkdown
+                markdown={answer.answer}
+                maxCharacters={4000}
+              />
+              {answer.sources && <SourcesList sources={answer.sources} />}
               <div className="flex items-center">
-                <CopyButton
-                  markdown={answer.answer}
-                  answerId={answer.id}
-                />
+                <CopyButton markdown={answer.answer} answerId={answer.id} />
                 <button
-                    onClick={handleCopyLink}
-                    className="ml-4 text-black-600 hover:underline flex items-center"
-                    title="Copy link to clipboard"
+                  onClick={handleCopyLink}
+                  className="ml-4 text-black-600 hover:underline flex items-center"
+                  title="Copy link to clipboard"
                 >
-                    <span className="material-icons">
-                      {linkCopied ? 'check' : 'link'}
-                    </span>
+                  <span className="material-icons">
+                    {linkCopied ? 'check' : 'link'}
+                  </span>
                 </button>
                 <div className="ml-4">
                   <LikeButton
@@ -225,15 +231,15 @@ const SingleAnswer = () => {
                 </div>
                 {isSudoUser && (
                   <>
-                    <button onClick={() => handleDelete(answer.id)} className="ml-4 text-red-600">
+                    <button
+                      onClick={() => handleDelete(answer.id)}
+                      className="ml-4 text-red-600"
+                    >
                       <span className="material-icons">delete</span>
                     </button>
                     <span className="ml-6">IP: ({answer.ip})</span>
                     {answer.vote === -1 && (
-                      <button
-                        className="ml-4 text-red-600"
-                        title="Downvote"
-                      >
+                      <button className="ml-4 text-red-600" title="Downvote">
                         <span className="material-icons">thumb_down</span>
                       </button>
                     )}
@@ -252,9 +258,17 @@ const SingleAnswer = () => {
                   <a
                     href={`/answers/${relatedQuestion.id}`}
                     className="text-blue-600 hover:underline"
-                    onClick={() => logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestion.id}, Title: ${relatedQuestion.title}`)}
+                    onClick={() =>
+                      logEvent(
+                        'click_related_question',
+                        'Engagement',
+                        `Related Question ID: ${relatedQuestion.id}, Title: ${relatedQuestion.title}`,
+                      )
+                    }
                   >
-                    {relatedQuestion.title.length > 150 ? `${relatedQuestion.title.slice(0, 150)}...` : relatedQuestion.title}
+                    {relatedQuestion.title.length > 150
+                      ? `${relatedQuestion.title.slice(0, 150)}...`
+                      : relatedQuestion.title}
                   </a>
                 </li>
               ))}
