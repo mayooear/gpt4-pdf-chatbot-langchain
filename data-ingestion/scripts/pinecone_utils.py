@@ -41,7 +41,7 @@ def load_pinecone(index_name=None):
 
 
 def store_in_pinecone(
-    index,
+    pinecone_index,
     chunks,
     embeddings,
     file_path,
@@ -53,6 +53,9 @@ def store_in_pinecone(
     url=None,
     interrupt_event=None,
 ):
+    # Ensure title is a string
+    title = title if title is not None else "Unknown Title"
+    
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         content_hash = hashlib.md5(chunk["text"].encode()).hexdigest()[:8]
@@ -106,7 +109,7 @@ def store_in_pinecone(
             return
         batch = vectors[i : i + 100]
         try:
-            index.upsert(vectors=batch)
+            pinecone_index.upsert(vectors=batch)
         except Exception as e:
             error_message = str(e)
             if "429" in error_message and "Too Many Requests" in error_message:

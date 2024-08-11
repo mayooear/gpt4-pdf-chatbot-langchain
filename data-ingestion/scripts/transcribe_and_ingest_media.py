@@ -49,7 +49,7 @@ atexit.register(reset_terminal)
 
 def process_file(
     file_path,
-    index,
+    pinecone_index,
     client,
     force,
     dryrun,
@@ -59,7 +59,7 @@ def process_file(
     youtube_data=None,
 ):
     logger.debug(
-        f"process_file called with params: file_path={file_path}, index={index}, client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}"
+        f"process_file called with params: file_path={file_path}, index={pinecone_index}, client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}"
     )
 
     local_report = {
@@ -141,7 +141,7 @@ def process_file(
                     title, _, duration, url = get_media_metadata(file_path)
                 
                 store_in_pinecone(
-                    index,
+                    pinecone_index,
                     chunks,
                     embeddings,
                     file_path,

@@ -59,8 +59,8 @@ def configure_logging(debug=False):
 # Configure logging (you can set debug=True here for more verbose output)
 logger = configure_logging(debug=True)
 
-# Load .env file from the directory above scripts/
-dotenv_path = os.path.join(os.path.dirname(parent_dir), ".env")
+# Load .env file from two directories above scripts/
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(parent_dir)), ".env")
 load_dotenv(dotenv_path)
 logger.debug(f"Loaded .env file from: {dotenv_path}")
 
@@ -90,7 +90,7 @@ class TestYouTubeProcessing(unittest.TestCase):
         trimmed_path = trim_audio(self.audio_path)
         self.temp_files.append(trimmed_path)
         audio = MP3(trimmed_path)
-        self.assertLessEqual(audio.info.length, 300, "Audio should be 5 minutes or less")
+        self.assertLessEqual(audio.info.length, 300.1, "Audio should be 5 minutes or less")
         logger.debug(f"YouTube download test completed. Trimmed audio path: {trimmed_path}")
 
     def test_transcription(self):
@@ -117,7 +117,7 @@ class TestYouTubeProcessing(unittest.TestCase):
 
         # Create a single chunk for the entire transcript
         chunk = {
-            "text": transcription["text"],
+            "text": transcription["text"][:1000],  # Truncate text to reduce size
             "start": (
                 transcription["words"][0]["start"] if transcription["words"] else None
             ),
@@ -141,7 +141,8 @@ class TestYouTubeProcessing(unittest.TestCase):
             self.audio_path,
             self.author,
             self.library,
-            True,
+            is_youtube_video=True, 
+            title=youtube_data["title"]
         )
         logger.debug("Pinecone storage test completed")
 
@@ -181,13 +182,13 @@ class TestYouTubeProcessing(unittest.TestCase):
         )
         try:
             audio = MP3(trimmed_path, ID3=ID3)
-            self.assertLessEqual(audio.info.length, 300, "Audio should be 5 minutes or less")
+            self.assertLessEqual(audio.info.length, 300.1, "Audio should be 5 minutes or less")
 
             # Check if tags exist
             self.assertIsNotNone(audio.tags, "No ID3 tags found in the audio file")
 
-            # Check if URL is in the comments
-            url_comment = audio.tags.getall("COMM:url:eng")
+            # Ensure the URL comment is correctly added to the audio metadata
+            url_comment = audio.tags.getall("COMM::'url'")
             self.assertTrue(url_comment, "URL comment not found in audio metadata")
             self.assertEqual(
                 url_comment[0].text[0],

@@ -107,7 +107,12 @@ class IngestQueue:
         return False
 
     def get_queue_status(self):
-        status_counts = {}
+        status_counts = {
+            "pending": 0,
+            "completed": 0,
+            "error": 0,
+            "total": 0
+        }
 
         for filename in os.listdir(self.queue_dir):
             if filename.endswith(".json"):
