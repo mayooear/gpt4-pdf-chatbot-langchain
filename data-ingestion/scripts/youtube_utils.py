@@ -118,6 +118,7 @@ def add_metadata_to_mp3(mp3_path: str, metadata: dict, url: str):
 
         audio.save()
         logger.info("Metadata added successfully to MP3.")
+        
     except Exception as e:
         logger.error(f"An error occurred while adding metadata to MP3: {e}")
 

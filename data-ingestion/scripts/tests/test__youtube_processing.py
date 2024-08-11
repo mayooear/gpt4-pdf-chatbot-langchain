@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 import random
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3
+from mutagen.id3 import ID3, COMM
 from IngestQueue import IngestQueue
 
 # Add the parent directory (scripts/) to the Python path
@@ -187,9 +187,16 @@ class TestYouTubeProcessing(unittest.TestCase):
             # Check if tags exist
             self.assertIsNotNone(audio.tags, "No ID3 tags found in the audio file")
 
-            # Ensure the URL comment is correctly added to the audio metadata
-            url_comment = audio.tags.getall("COMM::'url'")
-            self.assertTrue(url_comment, "URL comment not found in audio metadata")
+            # Retrieve all COMM frames and filter for the URL comment
+            comm_frames = audio.tags.getall("COMM")
+            url_comment = [frame for frame in comm_frames if frame.desc == 'url']
+            
+            self.assertGreater(len(url_comment), 0, f"URL comment not found. All COMM frames: {comm_frames}")
+            self.assertEqual(len(url_comment), 1, "Multiple URL comments found")
+            self.assertIsInstance(url_comment[0], COMM, "URL comment item should be a COMM object")
+            self.assertIsInstance(url_comment[0].text, list, "URL comment text should be a list")
+            self.assertGreater(len(url_comment[0].text), 0, "URL comment text should not be empty")
+            self.assertIsInstance(url_comment[0].text[0], str, "URL comment text should be a string")
             self.assertEqual(
                 url_comment[0].text[0],
                 self.test_video_url,
