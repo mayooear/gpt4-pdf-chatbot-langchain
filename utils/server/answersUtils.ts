@@ -2,7 +2,11 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
-import { getFromCache, setInCache, CACHE_EXPIRATION } from '@/utils/server/redisUtils';
+import {
+  getFromCache,
+  setInCache,
+  CACHE_EXPIRATION,
+} from '@/utils/server/redisUtils';
 
 export async function getAnswersByIds(ids: string[]): Promise<any[]> {
   const answers: any[] = [];
@@ -10,10 +14,11 @@ export async function getAnswersByIds(ids: string[]): Promise<any[]> {
   for (let i = 0; i < ids.length; i += chunkSize) {
     const chunk = ids.slice(i, i + chunkSize);
     try {
-      const snapshot = await db.collection(getChatLogsCollectionName())
-                               .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
-                               .get();
-      snapshot.forEach(doc => {
+      const snapshot = await db
+        .collection(getChatLogsCollectionName())
+        .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
+        .get();
+      snapshot.forEach((doc) => {
         const data = doc.data();
         data.sources = parseAndRemoveWordsFromSources(data.sources);
 
@@ -24,15 +29,18 @@ export async function getAnswersByIds(ids: string[]): Promise<any[]> {
           delete data.related_questions;
         }
 
-        answers.push({ id: doc.id, ...data, relatedQuestionsV2: relatedQuestions });
+        answers.push({
+          id: doc.id,
+          ...data,
+          relatedQuestionsV2: relatedQuestions,
+        });
       });
-
     } catch (error) {
       console.error('Error fetching chunk: ', error);
       throw error; // Rethrow the error to be caught in the handler
     }
   }
-  
+
   return answers;
 }
 
@@ -49,12 +57,20 @@ export function parseAndRemoveWordsFromSources(sources: any): any[] {
     parsedSources = sources;
   }
 
-  return parsedSources.map(({ metadata, ...sourceWithoutWords }: { metadata?: any, [key: string]: any }) => {
-    if (metadata && 'full_info' in metadata) {
-      delete metadata.full_info;
-    }
-    return { ...sourceWithoutWords, metadata };
-  });
+  return parsedSources.map(
+    ({
+      metadata,
+      ...sourceWithoutWords
+    }: {
+      metadata?: any;
+      [key: string]: any;
+    }) => {
+      if (metadata && 'full_info' in metadata) {
+        delete metadata.full_info;
+      }
+      return { ...sourceWithoutWords, metadata };
+    },
+  );
 }
 
 function getCacheKeyForDocumentCount(): string {
@@ -64,7 +80,7 @@ function getCacheKeyForDocumentCount(): string {
 
 export async function getTotalDocuments(): Promise<number> {
   const cacheKey = getCacheKeyForDocumentCount();
-  
+
   // Try to get the count from cache
   const cachedCount = await getFromCache<string>(cacheKey);
   if (cachedCount !== null) {
@@ -73,9 +89,7 @@ export async function getTotalDocuments(): Promise<number> {
 
   // If not in cache, count the documents
   let count = 0;
-  const stream = db.collection(getChatLogsCollectionName())
-    .where('question', '!=', 'private')
-    .stream();
+  const stream = db.collection(getChatLogsCollectionName()).stream();
 
   for await (const _ of stream) {
     count++;
