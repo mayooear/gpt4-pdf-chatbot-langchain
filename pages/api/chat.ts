@@ -6,7 +6,7 @@ import { makeChain, CollectionKey } from '@/utils/server/makechain';
 import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { PINECONE_INDEX_NAME } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
-import { db } from '@/services/firebase'; 
+import { db } from '@/services/firebase';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
 
@@ -16,14 +16,19 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const { collection, question, history, privateSession, mediaTypes } = req.body;
-  
+  const { collection, question, history, privateSession, mediaTypes } =
+    req.body;
+
   if (req.method == 'POST') {
-    if (typeof collection !== 'string' || !['master_swami', 'whole_library'].includes(collection)) {
+    if (
+      typeof collection !== 'string' ||
+      !['master_swami', 'whole_library'].includes(collection)
+    ) {
       return res.status(400).json({ error: 'Invalid collection provided' });
     }
 
-    let clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    let clientIP =
+      req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
     if (Array.isArray(clientIP)) {
       clientIP = clientIP[0];
     }
@@ -38,7 +43,7 @@ export default async function handler(
     // OpenAI recommends replacing newlines with spaces for best results
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
-    try {  
+    try {
       const pinecone = await getPineconeClient();
       const index = pinecone.Index(PINECONE_INDEX_NAME);
 
@@ -47,7 +52,9 @@ export default async function handler(
         author?: { $in: string[] };
       } = {
         type: { $in: [] },
-        ...(collection === 'master_swami' && { author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] } })
+        ...(collection === 'master_swami' && {
+          author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] },
+        }),
       };
 
       // require at least one media type to be selected or set all to true
@@ -83,12 +90,14 @@ export default async function handler(
           },
         ],
       });
-      
+
       const chain = makeChain(retriever, collection as CollectionKey);
 
       const pastMessages = history
         .map((message: [string, string]) => {
-          return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
+          return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join(
+            '\n',
+          );
         })
         .join('\n');
 
@@ -113,51 +122,55 @@ export default async function handler(
         console.log(sourceTitlesString);
       }
 
-      // Log the question and answer in Firestore, anonymize if private session
-      const chatLogRef = db.collection(getChatLogsCollectionName());
-      const logEntry = privateSession ? {
-        question: 'private',
-        answer: '(' + answerWordCount + " words)",
-        collection: collection,
-        sources: '',
-        history: [],
-        likeCount: 0,
-        ip: '',
-        timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-      } : {
-        question: originalQuestion, 
-        answer: response,
-        collection: collection,
-        sources: JSON.stringify(processedSourceDocuments),
-        likeCount: 0,
-        history: history.map((messagePair: [string, string]) => ({
-          question: messagePair[0],
-          answer: messagePair[1],
-        })),
-        ip: clientIP,
-        timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-      };
-      const docRef = await chatLogRef.add(logEntry);
-      const docId = docRef.id;
+      let docId: string | undefined;
 
-      // Call the updateRelatedQuestions function to update related questions
-      console.time('updateRelatedQuestions');
-      await updateRelatedQuestions(docId);
-      console.timeEnd('updateRelatedQuestions');
+      if (!privateSession) {
+        // Log the question and answer in Firestore only for non-private sessions
+        const chatLogRef = db.collection(getChatLogsCollectionName());
+        const logEntry = {
+          question: originalQuestion,
+          answer: response,
+          collection: collection,
+          sources: JSON.stringify(processedSourceDocuments),
+          likeCount: 0,
+          history: history.map((messagePair: [string, string]) => ({
+            question: messagePair[0],
+            answer: messagePair[1],
+          })),
+          ip: clientIP,
+          timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+        };
+        const docRef = await chatLogRef.add(logEntry);
+        docId = docRef.id;
 
-      res.status(200).json({ text: response, sourceDocuments: processedSourceDocuments, docId });
+        // Call the updateRelatedQuestions function to update related questions
+        console.time('updateRelatedQuestions');
+        await updateRelatedQuestions(docId);
+        console.timeEnd('updateRelatedQuestions');
+      }
 
+      res.status(200).json({
+        text: response,
+        sourceDocuments: processedSourceDocuments,
+        docId: docId,
+      });
     } catch (error: any) {
       console.log('error', error);
       if (error.message.includes('429')) {
-        console.log('First 10 chars of OPENAI_API_KEY:', process.env.OPENAI_API_KEY?.substring(0, 10));
-        return res.status(429).json({ error: 'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.' });
+        console.log(
+          'First 10 chars of OPENAI_API_KEY:',
+          process.env.OPENAI_API_KEY?.substring(0, 10),
+        );
+        return res
+          .status(429)
+          .json({
+            error:
+              'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.',
+          });
       }
       res.status(500).json({ error: error.message || 'Something went wrong' });
     }
-  }
-  else
-  {    
+  } else {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }

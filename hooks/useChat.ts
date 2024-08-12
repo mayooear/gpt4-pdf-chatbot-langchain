@@ -4,7 +4,12 @@ import { Document } from 'langchain/document';
 import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
 
-export const useChat = (collection: string, history: [string, string][], privateSession: boolean, mediaTypes: { text: boolean; audio: boolean }) => {
+export const useChat = (
+  collection: string,
+  history: [string, string][],
+  privateSession: boolean,
+  mediaTypes: { text: boolean; audio: boolean },
+) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [messageState, setMessageState] = useState<{
@@ -24,14 +29,14 @@ export const useChat = (collection: string, history: [string, string][], private
 
   const handleSubmit = async (e: React.FormEvent, query: string) => {
     e.preventDefault();
-    
+
     setError(null);
-  
+
     if (!query) {
       alert('Please input a question');
       return;
     }
-  
+
     setMessageState((state) => ({
       ...state,
       messages: [
@@ -43,7 +48,13 @@ export const useChat = (collection: string, history: [string, string][], private
       ],
     }));
 
+    // Log event for all questions
     logEvent('ask_question', 'Engagement', query);
+
+    // New: Log event specifically for private questions
+    if (privateSession) {
+      logEvent('submit_private_question', 'Engagement', '');
+    }
 
     setLoading(true);
     try {
@@ -70,8 +81,8 @@ export const useChat = (collection: string, history: [string, string][], private
           ...doc,
           metadata: {
             ...doc.metadata,
-            title: doc.metadata.title || 'Unknown source'
-          }
+            title: doc.metadata.title || 'Unknown source',
+          },
         }));
 
         setMessageState((state) => ({
@@ -93,7 +104,9 @@ export const useChat = (collection: string, history: [string, string][], private
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      setError('An error occurred while fetching the data. Please email Michael and let him know!');
+      setError(
+        'An error occurred while fetching the data. Please email Michael and let him know!',
+      );
       console.log('error', error);
     }
   };
