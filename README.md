@@ -4,7 +4,7 @@ Build a chatGPT chatbot for multiple Large PDF files, audio files, and YouTube
 videos. Optionally generate the PDF fileset from a Wordpress database.
 Transcribe mp3 files en masse. Download YouTube videos en masse and transcribe
 their audio. Allow users to share the best answers they get with each other
-through a social, sharing interface.
+through a social sharing interface.
 
 Audio and video results are shown inline with a player queued to the moment
 matched in the transcript.
