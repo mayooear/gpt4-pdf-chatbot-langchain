@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s -
 logger = logging.getLogger(__name__)
 
 def combine_hierarchies(input_dir, output_dir):
-    """Recursively combine the directory structures."""
+    """Recursively combine the directory structures, skipping the first level."""
     file_count = 0
     dir_count = 0
     warning_count = 0
@@ -38,43 +38,47 @@ def combine_hierarchies(input_dir, output_dir):
     warning_files = []
     error_files = []
 
-    # Count total files and directories
-    total_files = sum([len(files) for _, _, files in os.walk(input_dir)])
-    total_dirs = sum([len(dirs) for _, dirs, _ in os.walk(input_dir)])
+    # Count total files and directories, excluding the top level
+    total_items = sum([len(files) + len(dirs) for root, dirs, files in os.walk(input_dir) if root != input_dir])
 
-    with tqdm(total=total_files + total_dirs, desc="Combining hierarchies", unit="item") as pbar:
-        for root, dirs, files in os.walk(input_dir):
-            rel_path = os.path.relpath(root, input_dir)
-            target_dir = os.path.join(output_dir, rel_path)
+    with tqdm(total=total_items, desc="Combining hierarchies", unit="item") as pbar:
+        for top_dir in os.listdir(input_dir):
+            top_dir_path = os.path.join(input_dir, top_dir)
+            if not os.path.isdir(top_dir_path):
+                continue
 
-            if not os.path.exists(target_dir):
-                os.makedirs(target_dir)
-                dir_count += 1
-                pbar.update(1)
+            for root, dirs, files in os.walk(top_dir_path):
+                rel_path = os.path.relpath(root, top_dir_path)
+                target_dir = os.path.join(output_dir, rel_path)
 
-            for file in files:
-                source_path = os.path.join(root, file)
-                dest_path = os.path.join(target_dir, file)
-                
-                if os.path.exists(dest_path):
-                    base, ext = os.path.splitext(file)
-                    counter = 1
-                    while os.path.exists(dest_path):
-                        new_file = f"{base}_{counter}{ext}"
-                        dest_path = os.path.join(target_dir, new_file)
-                        counter += 1
-                    logger.warning(f"Renamed duplicate file: {file} -> {os.path.basename(dest_path)}")
-                    warning_count += 1
-                    warning_files.append(f"{file} (renamed to {os.path.basename(dest_path)})")
-
-                try:
-                    shutil.copy2(source_path, dest_path)
-                    file_count += 1
+                if not os.path.exists(target_dir):
+                    os.makedirs(target_dir)
+                    dir_count += 1
                     pbar.update(1)
-                except Exception as e:
-                    logger.error(f"Error copying file {source_path}: {e}")
-                    error_count += 1
-                    error_files.append(source_path)
+
+                for file in files:
+                    source_path = os.path.join(root, file)
+                    dest_path = os.path.join(target_dir, file)
+                    
+                    if os.path.exists(dest_path):
+                        base, ext = os.path.splitext(file)
+                        counter = 1
+                        while os.path.exists(dest_path):
+                            new_file = f"{base}_{counter}{ext}"
+                            dest_path = os.path.join(target_dir, new_file)
+                            counter += 1
+                        logger.warning(f"Renamed duplicate file: {file} -> {os.path.basename(dest_path)}")
+                        warning_count += 1
+                        warning_files.append(f"{file} (renamed to {os.path.basename(dest_path)})")
+
+                    try:
+                        shutil.copy2(source_path, dest_path)
+                        file_count += 1
+                        pbar.update(1)
+                    except Exception as e:
+                        logger.error(f"Error copying file {source_path}: {e}")
+                        error_count += 1
+                        error_files.append(source_path)
 
     return file_count, dir_count, warning_count, error_count, warning_files, error_files
 
