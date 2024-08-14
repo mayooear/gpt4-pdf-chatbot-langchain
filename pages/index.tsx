@@ -265,11 +265,8 @@ export default function Home() {
               )
             </div>
           )}
-          <div className="flex-grow overflow-hidden bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div
-              ref={messageListRef}
-              className="h-full overflow-y-auto p-4 space-y-4"
-            >
+          <div className="flex-grow overflow-hidden">
+            <div ref={messageListRef} className="h-full overflow-y-auto">
               {messages.map((message, index) => {
                 let icon;
                 let className;
@@ -305,11 +302,11 @@ export default function Home() {
                 return (
                   <Fragment key={`message-${index}`}>
                     {message.type === 'apiMessage' && index > 0 && (
-                      <hr className="my-4" />
+                      <hr className="border-t border-gray-200 mb-0" />
                     )}
                     <div
                       key={`chatMessage-${index}`}
-                      className={`${className} p-4 rounded-lg`}
+                      className={`${className} p-4`}
                       ref={
                         index === messages.length - 1 ? lastMessageRef : null
                       }
@@ -407,7 +404,7 @@ export default function Home() {
               })}
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 px-2 md:px-0">
             <ChatInput
               loading={loading}
               handleSubmit={handleSubmit}
