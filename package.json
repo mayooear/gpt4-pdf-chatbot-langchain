@@ -61,6 +61,7 @@
     "react-toastify": "^10.0.5",
     "rehype-stringify": "^10.0.0",
     "remark-gfm": "3.0.1",
+    "showdown": "^2.1.0",
     "tailwind-merge": "^1.10.0"
   },
   "devDependencies": {
@@ -76,6 +77,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/react-google-recaptcha": "^2.1.9",
+    "@types/showdown": "^2.0.6",
     "@typescript-eslint/parser": "^5.54.0",
     "autoprefixer": "^10.4.13",
     "eslint": "8.35.0",

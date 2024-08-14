@@ -1,6 +1,7 @@
 import React from 'react';
 import { copyTextToClipboard } from '../utils/client/clipboard';
 import { logEvent } from '@/utils/client/analytics';
+import { Converter } from 'showdown';
 
 interface CopyButtonProps {
   markdown: string;
@@ -10,8 +11,14 @@ interface CopyButtonProps {
 const CopyButton: React.FC<CopyButtonProps> = ({ markdown, answerId }) => {
   const [copied, setCopied] = React.useState(false);
 
+  const convertMarkdownToHtml = (markdown: string): string => {
+    const converter = new Converter();
+    return converter.makeHtml(markdown);
+  };
+
   const handleCopy = async () => {
-    await copyTextToClipboard(markdown);
+    const htmlContent = convertMarkdownToHtml(markdown);
+    await copyTextToClipboard(htmlContent, true);
     setCopied(true);
     setTimeout(() => setCopied(false), 1000);
 
@@ -32,6 +39,6 @@ const CopyButton: React.FC<CopyButtonProps> = ({ markdown, answerId }) => {
       )}
     </button>
   );
-}
+};
 
 export default CopyButton;
