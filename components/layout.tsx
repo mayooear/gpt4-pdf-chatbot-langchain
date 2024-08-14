@@ -33,10 +33,6 @@ export default function Layout({ children }: LayoutProps) {
     logEvent('click_back_to_library', 'Navigation', '');
   };
 
-  const handleHelp = () => {
-    logEvent('click_help', 'Navigation', '');
-  };
-
   return (
     <div className="mx-auto flex flex-col min-h-screen max-w-[800px]">
       <header className="sticky top-0 z-40 bg-white w-full">
@@ -69,13 +65,6 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </nav>
           <nav className="mr-4 pr-6 flex space-x-4">
-            <a
-              href="https://www.anandalibrary.org/content/ai-chatbot-intro/"
-              className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-              onClick={handleHelp}
-            >
-              Help
-            </a>
             {isLoggedIn ? (
               <a
                 href="#"
