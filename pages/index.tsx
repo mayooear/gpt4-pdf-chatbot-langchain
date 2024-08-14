@@ -336,11 +336,15 @@ export default function Home() {
                           </div>
                           {/* Action icons container */}
                           <div className="mt-4 flex items-center space-x-2">
-                            {message.type === 'apiMessage' && message.docId && (
-                              <CopyButton
-                                markdown={message.message}
-                                answerId={message.docId ?? ''}
-                              />
+                            {message.type === 'apiMessage' && index !== 0 && (
+                              <>
+                                <CopyButton
+                                  markdown={message.message}
+                                  answerId={message.docId ?? ''}
+                                  sources={message.sourceDocs}
+                                  question={messages[index - 1].message}
+                                />
+                              </>
                             )}
                             {!privateSession &&
                               message.type === 'apiMessage' &&

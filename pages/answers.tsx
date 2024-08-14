@@ -40,10 +40,12 @@ const AllAnswers = () => {
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
 
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(
+    new Set(),
+  );
 
   const handleExpandQuestion = (answerId: string) => {
-    setExpandedQuestions(prev => {
+    setExpandedQuestions((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(answerId)) {
         newSet.delete(answerId);
@@ -71,7 +73,7 @@ const AllAnswers = () => {
   // Add this useEffect to save scroll position periodically
   useEffect(() => {
     const intervalId = setInterval(saveScrollPosition, 1000);
-  
+
     return () => clearInterval(intervalId);
   }, []);
 
@@ -140,11 +142,11 @@ const AllAnswers = () => {
     if (router.isReady && debouncedFetchRef.current) {
       const pageFromUrl = Number(urlPage) || 1;
       const sortByFromUrl = (urlSortBy as string) || 'mostRecent';
-      
+
       setSortBy(sortByFromUrl);
       setCurrentPage(pageFromUrl);
       setIsSortByInitialized(true);
-      
+
       if (debouncedFetchRef.current) {
         debouncedFetchRef.current(pageFromUrl, sortByFromUrl);
       }
@@ -164,62 +166,72 @@ const AllAnswers = () => {
       }, 100); // Small delay to ensure content is rendered
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
-  
-  const fetchAnswers = useCallback(async (page: number, currentSortBy: string, isPageChange: boolean = false) => {
-    setIsLoading(true);
-    if (isPageChange) {
-      setIsChangingPage(true);
-      setAnswers([]); // Clear answers when changing page
-    }
-    setError(null);
-    setShowErrorPopup(false);
 
-    try {
-      const answersResponse = await fetch(`/api/answers?page=${page}&limit=10&sortBy=${currentSortBy}`, {
-        method: 'GET',
-      });
-      if (!answersResponse.ok) {
-        throw new Error(`HTTP error! status: ${answersResponse.status}`);
-      }
-      const data = await answersResponse.json();
-      setAnswers(data.answers);
-      setTotalPages(data.totalPages);
-      
-      // Scroll to top after new content is loaded, with a small delay
+  const fetchAnswers = useCallback(
+    async (
+      page: number,
+      currentSortBy: string,
+      isPageChange: boolean = false,
+    ) => {
+      setIsLoading(true);
       if (isPageChange) {
-        setTimeout(scrollToTop, 100);
+        setIsChangingPage(true);
+        setAnswers([]); // Clear answers when changing page
       }
-    } catch (error: any) {
-      console.error("Failed to fetch answers:", error);
-      if (error.message.includes('429')) {
-        setError('Quota exceeded. Please try again later.');
-      } else {
-        setError('Failed to fetch answers. Please try again.');
+      setError(null);
+      setShowErrorPopup(false);
+
+      try {
+        const answersResponse = await fetch(
+          `/api/answers?page=${page}&limit=10&sortBy=${currentSortBy}`,
+          {
+            method: 'GET',
+          },
+        );
+        if (!answersResponse.ok) {
+          throw new Error(`HTTP error! status: ${answersResponse.status}`);
+        }
+        const data = await answersResponse.json();
+        setAnswers(data.answers);
+        setTotalPages(data.totalPages);
+
+        // Scroll to top after new content is loaded, with a small delay
+        if (isPageChange) {
+          setTimeout(scrollToTop, 100);
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch answers:', error);
+        if (error.message.includes('429')) {
+          setError('Quota exceeded. Please try again later.');
+        } else {
+          setError('Failed to fetch answers. Please try again.');
+        }
+        setShowErrorPopup(true);
+      } finally {
+        setIsLoading(false);
+        setIsChangingPage(false);
       }
-      setShowErrorPopup(true);
-    } finally {
-      setIsLoading(false);
-      setIsChangingPage(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const updateUrl = (page: number, sortBy: string) => {
     if (router.isReady) {
       let url = '/answers';
       const params = new URLSearchParams();
-      
+
       if (page !== 1) {
         params.append('page', page.toString());
       }
-      
+
       if (sortBy !== 'mostRecent') {
         params.append('sortBy', sortBy);
       }
-      
+
       if (params.toString()) {
         url += '?' + params.toString();
       }
-      
+
       router.push(url, undefined, { shallow: true });
     }
   };
@@ -248,21 +260,21 @@ const AllAnswers = () => {
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       if (hasFetchedLikeStatuses.current) return;
-      
+
       const uuid = getOrCreateUUID();
       const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+      setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
       hasFetchedLikeStatuses.current = true;
     };
 
     if (answers.length > 0 && !hasFetchedLikeStatuses.current) {
-      fetchLikeStatuses(answers.map(answer => answer.id));
+      fetchLikeStatuses(answers.map((answer) => answer.id));
     }
   }, [answers]);
 
-  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {   
-    setAnswers(prevAnswers => {      
-      const updatedAnswers = prevAnswers.map(answer => {
+  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
+    setAnswers((prevAnswers) => {
+      const updatedAnswers = prevAnswers.map((answer) => {
         if (answer.id === answerId) {
           return { ...answer, likeCount: newLikeCount };
         }
@@ -282,9 +294,13 @@ const AllAnswers = () => {
         });
         const responseData = await response.json();
         if (!response.ok) {
-          throw new Error('Failed to delete answer (' + responseData.message + ')');
+          throw new Error(
+            'Failed to delete answer (' + responseData.message + ')',
+          );
         }
-        setAnswers(prevAnswers => prevAnswers.filter(answer => answer.id !== answerId));
+        setAnswers((prevAnswers) =>
+          prevAnswers.filter((answer) => answer.id !== answerId),
+        );
         logEvent('delete_answer', 'Admin', answerId);
       } catch (error) {
         console.error('Error deleting answer:', error);
@@ -302,14 +318,14 @@ const AllAnswers = () => {
       setSortBy(newSortBy);
       updateUrl(1, newSortBy);
       setIsChangingPage(true);
-      
+
       if (debouncedFetchRef.current) {
         debouncedFetchRef.current(1, newSortBy, true);
       } else {
         console.warn('debouncedFetchRef.current is null in handleSortChange');
         fetchAnswers(1, newSortBy, true);
       }
-      
+
       logEvent('change_sort', 'UI', newSortBy);
     }
   };
@@ -341,15 +357,22 @@ const AllAnswers = () => {
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
   };
 
-  const handleRelatedQuestionClick = (relatedQuestionId: string, relatedQuestionTitle: string) => {
-    logEvent('click_related_question', 'Engagement', `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`);
+  const handleRelatedQuestionClick = (
+    relatedQuestionId: string,
+    relatedQuestionTitle: string,
+  ) => {
+    logEvent(
+      'click_related_question',
+      'Engagement',
+      `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`,
+    );
   };
 
   // Add this function to scroll to top
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'auto'
+      behavior: 'auto',
     });
     // Force a reflow to ensure the scroll takes effect immediately
     document.body.offsetHeight;
@@ -363,7 +386,7 @@ const AllAnswers = () => {
     setCurrentPage(newPage);
     sessionStorage.removeItem('answersScrollPosition');
     updateUrl(newPage, sortBy);
-    
+
     // Use setTimeout to ensure the UI updates before fetching
     setTimeout(() => {
       if (debouncedFetchRef.current) {
@@ -383,7 +406,9 @@ const AllAnswers = () => {
       <div className="flex justify-between items-center mb-4 px-4 sm:px-6 lg:px-8">
         <div></div>
         <div className="flex items-center mt-0.5">
-          <label htmlFor="sortBy" className="mr-2 text-gray-700">Sort by:</label>
+          <label htmlFor="sortBy" className="mr-2 text-gray-700">
+            Sort by:
+          </label>
           <select
             id="sortBy"
             className="border border-gray-300 rounded p-1"
@@ -399,7 +424,10 @@ const AllAnswers = () => {
         {showErrorPopup && error && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
             <p>{error}</p>
-            <button onClick={() => setShowErrorPopup(false)} className="mt-2 underline">
+            <button
+              onClick={() => setShowErrorPopup(false)}
+              className="mt-2 underline"
+            >
               Close
             </button>
           </div>
@@ -413,9 +441,14 @@ const AllAnswers = () => {
           <div key={`${currentPage}-${sortBy}`}>
             <div>
               {answers.map((answer, index) => (
-                <div key={answer.id} className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow">
+                <div
+                  key={answer.id}
+                  className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow"
+                >
                   <div className="flex items-start">
-                    <span className="material-icons mt-1 mr-2 flex-shrink-0">question_answer</span>
+                    <span className="material-icons mt-1 mr-2 flex-shrink-0">
+                      question_answer
+                    </span>
                     <div className="flex-grow min-w-0">
                       <div className="mb-2">
                         <Link href={`/answers/${answer.id}`} legacyBehavior>
@@ -425,71 +458,106 @@ const AllAnswers = () => {
                                 answer.question.split('\n').map((line, i) => (
                                   <React.Fragment key={i}>
                                     {line}
-                                    {i < answer.question.split('\n').length - 1 && <br />}
+                                    {i <
+                                      answer.question.split('\n').length -
+                                        1 && <br />}
                                   </React.Fragment>
                                 ))
                               ) : (
                                 <>
-                                  {renderTruncatedQuestion(answer.question, 200)}
+                                  {renderTruncatedQuestion(
+                                    answer.question,
+                                    200,
+                                  )}
                                   {answer.question.length > 200 && '...'}
                                 </>
                               )}
                             </b>
                           </a>
                         </Link>
-                        {answer.question.length > 200 && !expandedQuestions.has(answer.id) && (
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleExpandQuestion(answer.id);
-                            }}
-                            className="text-black hover:underline ml-2"
-                          >
-                            <b>See More</b>
-                          </button>
-                        )}
+                        {answer.question.length > 200 &&
+                          !expandedQuestions.has(answer.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleExpandQuestion(answer.id);
+                              }}
+                              className="text-black hover:underline ml-2"
+                            >
+                              <b>See More</b>
+                            </button>
+                          )}
                       </div>
                       <div className="text-sm text-gray-500 flex flex-wrap">
                         <span className="mr-4">
-                          {formatDistanceToNow(new Date(answer.timestamp._seconds * 1000), { addSuffix: true })}
+                          {formatDistanceToNow(
+                            new Date(answer.timestamp._seconds * 1000),
+                            { addSuffix: true },
+                          )}
                         </span>
                         <span>
-                          {answer.collection ? collectionsConfig[answer.collection as keyof typeof collectionsConfig].replace(/ /g, "\u00a0") : 'Unknown\u00a0Collection'}
-                        </span>            
+                          {answer.collection
+                            ? collectionsConfig[
+                                answer.collection as keyof typeof collectionsConfig
+                              ].replace(/ /g, '\u00a0')
+                            : 'Unknown\u00a0Collection'}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
                     <div className="markdownanswer overflow-x-auto">
-                      <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
+                      <TruncatedMarkdown
+                        markdown={answer.answer}
+                        maxCharacters={600}
+                      />
                       {answer.sources && (
                         <SourcesList
                           sources={answer.sources}
                           collectionName={answer.collection}
                         />
                       )}
-                      {answer.relatedQuestionsV2 && answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD).length > 0 && (
-                        <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
-                          <h3 className="text-lg !font-bold mb-2">Related Questions</h3>
-                          <ul className="list-disc pl-2">
-                            {answer.relatedQuestionsV2.filter(q => q.similarity >= SIMILARITY_THRESHOLD).map((relatedQuestion) => (
-                              <li key={relatedQuestion.id} className="ml-0">
-                                <a
-                                  href={`/answers/${relatedQuestion.id}`}
-                                  className="text-blue-600 hover:underline"
-                                  onClick={() => handleRelatedQuestionClick(relatedQuestion.id, relatedQuestion.title)}
-                                >
-                                  {truncateTitle(relatedQuestion.title, 150)}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {answer.relatedQuestionsV2 &&
+                        answer.relatedQuestionsV2.filter(
+                          (q) => q.similarity >= SIMILARITY_THRESHOLD,
+                        ).length > 0 && (
+                          <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
+                            <h3 className="text-lg !font-bold mb-2">
+                              Related Questions
+                            </h3>
+                            <ul className="list-disc pl-2">
+                              {answer.relatedQuestionsV2
+                                .filter(
+                                  (q) => q.similarity >= SIMILARITY_THRESHOLD,
+                                )
+                                .map((relatedQuestion) => (
+                                  <li key={relatedQuestion.id} className="ml-0">
+                                    <a
+                                      href={`/answers/${relatedQuestion.id}`}
+                                      className="text-blue-600 hover:underline"
+                                      onClick={() =>
+                                        handleRelatedQuestionClick(
+                                          relatedQuestion.id,
+                                          relatedQuestion.title,
+                                        )
+                                      }
+                                    >
+                                      {truncateTitle(
+                                        relatedQuestion.title,
+                                        150,
+                                      )}
+                                    </a>
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        )}
                       <div className="flex flex-wrap items-center mt-2">
                         <CopyButton
                           markdown={answer.answer}
                           answerId={answer.id}
+                          sources={answer.sources}
+                          question={answer.question}
                         />
                         <button
                           onClick={() => handleCopyLink(answer.id)}
@@ -510,7 +578,10 @@ const AllAnswers = () => {
                         </div>
                         {isSudoUser && (
                           <>
-                            <button onClick={() => handleDelete(answer.id)} className="ml-4 text-red-600">
+                            <button
+                              onClick={() => handleDelete(answer.id)}
+                              className="ml-4 text-red-600"
+                            >
                               <span className="material-icons">delete</span>
                             </button>
                             <span className="ml-6">IP: ({answer.ip})</span>
@@ -519,7 +590,9 @@ const AllAnswers = () => {
                                 className="ml-4 text-red-600"
                                 title="Downvote"
                               >
-                                <span className="material-icons">thumb_down</span>
+                                <span className="material-icons">
+                                  thumb_down
+                                </span>
                               </button>
                             )}
                           </>
@@ -530,7 +603,7 @@ const AllAnswers = () => {
                 </div>
               ))}
             </div>
-            
+
             {/* Only render pagination controls when answers are loaded */}
             {answers.length > 0 && (
               <div className="flex justify-center mt-4">

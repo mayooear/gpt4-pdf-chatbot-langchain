@@ -43,8 +43,8 @@ const SharedAnswers = () => {
   useEffect(() => {
     const fetchSharesAndAnswers = async () => {
       // Prevent fetching if already loading
-      if (isLoading) return; 
-      setIsLoading(true); 
+      if (isLoading) return;
+      setIsLoading(true);
 
       // Fetch shares from Firestore
       const sharesResponse = await fetch(`/api/share?page=${page}&limit=10`, {
@@ -57,9 +57,11 @@ const SharedAnswers = () => {
         setIsLoading(false);
         return;
       }
-    
+
       // Fetch related answers in a batch
-      const answerIds = newShares.map((share: Share) => share.answerId).join(',');
+      const answerIds = newShares
+        .map((share: Share) => share.answerId)
+        .join(',');
       let answersBatch: Answer[];
       const answerResponse = await fetch(`/api/answers?answerIds=${answerIds}`);
       if (!answerResponse.ok) {
@@ -74,9 +76,11 @@ const SharedAnswers = () => {
         }
       }
 
-      setShares(prevShares => {
-        const existingIds = new Set(prevShares.map(share => share.id));
-        const newUniqueShares = newShares.filter((share: Share) => !existingIds.has(share.id));
+      setShares((prevShares) => {
+        const existingIds = new Set(prevShares.map((share) => share.id));
+        const newUniqueShares = newShares.filter(
+          (share: Share) => !existingIds.has(share.id),
+        );
         return [...prevShares, ...newUniqueShares].sort((a, b) => {
           const dateA = new Date(a.createdAt.seconds * 1000);
           const dateB = new Date(b.createdAt.seconds * 1000);
@@ -84,7 +88,7 @@ const SharedAnswers = () => {
         });
       });
 
-      setAnswers(prevAnswers => {
+      setAnswers((prevAnswers) => {
         // Create a new object combining previous answers and new ones
         const updatedAnswers = { ...prevAnswers };
         answersBatch.forEach((answer: Answer) => {
@@ -105,7 +109,7 @@ const SharedAnswers = () => {
         setHasMore(false);
       } else {
         // Increment page only if new shares are added
-        setPage(prevPage => prevPage + 1);
+        setPage((prevPage) => prevPage + 1);
       }
 
       setIsLoading(false);
@@ -141,7 +145,7 @@ const SharedAnswers = () => {
       // This function should be optimized to minimize DB reads, possibly by checking in batches
       const uuid = getOrCreateUUID();
       const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses(prevStatuses => ({ ...prevStatuses, ...statuses }));
+      setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
     };
 
     if (Object.keys(answers).length > 0) {
@@ -152,7 +156,7 @@ const SharedAnswers = () => {
   // Intersection observer effect
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
-      setPage(prevPage => prevPage + 1);
+      setPage((prevPage) => prevPage + 1);
     }
   }, [inView, hasMore, isLoading]);
 
@@ -173,21 +177,36 @@ const SharedAnswers = () => {
                   <p className="ml-4">
                     {`${share.firstName} ${share.lastName}`}
                     <span className="ml-4">
-                      {formatDistanceToNow(new Date((share.createdAt as any)._seconds * 1000), { addSuffix: true })}
+                      {formatDistanceToNow(
+                        new Date((share.createdAt as any)._seconds * 1000),
+                        { addSuffix: true },
+                      )}
                     </span>
                   </p>
                 </div>
-                {share.comments && <p className="mt-1 mb-2.5">{share.comments}</p>}
+                {share.comments && (
+                  <p className="mt-1 mb-2.5">{share.comments}</p>
+                )}
                 <div className="bg-gray-100 p-2.5 rounded">
                   {answers[share.answerId] ? (
                     <div className="markdownanswer">
-                      <TruncatedMarkdown markdown={answers[share.answerId].answer} maxCharacters={600} />
+                      <TruncatedMarkdown
+                        markdown={answers[share.answerId].answer}
+                        maxCharacters={600}
+                      />
                       {answers[share.answerId].sources && (
-                        <SourcesList sources={answers[share.answerId].sources || []} />
+                        <SourcesList
+                          sources={answers[share.answerId].sources || []}
+                        />
                       )}
                       {/* Render the interaction buttons */}
                       <div className="flex items-center">
-                        <CopyButton markdown={answers[share.answerId].answer} />
+                        <CopyButton
+                          markdown={answers[share.answerId].answer}
+                          answerId={share.answerId}
+                          sources={answers[share.answerId].sources}
+                          question={answers[share.answerId].question}
+                        />
                         <div className="ml">
                           <LikeButton
                             answerId={share.answerId}

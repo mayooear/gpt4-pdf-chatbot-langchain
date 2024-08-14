@@ -210,7 +210,12 @@ const SingleAnswer = () => {
               />
               {answer.sources && <SourcesList sources={answer.sources} />}
               <div className="flex items-center">
-                <CopyButton markdown={answer.answer} answerId={answer.id} />
+                <CopyButton
+                  markdown={answer.answer}
+                  answerId={answer.id}
+                  sources={answer.sources}
+                  question={answer.question}
+                />
                 <button
                   onClick={handleCopyLink}
                   className="ml-4 text-black-600 hover:underline flex items-center"
