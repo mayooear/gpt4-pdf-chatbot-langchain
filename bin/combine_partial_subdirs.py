@@ -24,45 +24,59 @@ import sys
 import shutil
 import argparse
 import logging
+from tqdm import tqdm
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def combine_hierarchies(input_dir, output_dir):
     """Recursively combine the directory structures."""
     file_count = 0
     dir_count = 0
+    warning_count = 0
+    error_count = 0
+    warning_files = []
+    error_files = []
 
-    for root, dirs, files in os.walk(input_dir):
-        rel_path = os.path.relpath(root, input_dir)
-        target_dir = os.path.join(output_dir, rel_path)
+    # Count total files and directories
+    total_files = sum([len(files) for _, _, files in os.walk(input_dir)])
+    total_dirs = sum([len(dirs) for _, dirs, _ in os.walk(input_dir)])
 
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-            dir_count += 1
-            logger.info(f"Created directory: {target_dir}")
+    with tqdm(total=total_files + total_dirs, desc="Combining hierarchies", unit="item") as pbar:
+        for root, dirs, files in os.walk(input_dir):
+            rel_path = os.path.relpath(root, input_dir)
+            target_dir = os.path.join(output_dir, rel_path)
 
-        for file in files:
-            source_path = os.path.join(root, file)
-            dest_path = os.path.join(target_dir, file)
-            
-            if os.path.exists(dest_path):
-                base, ext = os.path.splitext(file)
-                counter = 1
-                while os.path.exists(dest_path):
-                    new_file = f"{base}_{counter}{ext}"
-                    dest_path = os.path.join(target_dir, new_file)
-                    counter += 1
-                logger.warning(f"Renamed duplicate file: {file} -> {os.path.basename(dest_path)}")
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+                dir_count += 1
+                pbar.update(1)
 
-            try:
-                shutil.copy2(source_path, dest_path)
-                file_count += 1
-                logger.info(f"Copied: {source_path} -> {dest_path}")
-            except Exception as e:
-                logger.error(f"Error copying file {source_path}: {e}")
+            for file in files:
+                source_path = os.path.join(root, file)
+                dest_path = os.path.join(target_dir, file)
+                
+                if os.path.exists(dest_path):
+                    base, ext = os.path.splitext(file)
+                    counter = 1
+                    while os.path.exists(dest_path):
+                        new_file = f"{base}_{counter}{ext}"
+                        dest_path = os.path.join(target_dir, new_file)
+                        counter += 1
+                    logger.warning(f"Renamed duplicate file: {file} -> {os.path.basename(dest_path)}")
+                    warning_count += 1
+                    warning_files.append(f"{file} (renamed to {os.path.basename(dest_path)})")
 
-    return file_count, dir_count
+                try:
+                    shutil.copy2(source_path, dest_path)
+                    file_count += 1
+                    pbar.update(1)
+                except Exception as e:
+                    logger.error(f"Error copying file {source_path}: {e}")
+                    error_count += 1
+                    error_files.append(source_path)
+
+    return file_count, dir_count, warning_count, error_count, warning_files, error_files
 
 def confirm_action():
     """Ask for user confirmation before proceeding."""
@@ -82,21 +96,31 @@ def main():
         logger.error(f"The specified input path is not a directory: {input_dir}")
         sys.exit(1)
 
-    logger.info(f"Preparing to combine hierarchies from: {input_dir}")
-    logger.info(f"Output directory will be: {output_dir}")
+    print(f"Preparing to combine hierarchies from: {input_dir}")
+    print(f"Output directory will be: {output_dir}")
     
     if not confirm_action():
-        logger.info("Operation cancelled by user.")
+        print("Operation cancelled by user.")
         sys.exit(0)
 
     if os.path.exists(output_dir):
         logger.error(f"Output directory already exists: {output_dir}")
         sys.exit(1)
 
-    logger.info(f"Combining hierarchies from: {input_dir}")
-    file_count, dir_count = combine_hierarchies(input_dir, output_dir)
-    logger.info("Hierarchy combination complete.")
-    logger.info(f"Created {dir_count} directories and copied {file_count} files.")
+    file_count, dir_count, warning_count, error_count, warning_files, error_files = combine_hierarchies(input_dir, output_dir)
+    print("Hierarchy combination complete.")
+    print(f"Created {dir_count} directories and copied {file_count} files.")
+    print(f"Encountered {warning_count} warnings and {error_count} errors.")
+    
+    if warning_files:
+        print("\nFiles with warnings:")
+        for file in warning_files:
+            print(f"- {file}")
+    
+    if error_files:
+        print("\nFiles that failed to copy:")
+        for file in error_files:
+            print(f"- {file}")
 
 if __name__ == "__main__":
     main()
