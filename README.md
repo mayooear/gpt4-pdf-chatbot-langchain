@@ -122,10 +122,10 @@ pyenv local ananda-library-chatbot
 
 First, you need to import a MySQL data dump from wordpress into local MySQL (or set up access to the DB).
 
-Second, you run _python data-ingestion/ananda-doc-gen/db-to-pdfs.py_ from the `data-ingestion/ananda-doc-gen/`
+Second, you run _python data-ingestion/db-to-pdf/db-to-pdfs.py_ from the `data-ingestion/db-to-pdf/`
 directory to generate PDF files.
 
-Third, you optionally run _python data-ingestion/ananda-doc-gen/filter-pdfs-to-new-dir.py_ from the same
+Third, you optionally run _python data-ingestion/db-to-pdf/filter-pdfs-to-new-dir.py_ from the same
 directory to get just a subset of the PDFs, e.g., just swami and master.
 
 Fourth, put the file set you want in `doc/` and make sure the Pinecone index is empty.
