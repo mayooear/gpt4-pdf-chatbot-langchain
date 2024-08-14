@@ -125,9 +125,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               className="bg-blue-500 text-white p-2 rounded-full flex-shrink-0 w-10 h-10 flex items-center justify-center"
             >
               {loading ? (
-                <div className={styles.loadingwheel}>
-                  <LoadingDots color="#fff" />
-                </div>
+                <LoadingDots color="#fff" style="small" />
               ) : (
                 <span className="material-icons text-xl leading-none">
                   send

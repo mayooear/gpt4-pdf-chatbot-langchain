@@ -335,7 +335,7 @@ export default function Home() {
                             </ReactMarkdown>
                           </div>
                           {/* Action icons container */}
-                          <div className="mt-4 flex gap-2">
+                          <div className="mt-4 flex items-center space-x-2">
                             {message.type === 'apiMessage' && message.docId && (
                               <CopyButton
                                 markdown={message.message}
@@ -384,7 +384,7 @@ export default function Home() {
                                       votes[message.docId ?? ''] === -1
                                         ? styles.voteButtonDownActive
                                         : ''
-                                    } hover:bg-gray-200`}
+                                    } hover:bg-gray-200 flex items-center`}
                                     title="Downvote (private) for system training"
                                   >
                                     <span className="material-icons text-black">
