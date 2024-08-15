@@ -2,12 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { Document } from 'langchain/document';
 import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from './ui/accordion';
 import styles from '@/styles/Home.module.css';
 import {
   collectionsConfig,
@@ -15,6 +9,7 @@ import {
 } from '@/utils/client/collectionsConfig';
 import { logEvent } from '@/utils/client/analytics';
 import { AudioPlayer } from './AudioPlayer';
+import { getMappedLibraryName } from '@/utils/client/libraryMappings';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
@@ -173,7 +168,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
             'Unknown source',
         )}
         <span className="ml-4 text-gray-500 font-normal">
-          {doc.metadata.library}
+          {getMappedLibraryName(doc.metadata.library)}
         </span>
       </span>
     );
