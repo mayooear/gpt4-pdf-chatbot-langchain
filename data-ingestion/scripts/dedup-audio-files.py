@@ -1,52 +1,84 @@
+#!/usr/bin/env python
+
 import os
 import argparse
 import hashlib
-import json
+import sqlite3
 from pydub import AudioSegment
 import shutil
 from tqdm import tqdm
 import signal
 import sys
 
-HASH_CACHE_FILE = "../audio/hash-cache/audio_hashes.json"
-hash_cache = {}
+"""
+Audio File Deduplication Script
 
+This script compares audio files between two folders to identify duplicates and copy non-duplicate files 
+from the comparison folder to a destination folder.
 
-def load_hash_cache():
-    global hash_cache
-    if os.path.exists(HASH_CACHE_FILE):
-        with open(HASH_CACHE_FILE, "r") as f:
-            hash_cache = json.load(f)
-    return hash_cache
+Functionality:
+1. Processes audio files in a source folder and generates content-based hashes.
+2. Compares audio files in a comparison folder against the source files.
+3. Identifies duplicate files based on their content hash.
+4. Copies non-duplicate files from the comparison folder to the specified destination folder, maintaining 
+   the original folder structure.
+5. Provides detailed output about duplicates and non-duplicates.
+6. Caches file hashes to improve performance on subsequent runs.
 
+Usage: 
+python dedup-audio-files.py <source_folder> <comparison_folder> <destination_folder>
 
-def save_hash_cache():
-    os.makedirs(os.path.dirname(HASH_CACHE_FILE), exist_ok=True)
-    with open(HASH_CACHE_FILE, "w") as f:
-        json.dump(hash_cache, f)
+Supported audio formats: .mp3, .wav, .flac, .ogg, .aac
 
+Notes:
+- This script uses content-based hashing, ignoring metadata, to identify duplicates.
+- Non-duplicate files are copied from the comparison folder to the destination folder.
+- The folder structure from the comparison folder is preserved in the destination folder.
+"""
+
+def get_cache_path(comparison_folder):
+    return os.path.join(os.path.dirname(os.path.dirname(comparison_folder)), "audio_hash_cache.db")
+
+def init_cache_db(db_path):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS audio_hashes
+                 (file_path TEXT PRIMARY KEY, hash TEXT, mtime REAL)''')
+    conn.commit()
+    return conn
+
+def load_hash_cache(comparison_folder):
+    db_path = get_cache_path(comparison_folder)
+    return init_cache_db(db_path)
+
+def save_hash_cache(conn):
+    conn.commit()
+    conn.close()
 
 def signal_handler(sig, frame):
     print("\nCtrl+C detected. Saving cache and exiting...")
-    save_hash_cache()
+    save_hash_cache(cache_conn)
     sys.exit(0)
 
-
-def get_audio_hash(file_path):
-    """Generate a hash of the audio content without metadata, using cache if possible."""
+def get_audio_hash(file_path, cache_conn):
     try:
         mtime = os.path.getmtime(file_path)
-        if file_path in hash_cache and hash_cache[file_path]["mtime"] == mtime:
-            return hash_cache[file_path]["hash"]
+        c = cache_conn.cursor()
+        c.execute("SELECT hash FROM audio_hashes WHERE file_path = ? AND mtime = ?", (file_path, mtime))
+        result = c.fetchone()
+        
+        if result:
+            return result[0]
 
         audio = AudioSegment.from_file(file_path)
         audio_hash = hashlib.md5(audio.raw_data).hexdigest()
-        hash_cache[file_path] = {"hash": audio_hash, "mtime": mtime}
+        c.execute("INSERT OR REPLACE INTO audio_hashes (file_path, hash, mtime) VALUES (?, ?, ?)",
+                  (file_path, audio_hash, mtime))
+        cache_conn.commit()
         return audio_hash
     except Exception as e:
         print(f"Error processing {file_path}: {str(e)}")
         return None
-
 
 def get_audio_info(file_path):
     """Get audio file information."""
@@ -62,31 +94,30 @@ def get_audio_info(file_path):
         print(f"Error getting info for {file_path}: {str(e)}")
         return None
 
-
-def compare_folders(treasures_folder, comparison_folder, destination_folder):
+def compare_folders(source_folder, comparison_folder, destination_folder, cache_conn):
     """Compare audio files and report duplicates."""
-    treasures_hashes = {}
+    source_hashes = {}
     duplicates = []
     non_duplicates = []
 
-    # Process treasures folder
-    print("Processing treasures folder...")
-    if not os.path.exists(treasures_folder) or not os.access(treasures_folder, os.R_OK):
-        print(f"Error: Cannot access treasures folder: {treasures_folder}")
+    # Process source folder
+    print("Processing source folder...")
+    if not os.path.exists(source_folder) or not os.access(source_folder, os.R_OK):
+        print(f"Error: Cannot access source folder: {source_folder}")
         sys.exit(1)
 
-    treasures_files = [
+    source_files = [
         os.path.join(root, file)
-        for root, _, files in os.walk(treasures_folder)
+        for root, _, files in os.walk(source_folder)
         for file in files
         if file.lower().endswith((".mp3", ".wav", ".flac", ".ogg", ".aac"))
     ]
-    for file_path in tqdm(treasures_files, desc="Hashing treasures"):
-        file_hash = get_audio_hash(file_path)
+    for file_path in tqdm(source_files, desc="Hashing source files"):
+        file_hash = get_audio_hash(file_path, cache_conn)
         if file_hash:
-            treasures_hashes[file_hash] = file_path
+            source_hashes[file_hash] = file_path
 
-    print(f"Processed {len(treasures_hashes)} files in treasures folder.")
+    print(f"Processed {len(source_hashes)} files in source folder.")
 
     # Process comparison folder
     print(f"\nProcessing comparison folder {comparison_folder}...")
@@ -99,15 +130,15 @@ def compare_folders(treasures_folder, comparison_folder, destination_folder):
         os.path.join(root, file)
         for root, _, files in os.walk(comparison_folder)
         for file in files
-        if file.lower().endswith((".mp3", ".wav", ".flac", ".ogg", ".aac"))
+        if file.lower().endswith((".mp3", ".wav", ".flac", ".ogg", ".aac", ".aif", ".m4a"))
     ]
     print(f"Found {len(comparison_files)} files in comparison folder.")
 
     for file_path in tqdm(comparison_files, desc="Comparing files"):
-        file_hash = get_audio_hash(file_path)
+        file_hash = get_audio_hash(file_path, cache_conn)
         if file_hash:
-            if file_hash in treasures_hashes:
-                duplicate_path = treasures_hashes[file_hash]
+            if file_hash in source_hashes:
+                duplicate_path = source_hashes[file_hash]
                 duplicates.append((file_path, duplicate_path))
             else:
                 non_duplicates.append(file_path)
@@ -150,22 +181,23 @@ def main():
     parser = argparse.ArgumentParser(
         description="Compare audio files and identify duplicates."
     )
-    parser.add_argument("treasures_folder", help="Path to the treasures folder")
+    parser.add_argument("source_folder", help="Path to the source folder")
     parser.add_argument(
-        "comparison_folder", help="Path to the folder to compare against treasures"
+        "comparison_folder", help="Path to the folder to compare against the source folder"
     )
     parser.add_argument("destination_folder", help="Path to copy non-duplicate files")
     args = parser.parse_args()
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    load_hash_cache()
+    global cache_conn
+    cache_conn = load_hash_cache(args.comparison_folder)
     try:
         compare_folders(
-            args.treasures_folder, args.comparison_folder, args.destination_folder
+            args.source_folder, args.comparison_folder, args.destination_folder, cache_conn
         )
     finally:
-        save_hash_cache()
+        save_hash_cache(cache_conn)
 
 
 if __name__ == "__main__":
