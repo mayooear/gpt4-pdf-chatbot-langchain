@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Navbar from './Navbar';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
@@ -13,9 +12,11 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isDev, setIsDev] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(Cookies.get('isLoggedIn') === 'true');
+    setIsDev(process.env.NODE_ENV === 'development');
   }, []);
 
   const isActive = (pathname: string) => router.pathname === pathname;
@@ -36,6 +37,11 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="mx-auto flex flex-col min-h-screen max-w-[800px]">
       <header className="sticky top-0 z-40 bg-white w-full">
+        {isDev && (
+          <div className="bg-blue-500 text-white text-center py-1 w-full">
+            Dev server
+          </div>
+        )}
         <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">
           <nav className="ml-2 pl-1">
             <div className="space-x-10">
