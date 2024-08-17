@@ -1,5 +1,7 @@
 import { Document } from 'langchain/document';
 
+export type AdminAction = 'affirmed' | 'ignore' | 'fixed';
+
 export type Answer = {
   id: string;
   question: string;
@@ -8,7 +10,7 @@ export type Answer = {
     _seconds: number;
     _nanoseconds: number;
   };
-  sources?: Document<Record<string, any>>[]; 
+  sources?: Document<Record<string, any>>[];
   vote?: number;
   collection?: string;
   ip?: string;
@@ -19,9 +21,14 @@ export type Answer = {
     similarity: number;
   }[];
   related_questions?: string[];
+  adminAction?: AdminAction;
+  adminActionTimestamp?: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
 };
 
 export interface Timestamp {
-    _seconds: number;
-    _nanoseconds: number;
+  _seconds: number;
+  _nanoseconds: number;
 }

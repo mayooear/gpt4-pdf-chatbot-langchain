@@ -13,10 +13,12 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDev, setIsDev] = useState(false);
+  const [isSudoUser, setIsSudoUser] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(Cookies.get('isLoggedIn') === 'true');
     setIsDev(process.env.NODE_ENV === 'development');
+    setIsSudoUser(Cookies.get('sudo') === 'true');
   }, []);
 
   const isActive = (pathname: string) => router.pathname === pathname;
@@ -85,6 +87,14 @@ export default function Layout({ children }: LayoutProps) {
                 className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
               >
                 Login
+              </Link>
+            )}
+            {isSudoUser && (
+              <Link
+                href="/admin/downvotes"
+                className="text-blue-600 hover:underline"
+              >
+                Review Downvotes
               </Link>
             )}
           </nav>
