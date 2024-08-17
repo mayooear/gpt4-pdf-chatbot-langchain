@@ -29,7 +29,6 @@ const CopyButton: React.FC<CopyButtonProps> = ({
       .map((doc) => {
         const title =
           doc.metadata.title ||
-          doc.metadata['pdf.info.Title'] ||
           'Unknown source';
         const collection = doc.metadata.library || '';
         const sourceUrl = doc.metadata.source;
