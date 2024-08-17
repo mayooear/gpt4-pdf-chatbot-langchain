@@ -14,6 +14,11 @@ import {
   getLibraryUrl,
 } from '@/utils/client/libraryMappings';
 
+// Add this helper function at the top of the file, outside the component
+const extractTitle = (metadata: Record<string, any>): string => {
+  return metadata.title || metadata['pdf.info.Title'] || 'Unknown source';
+};
+
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
   collectionName?: string;
@@ -97,7 +102,8 @@ const SourcesList: React.FC<SourcesListProps> = ({
   // double colon separates parent title from the (child) source title,
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here
   // replace double colon with right arrow.
-  const formatTitle = (title: string) => title.replace(/::/g, ' > ');
+  const formatTitle = (title: string | undefined) =>
+    (title || '').replace(/::/g, ' > ');
 
   const displayCollectionName = collectionName
     ? collectionsConfig[collectionName as CollectionKey]
@@ -167,39 +173,42 @@ const SourcesList: React.FC<SourcesListProps> = ({
   };
 
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
-    const sourceTitle = formatTitle(doc.metadata.title || 'Unknown source');
+    // Extract the title using the helper function
+    const sourceTitle = formatTitle(extractTitle(doc.metadata));
+
+    return (
+      <span className="text-black-600 font-medium">
+        {doc.metadata.source ? (
+          <a
+            href={doc.metadata.source}
+            onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+            className="text-blue-600 hover:underline"
+          >
+            {sourceTitle}
+          </a>
+        ) : (
+          sourceTitle
+        )}
+      </span>
+    );
+  };
+
+  const renderLibraryName = (doc: Document<Record<string, any>>) => {
     const libraryName = getMappedLibraryName(doc.metadata.library);
     const libraryUrl = getLibraryUrl(doc.metadata.library);
 
-    return (
-      <>
-        <span className="text-black-600 font-medium">
-          {doc.metadata.source ? (
-            <a
-              href={doc.metadata.source}
-              onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-              className="text-blue-600 hover:underline"
-            >
-              {sourceTitle}
-            </a>
-          ) : (
-            sourceTitle
-          )}
-        </span>
-        <span className="ml-4 text-gray-500 font-normal">
-          {libraryUrl ? (
-            <a
-              href={libraryUrl}
-              onClick={(e) => handleLibraryClick(e, doc.metadata.library)}
-              className="text-gray-500 hover:underline"
-            >
-              {libraryName}
-            </a>
-          ) : (
-            libraryName
-          )}
-        </span>
-      </>
+    return libraryUrl ? (
+      <a
+        href={libraryUrl}
+        onClick={(e) => handleLibraryClick(e, doc.metadata.library)}
+        className={`${styles.libraryNameLink} text-gray-400 hover:text-gray-600 text-sm`}
+      >
+        {libraryName}
+      </a>
+    ) : (
+      <span className={`${styles.libraryNameText} text-gray-400 text-sm`}>
+        {libraryName}
+      </span>
     );
   };
 
@@ -220,11 +229,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
   };
 
   return (
-    <div className="bg-gray-200 pt-2 pb-3 px-3 rounded-lg mt-0 sourcesContainer">
+    <div className="bg-white pt-2 pb-3 px-3 rounded-lg mt-0 sourcesContainer">
       {sources.length > 0 && (
         <div className="flex justify-between items-end w-full mb-2">
           <div className="flex items-baseline">
-            <h3 className="text-lg !font-bold mr-2">Sources</h3>
+            <h3 className="text-base font-bold mr-2">Sources</h3>
             <a
               href="#"
               onClick={(e) => {
@@ -250,26 +259,40 @@ const SourcesList: React.FC<SourcesListProps> = ({
             key={index}
             className={`${styles.sourceDocsContainer} ${
               isExpanded && index !== 0 ? 'mt-4' : ''
-            }`}
+            } border-b border-gray-200 last:border-b-0 group`}
             open={isExpanded}
           >
             <summary
               onClick={(e) => handleSummaryClick(e, index, doc)}
-              className="flex items-center cursor-pointer list-none"
+              className="flex items-center cursor-pointer list-none p-2 hover:bg-gray-50"
             >
-              <div className="flex items-center mr-2 w-8">
-                <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90 arrow-icon">
-                  ▶
-                </span>
-                <span className="material-icons text-sm ml-1">
-                  {getSourceIcon(doc)}
-                </span>
-              </div>
-              <div className="flex items-center flex-grow">
-                <span className="font-medium">{renderSourceTitle(doc)}</span>
+              <div className="grid grid-cols-[auto_1fr_auto] items-center w-full gap-2">
+                <div className="flex items-center">
+                  <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90 arrow-icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-4 h-4"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span className="material-icons text-sm ml-1">
+                    {getSourceIcon(doc)}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  {renderSourceTitle(doc)}
+                </div>
+                <div className="text-right">{renderLibraryName(doc)}</div>
               </div>
             </summary>
-            <div className="pl-5 mt-2">
+            <div className="pl-5 mt-2 pb-2">
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                 {doc.pageContent}
               </ReactMarkdown>

@@ -2,7 +2,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: calc(100vh - 100px); /* Adjust based on your header/footer height */
+  min-height: calc(
+    100vh - 100px
+  ); /* Adjust based on your header/footer height */
   padding: 1rem;
 }
 
@@ -219,7 +221,7 @@
   .main {
     padding: 1rem;
     /* Adjust 80px to the sum of estimated header and footer heights */
-    max-height: calc(100vh - 320px); 
+    max-height: calc(100vh - 320px);
     overflow-y: auto;
   }
 
@@ -316,7 +318,7 @@
 .voteButtonsContainer {
   display: flex;
   justify-content: flex-end;
-  background-color: #f9fafb; 
+  background-color: #f9fafb;
   padding-right: 5rem;
 }
 
@@ -329,11 +331,11 @@
 }
 
 .voteButtonActive {
-  color: #4CAF50; /* Green color for thumbs up */
+  color: #4caf50; /* Green color for thumbs up */
 }
 
 .voteButtonDownActive {
-  color: #F44336; /* Red color for thumbs down */
+  color: #f44336; /* Red color for thumbs down */
 }
 
 .voteButtonInactive {
@@ -351,20 +353,20 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; 
+  z-index: 1000;
 }
 
 /* Share Dialog Box */
 .shareDialog {
   background: white;
   padding: 20px;
-  border-radius: 10px; 
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); 
-  width: auto; 
-  max-width: 500px; 
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: auto;
+  max-width: 500px;
   max-height: 85vh; /* Limit height to 70% of the screen height */
   overflow-y: auto; /* Enable scrolling if content exceeds the max height */
-  z-index: 1001; 
+  z-index: 1001;
   position: relative; /* For positioning the close button */
 }
 
@@ -378,7 +380,7 @@
 /* Close Button for Share Dialog */
 .shareDialog .closeButton {
   position: absolute;
-  top: -0.75rem; 
+  top: -0.75rem;
   right: 0px;
   border: none;
   background: transparent;
@@ -396,7 +398,7 @@
   padding: 10px;
   margin-bottom: 20px;
   border-radius: 5px;
-  font-size: 80%; 
+  font-size: 80%;
 }
 /* Share Answer Button */
 .shareDialog .shareButton {
@@ -416,7 +418,7 @@
 }
 
 /* Input and Textarea Styles */
-.shareDialog input[type="text"],
+.shareDialog input[type='text'],
 .shareDialog textarea {
   width: 100%;
   padding: 10px;
@@ -480,4 +482,14 @@
 .markdownanswer ol,
 .markdownanswer ul {
   margin: 1rem;
+}
+
+.libraryNameLink,
+.libraryNameText {
+  color: #9ca3af !important; /* Tailwind's text-gray-400 */
+  font-size: 0.875rem !important; /* Tailwind's text-sm */
+}
+
+.libraryNameLink:hover {
+  color: #4b5563 !important; /* Tailwind's text-gray-600 */
 }
