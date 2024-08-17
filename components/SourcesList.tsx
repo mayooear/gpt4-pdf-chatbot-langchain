@@ -39,14 +39,13 @@ const SourcesList: React.FC<SourcesListProps> = ({
               startTime={doc.metadata.start_time}
               audioId={audioId}
               lazyLoad={true}
-              isExpanded={expandedSources.has(index)}
             />
           </div>
         );
       }
       return null;
     },
-    [expandedSources],
+    [],
   );
 
   const transformYouTubeUrl = (url: string, startTime: number) => {
@@ -164,7 +163,6 @@ const SourcesList: React.FC<SourcesListProps> = ({
       <span className="text-black-600 font-medium">
         {formatTitle(
           doc.metadata.title ||
-            doc.metadata['pdf.info.Title'] ||
             'Unknown source',
         )}
         <span className="ml-4 text-gray-500 font-normal">
@@ -172,6 +170,18 @@ const SourcesList: React.FC<SourcesListProps> = ({
         </span>
       </span>
     );
+  };
+
+  const handleSummaryClick = (e: React.MouseEvent, index: number, doc: Document<Record<string, any>>) => {
+    const target = e.target as HTMLElement;
+    const isClickOnLink = target.tagName === 'A' || target.closest('a');
+    const isClickOnArrow =
+      target.classList.contains('arrow-icon') || target.closest('.arrow-icon');
+
+    if (!isClickOnLink && (isClickOnArrow || !doc.metadata.source)) {
+      e.preventDefault();
+      handleSourceToggle(index);
+    }
   };
 
   return (
@@ -209,14 +219,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
             open={isExpanded}
           >
             <summary
-              onClick={(e) => {
-                e.preventDefault();
-                handleSourceToggle(index);
-              }}
+              onClick={(e) => handleSummaryClick(e, index, doc)}
               className="flex items-center cursor-pointer list-none"
             >
               <div className="flex items-center mr-2 w-8">
-                <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90">
+                <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90 arrow-icon">
                   ▶
                 </span>
                 <span className="material-icons text-sm ml-1">
@@ -243,13 +250,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
                     {renderSourceTitle(doc)}
                   </span>
                 </span>
-              ) : doc.metadata['pdf.info.Title'] ? (
-                <span className="text-blue-600 flex items-center flex-grow">
-                  <span className="font-medium mr-4">
-                    {renderSourceTitle(doc)}
-                  </span>
-                </span>
-              ) : (
+              ): (
                 <span className="text-blue-600 flex items-center flex-grow">
                   <span className="font-medium mr-4">
                     {renderSourceTitle(doc)}
@@ -261,14 +262,12 @@ const SourcesList: React.FC<SourcesListProps> = ({
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
                 {doc.pageContent}
               </ReactMarkdown>
-              {doc.metadata &&
-                doc.metadata.type === 'audio' &&
-                expandedSources.has(index) &&
-                renderAudioPlayer(doc, index)}
-              {doc.metadata &&
-                doc.metadata.type === 'youtube' &&
-                expandedSources.has(index) &&
-                renderYouTubePlayer(doc, index)}
+              {isExpanded && (
+                <>
+                  {doc.metadata && doc.metadata.type === 'audio' && renderAudioPlayer(doc, index)}
+                  {doc.metadata && doc.metadata.type === 'youtube' && renderYouTubePlayer(doc, index)}
+                </>
+              )}
             </div>
           </details>
         );
