@@ -9,7 +9,10 @@ import {
 } from '@/utils/client/collectionsConfig';
 import { logEvent } from '@/utils/client/analytics';
 import { AudioPlayer } from './AudioPlayer';
-import { getMappedLibraryName } from '@/utils/client/libraryMappings';
+import {
+  getMappedLibraryName,
+  getLibraryUrl,
+} from '@/utils/client/libraryMappings';
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
@@ -140,11 +143,16 @@ const SourcesList: React.FC<SourcesListProps> = ({
     window.open(source, '_blank', 'noopener,noreferrer'); // Open link manually
   };
 
-  const truncateText = (text: string, wordLimit: number) => {
-    const words = text.split(' ');
-    return words.length > wordLimit
-      ? words.slice(0, wordLimit).join(' ') + '...'
-      : text;
+  const handleLibraryClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    library: string,
+  ) => {
+    e.preventDefault();
+    const libraryUrl = getLibraryUrl(library);
+    if (libraryUrl) {
+      logEvent('click_library', 'UI', library);
+      window.open(libraryUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const getSourceIcon = (doc: Document<Record<string, any>>) => {
@@ -159,20 +167,47 @@ const SourcesList: React.FC<SourcesListProps> = ({
   };
 
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
+    const sourceTitle = formatTitle(doc.metadata.title || 'Unknown source');
+    const libraryName = getMappedLibraryName(doc.metadata.library);
+    const libraryUrl = getLibraryUrl(doc.metadata.library);
+
     return (
-      <span className="text-black-600 font-medium">
-        {formatTitle(
-          doc.metadata.title ||
-            'Unknown source',
-        )}
-        <span className="ml-4 text-gray-500 font-normal">
-          {getMappedLibraryName(doc.metadata.library)}
+      <>
+        <span className="text-black-600 font-medium">
+          {doc.metadata.source ? (
+            <a
+              href={doc.metadata.source}
+              onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+              className="text-blue-600 hover:underline"
+            >
+              {sourceTitle}
+            </a>
+          ) : (
+            sourceTitle
+          )}
         </span>
-      </span>
+        <span className="ml-4 text-gray-500 font-normal">
+          {libraryUrl ? (
+            <a
+              href={libraryUrl}
+              onClick={(e) => handleLibraryClick(e, doc.metadata.library)}
+              className="text-gray-500 hover:underline"
+            >
+              {libraryName}
+            </a>
+          ) : (
+            libraryName
+          )}
+        </span>
+      </>
     );
   };
 
-  const handleSummaryClick = (e: React.MouseEvent, index: number, doc: Document<Record<string, any>>) => {
+  const handleSummaryClick = (
+    e: React.MouseEvent,
+    index: number,
+    doc: Document<Record<string, any>>,
+  ) => {
     const target = e.target as HTMLElement;
     const isClickOnLink = target.tagName === 'A' || target.closest('a');
     const isClickOnArrow =
@@ -230,33 +265,9 @@ const SourcesList: React.FC<SourcesListProps> = ({
                   {getSourceIcon(doc)}
                 </span>
               </div>
-              {doc.metadata && doc.metadata.source ? (
-                <div className="flex items-center flex-grow">
-                  <a
-                    href={doc.metadata.source}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline mr-4"
-                    onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-                  >
-                    <span className="font-medium">
-                      {renderSourceTitle(doc)}
-                    </span>
-                  </a>
-                </div>
-              ) : doc.metadata.title ? (
-                <span className="flex items-center flex-grow">
-                  <span className="font-medium mr-4">
-                    {renderSourceTitle(doc)}
-                  </span>
-                </span>
-              ): (
-                <span className="text-blue-600 flex items-center flex-grow">
-                  <span className="font-medium mr-4">
-                    {renderSourceTitle(doc)}
-                  </span>
-                </span>
-              )}
+              <div className="flex items-center flex-grow">
+                <span className="font-medium">{renderSourceTitle(doc)}</span>
+              </div>
             </summary>
             <div className="pl-5 mt-2">
               <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
@@ -264,8 +275,12 @@ const SourcesList: React.FC<SourcesListProps> = ({
               </ReactMarkdown>
               {isExpanded && (
                 <>
-                  {doc.metadata && doc.metadata.type === 'audio' && renderAudioPlayer(doc, index)}
-                  {doc.metadata && doc.metadata.type === 'youtube' && renderYouTubePlayer(doc, index)}
+                  {doc.metadata &&
+                    doc.metadata.type === 'audio' &&
+                    renderAudioPlayer(doc, index)}
+                  {doc.metadata &&
+                    doc.metadata.type === 'youtube' &&
+                    renderYouTubePlayer(doc, index)}
                 </>
               )}
             </div>
