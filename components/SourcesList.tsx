@@ -298,9 +298,6 @@ const SourcesList: React.FC<SourcesListProps> = ({
               </div>
             </summary>
             <div className="pl-5 mt-2 pb-2">
-              <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.pageContent}
-              </ReactMarkdown>
               {isExpanded && (
                 <>
                   {doc.metadata &&
@@ -311,6 +308,9 @@ const SourcesList: React.FC<SourcesListProps> = ({
                     renderYouTubePlayer(doc, index)}
                 </>
               )}
+              <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                {doc.pageContent}
+              </ReactMarkdown>
             </div>
           </details>
         );
