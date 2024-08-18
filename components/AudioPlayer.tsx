@@ -41,14 +41,11 @@ export function AudioPlayer({
 
   const fetchAudioUrl = useCallback(async () => {
     try {
-      const filename = src.split('/').pop();
-      if (!filename) {
+      if (!src) {
         throw new Error('Invalid audio source');
       }
 
-      const response = await fetch(
-        `/api/audio/${encodeURIComponent(filename)}`,
-      );
+      const response = await fetch(`/api/audio/${encodeURIComponent(src)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch audio URL');
       }

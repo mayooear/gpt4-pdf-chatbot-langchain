@@ -1,11 +1,10 @@
 import os
 import re
 import sys
-import json
 import hashlib
 import logging
 from pinecone import Pinecone, ServerlessSpec
-from media_utils import get_media_metadata, get_file_hash
+from media_utils import get_media_metadata
 from pinecone.core.client.exceptions import NotFoundException, PineconeException
 
 logger = logging.getLogger(__name__)
@@ -44,14 +43,14 @@ def store_in_pinecone(
     pinecone_index,
     chunks,
     embeddings,
-    file_path,
-    default_author,
+    author,
     library_name,
     is_youtube_video,
-    youtube_id=None,
     title=None,
     url=None,
     interrupt_event=None,
+    s3_key=None,
+    album=None
 ):
     # Ensure title is a string
     title = title if title is not None else "Unknown Title"
@@ -59,7 +58,7 @@ def store_in_pinecone(
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         content_hash = hashlib.md5(chunk["text"].encode()).hexdigest()[:8]
-        
+                
         # Replace offensive single quote with acceptable one
         if title:
             title = title.replace("’", "'")
@@ -67,20 +66,11 @@ def store_in_pinecone(
         # Sanitize the title to ensure it's ASCII-compatible
         sanitized_title = re.sub(r'[^\x00-\x7F]+', '', title) if title else 'Unknown_Title'
         
-        chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||{sanitized_title}||{content_hash}||chunk{i+1}"
-
-        # Remove the 'words' array from the chunk metadata
-        chunk_metadata = {k: v for k, v in chunk.items() if k != "words"}
+        chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||" +\
+                   f"{sanitized_title}||{content_hash}||chunk{i+1}"
 
         # Calculate the duration of the chunk
         duration = chunk["end"] - chunk["start"]
-
-        # Prioritize author from MP3 metadata over command line parameter
-        if not is_youtube_video and file_path:
-            _, mp3_author, _, _ = get_media_metadata(file_path)
-            author = mp3_author if mp3_author != "Unknown" else default_author
-        else:
-            author = default_author
 
         metadata = {
             "text": chunk["text"],
@@ -93,9 +83,15 @@ def store_in_pinecone(
             "title": title,
         }
 
-        # Only add the filename field if it's not a YouTube video
-        if not is_youtube_video and file_path:
-            metadata["filename"] = os.path.basename(file_path)
+        # Add album to metadata if it's provided
+        if album:
+            metadata["album"] = album
+
+        # Only add the filename field if it's not a YouTube video and s3_key is provided
+        if not is_youtube_video and s3_key:
+            # Extract the path after 'public/audio/'
+            filename = s3_key.split('public/audio/', 1)[-1]
+            metadata["filename"] = filename
 
         # Only add the url field if it's not None
         if url is not None:
@@ -107,7 +103,7 @@ def store_in_pinecone(
         if interrupt_event and interrupt_event.is_set():
             logger.info("Interrupt detected. Stopping Pinecone upload...")
             return
-        batch = vectors[i : i + 100]
+        batch = vectors[i: i + 100]
         try:
             pinecone_index.upsert(vectors=batch)
         except Exception as e:

@@ -15,6 +15,11 @@ from collections import defaultdict
 import sys
 import pytz
 from datetime import datetime
+import json
+
+# Load library configuration
+with open('library_config.json', 'r') as f:
+    LIBRARY_CONFIG = json.load(f)
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +49,26 @@ def get_unique_files(directory_path):
 
 
 def process_audio_input(input_path, queue, default_author, library):
+    # Check if the library is in the config file
+    if library not in LIBRARY_CONFIG:
+        error_msg = f"Error: Library '{library}' not found in library_config.json. Please use a valid library name."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
     if os.path.isfile(input_path):
         if input_path.lower().endswith((".mp3", ".wav", ".flac")):
+            s3_folder = library.lower()  # Use the simple name as S3 folder
+            # For individual files, we'll just use the filename
+            s3_key = f"public/audio/{s3_folder}/{os.path.basename(input_path)}"
             item_id = queue.add_item(
                 "audio_file",
-                {"file_path": input_path, "author": default_author, "library": library},
+                {
+                    "file_path": input_path,
+                    "author": default_author,
+                    "library": LIBRARY_CONFIG[library],
+                    "s3_folder": s3_folder,
+                    "s3_key": s3_key
+                },
             )
             if item_id:
                 logger.info(f"Added audio file to queue: {item_id} - {input_path}")
@@ -67,14 +87,32 @@ def process_audio_input(input_path, queue, default_author, library):
 
 
 def process_directory(directory_path, queue, default_author, library):
+    # Check if the library is in the config file
+    if library not in LIBRARY_CONFIG:
+        error_msg = f"Error: Library '{library}' not found in library_config.json. Please use a valid library name."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
     unique_files = get_unique_files(directory_path)
     added_items = []
+    s3_folder = library.lower() 
 
     # Process unique files with tqdm
     for file_path in tqdm(unique_files, desc="Processing unique files"):
+        # Calculate the relative path
+        relative_path = os.path.relpath(file_path, directory_path)
+        # Combine the s3_folder with the relative path
+        s3_key = f"public/audio/{s3_folder}/{relative_path}"
+        
         item_id = queue.add_item(
             "audio_file",
-            {"file_path": file_path, "author": default_author, "library": library},
+            {
+                "file_path": file_path,
+                "author": default_author,
+                "library": LIBRARY_CONFIG[library],
+                "s3_folder": s3_folder,
+                "s3_key": s3_key
+            },
         )
         if item_id:
             added_items.append(item_id)

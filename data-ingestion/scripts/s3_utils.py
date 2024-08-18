@@ -25,16 +25,14 @@ def exponential_backoff(attempt):
     return min(5, (2 ** attempt) + random.uniform(0, 1))
 
 
-def upload_to_s3(file_path, max_attempts=5):
-    file_type = "audio"
+def upload_to_s3(file_path, s3_key, max_attempts=5):
     s3_client = get_s3_client()
     bucket_name = get_bucket_name()
-    object_name = f"public/{file_type}/{os.path.basename(file_path)}"
 
     for attempt in range(max_attempts):
         try:
-            s3_client.upload_file(file_path, bucket_name, object_name)
-            logger.info(f"Successfully uploaded {file_path} to {bucket_name}/{object_name}")
+            s3_client.upload_file(file_path, bucket_name, s3_key)
+            logger.info(f"Successfully uploaded {file_path} to {bucket_name}/{s3_key}")
             return None
         except ClientError as e:
             if e.response['Error']['Code'] == 'RequestTimeTooSkewed':

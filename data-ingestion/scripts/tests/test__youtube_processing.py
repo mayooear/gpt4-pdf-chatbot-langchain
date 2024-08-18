@@ -17,6 +17,7 @@ from transcription_utils import transcribe_media
 from pinecone_utils import store_in_pinecone, load_pinecone
 from s3_utils import upload_to_s3
 from test_utils import trim_audio
+from media_utils import get_media_metadata
 
 YOUTUBE_URLS = [
     "https://youtu.be/MvyIpKLbayc?si=Nk9M7EDQ5oYngQkT",
@@ -134,15 +135,19 @@ class TestYouTubeProcessing(unittest.TestCase):
         embedding = [random.uniform(0, 1) for _ in range(1536)]
         logger.debug(f"Created mock embedding with {len(embedding)} dimensions")
 
+        # Get metadata including album
+        title, author, duration, url, album = get_media_metadata(self.audio_path)
+
         store_in_pinecone(
             index,
             [chunk],
             [embedding],
-            self.audio_path,
-            self.author,
+            author if author != "Unknown" else self.author,
             self.library,
             is_youtube_video=True, 
-            title=youtube_data["title"]
+            title=title,
+            url=url,
+            album=album
         )
         logger.debug("Pinecone storage test completed")
 
@@ -162,10 +167,10 @@ class TestYouTubeProcessing(unittest.TestCase):
             self.fail("Failed to download YouTube audio or retrieve audio path")
 
         self.audio_path = youtube_data["audio_path"]
-        result = upload_to_s3(self.audio_path)
-        self.assertIsNone(
-            result
-        )  # Should be None as upload is skipped for YouTube videos
+        with self.assertRaises(ValueError) as context:
+            upload_to_s3(self.audio_path, None)
+        
+        self.assertIn("s3_key must be provided", str(context.exception))
         logger.debug("S3 upload skip test completed")
 
     def test_audio_metadata(self):

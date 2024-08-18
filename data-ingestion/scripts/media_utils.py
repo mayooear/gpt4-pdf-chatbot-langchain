@@ -3,7 +3,7 @@ import hashlib
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3NoHeaderError
 from pydub import AudioSegment
-from pydub.silence import split_on_silence, detect_nonsilent
+from pydub.silence import split_on_silence
 import logging
 import wave
 
@@ -23,6 +23,7 @@ def get_media_metadata(file_path):
         logger.error(f"Error reading audio metadata for {file_path}: {e}")
         raise
 
+
 def get_mp3_metadata(file_path):
     try:
         audio = MP3(file_path)
@@ -33,12 +34,14 @@ def get_mp3_metadata(file_path):
             author = audio.tags.get("TPE1", ["Unknown"])[0]
             url = audio.tags.get("COMM:url:eng")
             url = url.text[0] if url else None
+            album = audio.tags.get("TALB", [None])[0]
         else:
             title = os.path.splitext(os.path.basename(file_path))[0]
             author = "Unknown"
             url = None
+            album = None
         duration = audio.info.length
-        return title, author, duration, url
+        return title, author, duration, url, album
     except ID3NoHeaderError:
         logger.warning(f"Warning: No ID3 header found for {file_path}")
         raise
@@ -49,13 +52,14 @@ def get_mp3_metadata(file_path):
         logger.error(f"Error reading MP3 metadata for {file_path}: {e}")
         raise
 
+
 def get_wav_metadata(file_path):
     try:
         with wave.open(file_path, 'rb') as wav_file:
             params = wav_file.getparams()
             duration = params.nframes / params.framerate
             title = os.path.splitext(os.path.basename(file_path))[0]
-            return title, "Unknown", duration, None
+            return title, "Unknown", duration, None, None 
     except Exception as e:
         logger.error(f"Error reading WAV metadata for {file_path}: {e}")
         raise
@@ -68,6 +72,7 @@ def get_file_hash(file_path):
         for chunk in iter(lambda: f.read(4096), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
 
 def split_audio(
     file_path, min_silence_len=1000, silence_thresh=-32, max_chunk_size=25 * 1024 * 1024

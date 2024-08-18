@@ -76,14 +76,15 @@ class TestAudioProcessing(unittest.TestCase):
 
     def test_audio_metadata(self):
         logger.debug("Starting audio metadata test")
-        title, author, duration, url = get_media_metadata(self.trimmed_audio_path)
+        title, author, duration, url, album = get_media_metadata(self.trimmed_audio_path)
         self.assertIsNotNone(title)
         self.assertIsNotNone(author)
         self.assertGreater(duration, 0)
         self.assertLessEqual(duration, 300.1, "Audio should be 5 minutes or less")
         self.assertIsNone(url)  # URL should be None for non-YouTube audio
+        self.assertIsNotNone(album)  # Album should not be None for MP3 files
         logger.debug(
-            f"Audio metadata test completed. Title: {title}, Author: {author}, Duration: {duration}"
+            f"Audio metadata test completed. Title: {title}, Author: {author}, Duration: {duration}, Album: {album}"
         )
 
     def test_transcription(self):
@@ -120,15 +121,20 @@ class TestAudioProcessing(unittest.TestCase):
             f"Created {len(embeddings)} embeddings, each with {len(embeddings[0])} dimensions"
         )
 
+        # Get metadata including album
+        title, author, duration, url, album = get_media_metadata(self.trimmed_audio_path)
+
         try:
             store_in_pinecone(
                 index,
                 chunks,
                 embeddings,
-                self.trimmed_audio_path,
-                self.author,
+                author if author != "Unknown" else self.author,
                 self.library,
                 is_youtube_video=False,
+                title=title,
+                url=url,
+                album=album
             )
             logger.debug("Pinecone storage success test completed")
         except PineconeException as e:
@@ -168,7 +174,6 @@ class TestAudioProcessing(unittest.TestCase):
                     index,
                     chunks,
                     embeddings,
-                    self.trimmed_audio_path,
                     self.author,
                     self.library,
                     is_youtube_video=False,
@@ -194,7 +199,7 @@ class TestAudioProcessing(unittest.TestCase):
 
             # Attempt to upload the file, expecting an S3UploadError
             with self.assertRaises(S3UploadError) as context:
-                upload_to_s3(self.trimmed_audio_path)
+                upload_to_s3(self.trimmed_audio_path, "test_s3_key")
 
             # Check if the error message contains the expected content
             self.assertIn("Error uploading", str(context.exception))
@@ -218,7 +223,7 @@ class TestAudioProcessing(unittest.TestCase):
             mock_get_s3_client.return_value = mock_s3
 
             # Attempt to upload the file
-            result = upload_to_s3(self.trimmed_audio_path)
+            result = upload_to_s3(self.trimmed_audio_path, "test_s3_key")
 
             # Check that the upload was successful after retry
             self.assertIsNone(result)

@@ -30,18 +30,19 @@ import atexit
 import signal
 from processing_time_estimates import save_estimate
 import time
-from queue import Empty  
+from queue import Empty
 
 logger = logging.getLogger(__name__)
 
 
 def reset_terminal():
     """Reset the terminal to its normal state."""
-    if os.name == 'posix':  # For Unix-like systems
-        os.system('stty sane')
-    print('\033[?25h', end='')  # Show the cursor
-    print('\033[0m', end='')    # Reset all attributes
-    print('', flush=True)       # Ensure a newline and flush the output
+    if os.name == "posix":  # For Unix-like systems
+        os.system("stty sane")
+    print("\033[?25h", end="")  # Show the cursor
+    print("\033[0m", end="")  # Reset all attributes
+    print("", flush=True)  # Ensure a newline and flush the output
+
 
 # Register the reset_terminal function to be called on exit
 atexit.register(reset_terminal)
@@ -57,9 +58,13 @@ def process_file(
     library_name,
     is_youtube_video=False,
     youtube_data=None,
+    s3_key=None,
 ):
     logger.debug(
-        f"process_file called with params: file_path={file_path}, index={pinecone_index}, client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}"
+        f"process_file called with params: file_path={file_path}, index={pinecone_index}, " +
+        f"client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, " +
+        f"library_name={library_name}, is_youtube_video={is_youtube_video}, youtube_data={youtube_data}, " +
+        f"s3_key={s3_key}"
     )
 
     local_report = {
@@ -79,7 +84,9 @@ def process_file(
         youtube_id = None
         file_name = os.path.basename(file_path) if file_path else "Unknown_File"
 
-    existing_transcription = get_saved_transcription(file_path, is_youtube_video, youtube_id)
+    existing_transcription = get_saved_transcription(
+        file_path, is_youtube_video, youtube_id
+    )
     if existing_transcription and not force:
         transcription = existing_transcription
         local_report["skipped"] += 1
@@ -104,7 +111,10 @@ def process_file(
                 return local_report
         except Exception as e:
             error_msg = f"Error transcribing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
-            logger.error(error_msg, exc_info=True)
+            logger.error(error_msg)
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error details: {str(e)}")
+            logger.exception("Full traceback:")
             local_report["errors"] += 1
             local_report["error_details"].append(error_msg)
             return local_report
@@ -118,44 +128,51 @@ def process_file(
         logger.info(f"Processing transcripts for {file_name}")
         chunks = chunk_transcription(transcription)
         if isinstance(chunks, dict) and "error" in chunks:
-            error_msg = f"Error chunking transcription for {file_name}: {chunks['error']}"
+            error_msg = (
+                f"Error chunking transcription for {file_name}: {chunks['error']}"
+            )
             logger.error(error_msg)
             local_report["errors"] += 1
             local_report["error_details"].append(error_msg)
             return local_report
 
-        local_report["chunk_lengths"].extend(
-            [len(chunk["words"]) for chunk in chunks]
-        )
+        local_report["chunk_lengths"].extend([len(chunk["words"]) for chunk in chunks])
         if not dryrun:
             try:
                 embeddings = create_embeddings(chunks, client)
                 logger.debug(f"{len(embeddings)} embeddings created for {file_name}")
-                
+
                 # Use youtube_data for metadata if it's a YouTube video
-                if is_youtube_video and youtube_data and "media_metadata" in youtube_data:
+                if (
+                    is_youtube_video
+                    and youtube_data
+                    and "media_metadata" in youtube_data
+                ):
                     metadata = youtube_data["media_metadata"]
                     title = metadata.get("title", "Unknown Title")
                     url = metadata.get("url")
+                    author = default_author
+                    album = None  # YouTube videos don't have albums
                 else:
-                    title, _, duration, url = get_media_metadata(file_path)
-                
+                    title, mp3_author, duration, url, album = get_media_metadata(file_path)
+                    author = mp3_author if mp3_author != "Unknown" else default_author
+
                 store_in_pinecone(
                     pinecone_index,
                     chunks,
                     embeddings,
-                    file_path,
-                    default_author,
+                    author,
                     library_name,
                     is_youtube_video,
-                    youtube_id,
                     title=title,
-                    url=url
+                    url=url,
+                    s3_key=s3_key,
+                    album=album,
                 )
             except Exception as e:
                 error_msg = f"Error processing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
                 logger.error(error_msg)
-                logger.error(f"Caught exception: {e}")
+                logger.exception(f"Caught exception: {e}")
                 local_report["errors"] += 1
                 local_report["error_details"].append(error_msg)
                 return local_report
@@ -163,7 +180,11 @@ def process_file(
         # After successful processing, upload to S3 only if it's not a YouTube video and not a dry run
         if not dryrun and not is_youtube_video and file_path:
             try:
-                upload_to_s3(file_path)
+                if not s3_key:
+                    # Fallback to a default S3 key if not provided
+                    s3_key = f"public/audio/default/{os.path.basename(file_path)}"
+
+                upload_to_s3(file_path, s3_key)
             except S3UploadError as e:
                 error_msg = f"Error uploading {file_name} to S3: {str(e)}"
                 logger.error(error_msg)
@@ -183,16 +204,16 @@ def process_file(
 
 
 def worker(task_queue, result_queue, args, stop_event):
-    configure_logging(args.debug) 
+    configure_logging(args.debug)
     client = OpenAI()
     index = load_pinecone()
-    
+
     while not stop_event.is_set():
         try:
             item = task_queue.get(timeout=1)
             if item is None:
                 break
-            
+
             logging.debug(f"Worker processing item: {item}")
             item_id, report = process_item(item, args, client, index)
             logging.debug(f"Worker processed item: {item_id}, report: {report}")
@@ -203,7 +224,7 @@ def worker(task_queue, result_queue, args, stop_event):
             logging.error(f"Worker error: {str(e)}")
             logging.exception("Full traceback:")
             # Ensure the item ID is included in the error report
-            if 'item' in locals():
+            if "item" in locals():
                 result_queue.put((item["id"], {"errors": 1, "error_details": [str(e)]}))
             else:
                 result_queue.put((None, {"errors": 1, "error_details": [str(e)]}))
@@ -234,7 +255,9 @@ def process_item(item, args, client, index):
         youtube_data, youtube_id = preprocess_youtube_video(item["data"]["url"], logger)
         if not youtube_data:
             logger.error(f"Failed to process YouTube video: {item['data']['url']}")
-            error_report["error_details"].append(f"Failed to process YouTube video: {item['data']['url']}")
+            error_report["error_details"].append(
+                f"Failed to process YouTube video: {item['data']['url']}"
+            )
             return item["id"], error_report
         # This may be None if transcript was cached
         file_to_process = youtube_data["audio_path"]
@@ -248,6 +271,7 @@ def process_item(item, args, client, index):
 
     author = item["data"]["author"]
     library = item["data"]["library"]
+    s3_key = item["data"].get("s3_key")
 
     start_time = time.time()
     report = process_file(
@@ -260,6 +284,7 @@ def process_item(item, args, client, index):
         library_name=library,
         is_youtube_video=is_youtube_video,
         youtube_data=youtube_data,
+        s3_key=s3_key,
     )
     end_time = time.time()
     processing_time = end_time - start_time
@@ -290,14 +315,16 @@ def preprocess_youtube_video(url, logger):
     existing_youtube_data = youtube_data_map.get(youtube_id)
 
     if existing_youtube_data:
-        # Clear bogus audio_path from existing youtube data
+        # Clear bogus audio_path from existing YouTube data
         existing_youtube_data["audio_path"] = None
 
         existing_transcription = get_saved_transcription(
             None, is_youtube_video=True, youtube_id=youtube_id
         )
         if existing_transcription:
-            logger.debug(f"preprocess_youtube_video: Using existing transcription for YouTube video")
+            logger.debug(
+                f"preprocess_youtube_video: Using existing transcription for YouTube video"
+            )
             return existing_youtube_data, youtube_id
 
     youtube_data = download_youtube_audio(url)
@@ -343,7 +370,7 @@ def merge_reports(reports):
     return combined_report
 
 
-def graceful_shutdown(pool, queue, items_to_process, overall_report, signum, frame):
+def graceful_shutdown(pool, queue, items_to_process, overall_report, _signum, _frame):
     logger.info("\nReceived interrupt signal. Shutting down gracefully...")
     pool.terminate()
     pool.join()
@@ -383,9 +410,11 @@ def main():
     initialize_environment(args)
     ingest_queue = IngestQueue()
 
-    logger.info(f"Target pinecone collection: {os.environ.get('PINECONE_INGEST_INDEX_NAME')}")
-    user_input = input("Is it OK to proceed? (yes/no): ")
-    if user_input.lower() not in ['yes', 'y']:
+    logger.info(
+        f"Target pinecone collection: {os.environ.get('PINECONE_INGEST_INDEX_NAME')}"
+    )
+    user_input = input("Is it OK to proceed? (Yes/no): ")
+    if user_input.lower() in ["no", "n"]:
         logger.info("Operation aborted by the user.")
         sys.exit(0)
 
@@ -398,7 +427,6 @@ def main():
             if not args.override_conflicts:
                 logger.error("Exiting due to error in clearing vectors.")
                 sys.exit(1)
-
 
     overall_report = {
         "processed": 0,
@@ -416,8 +444,13 @@ def main():
     items_to_process = []  # Initialize the list to track items being processed
 
     num_processes = min(4, cpu_count())
-    with Pool(processes=num_processes, initializer=worker, initargs=(task_queue, result_queue, args, stop_event)) as pool:
-        def graceful_shutdown(signum, frame):
+    with Pool(
+        processes=num_processes,
+        initializer=worker,
+        initargs=(task_queue, result_queue, args, stop_event),
+    ) as pool:
+
+        def graceful_shutdown(_signum, _frame):
             logging.info("\nReceived interrupt signal. Shutting down gracefully...")
             stop_event.set()
             for _ in range(num_processes):
@@ -451,8 +484,15 @@ def main():
                     try:
                         item_id, report = result_queue.get(timeout=120)
                         if item_id is not None:
-                            ingest_queue.update_item_status(item_id, "completed" if report["errors"] == 0 else "error")
-                            items_to_process = [item for item in items_to_process if item["id"] != item_id]  # Remove processed item
+                            ingest_queue.update_item_status(
+                                item_id,
+                                "completed" if report["errors"] == 0 else "error",
+                            )
+                            items_to_process = [
+                                item
+                                for item in items_to_process
+                                if item["id"] != item_id
+                            ]  # Remove processed item
                         overall_report = merge_reports([overall_report, report])
                         items_processed += 1
                         pbar.update(1)
@@ -461,11 +501,17 @@ def main():
                         item = ingest_queue.get_next_item()
                         if item:
                             task_queue.put(item)
-                            items_to_process.append(item)  # Track the new item being processed
-                            total_items += 1  # Increment the count for each new item added
+                            items_to_process.append(
+                                item
+                            )  # Track the new item being processed
+                            total_items += (
+                                1  # Increment the count for each new item added
+                            )
 
                     except Empty:
-                        logging.warning("Main loop: Timeout while waiting for results. Continuing...")
+                        logging.warning(
+                            "Main loop: Timeout while waiting for results. Continuing..."
+                        )
 
         except Exception as e:
             logging.error(f"Error processing items: {str(e)}")
@@ -480,8 +526,6 @@ def main():
     # Explicitly reset the terminal state
     reset_terminal()
 
+
 if __name__ == "__main__":
     main()
-
-# Add an extra newline at the very end of the file
-print("")

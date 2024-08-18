@@ -279,58 +279,67 @@ def transcribe_media(
 
     logger.info(f"Splitting audio into chunks for {file_name}...")
 
-    # Split the audio into chunks
-    chunks = split_audio(file_path)
+    try:
+        # Split the audio into chunks
+        chunks = split_audio(file_path)
 
-    logger.info(f"Audio split into {len(chunks)} chunks for {file_name}")
+        logger.info(f"Audio split into {len(chunks)} chunks for {file_name}")
 
-    transcripts = []
-    previous_transcript = None
-    cumulative_time = 0
+        transcripts = []
+        previous_transcript = None
+        cumulative_time = 0
 
-    for i, chunk in enumerate(
-        tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")
-    ):
-        if interrupt_event and interrupt_event.is_set():
-            logger.info("Interrupt detected. Stopping transcription...")
-            break
+        for i, chunk in enumerate(
+            tqdm(chunks, desc=f"Transcribing chunks for {file_name}", unit="chunk")
+        ):
+            if interrupt_event and interrupt_event.is_set():
+                logger.info("Interrupt detected. Stopping transcription...")
+                break
 
-        try:
-            transcript = transcribe_chunk(
-                client, chunk, previous_transcript, cumulative_time, file_name
-            )
-            if transcript:
-                transcripts.append(transcript)
-                previous_transcript = transcript["text"]
-                cumulative_time += chunk.duration_seconds
-            else:
-                logger.error(
-                    f"Empty or invalid transcript for chunk {i+1} in {file_name}"
+            try:
+                transcript = transcribe_chunk(
+                    client, chunk, previous_transcript, cumulative_time, file_name
                 )
-        except RateLimitError:
-            logger.error(f"Rate limit exceeded. Terminating process.")
-            return None
-        except UnsupportedAudioFormatError as e:
-            logger.error(f"{e}. Stopping processing for file {file_name}.")
-            return None
-        except Exception as e:
-            logger.error(
-                f"Error transcribing chunk {i+1} for file {file_name}. Exception: {str(e)}"
-            )
+                if transcript:
+                    transcripts.append(transcript)
+                    previous_transcript = transcript["text"]
+                    cumulative_time += chunk.duration_seconds
+                else:
+                    logger.error(
+                        f"Empty or invalid transcript for chunk {i+1} in {file_name}"
+                    )
+            except RateLimitError:
+                logger.error(f"Rate limit exceeded. Terminating process.")
+                return None
+            except UnsupportedAudioFormatError as e:
+                logger.error(f"{e}. Stopping processing for file {file_name}.")
+                return None
+            except Exception as e:
+                logger.error(
+                    f"Error transcribing chunk {i+1} for file {file_name}. Exception: {str(e)}"
+                )
+                raise  # Re-raise the exception to be caught by the outer try-except
 
-    if len(transcripts) < len(chunks):
-        logger.error(
-            f"Failed. Not all chunks were successfully transcribed for {file_name}. {len(transcripts)} out of {len(chunks)} chunks processed."
-        )
+        if len(transcripts) < len(chunks):
+            logger.error(
+                f"Failed. Not all chunks were successfully transcribed for {file_name}. {len(transcripts)} out of {len(chunks)} chunks processed."
+            )
+            return None
+
+        if transcripts:
+            combined_transcription = combine_transcriptions(transcripts)    
+            save_transcription(file_path, combined_transcription)
+            return combined_transcription
+
+        logger.error(f"No transcripts generated for {file_name}")
         return None
 
-    if transcripts:
-        combined_transcription = combine_transcriptions(transcripts)    
-        save_transcription(file_path, combined_transcription)
-        return combined_transcription
-
-    logger.error(f"No transcripts generated for {file_name}")
-    return None
+    except Exception as e:
+        logger.error(f"Error in transcribe_media for {file_name}: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error details: {str(e)}")
+        logger.exception("Full traceback:")
+        raise  # Re-raise the exception after logging
 
 
 def combine_small_chunks(chunks, min_chunk_size, max_chunk_size):

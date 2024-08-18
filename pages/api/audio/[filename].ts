@@ -32,7 +32,6 @@ export default async function handler(
     console.error('Invalid filename:', filename);
     return res.status(400).json({ error: 'Invalid filename' });
   }
-
   try {
     // Remove any leading slashes and 'api/audio/' from the filename
     const cleanFilename = filename.replace(/^\/*(api\/audio\/)*/, '');
