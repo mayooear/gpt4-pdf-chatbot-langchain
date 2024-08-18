@@ -36,7 +36,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
   >(null);
 
   const renderAudioPlayer = useCallback(
-    (doc: Document<Record<string, any>>, index: number) => {
+    (
+      doc: Document<Record<string, any>>,
+      index: number,
+      isExpanded: boolean,
+    ) => {
       if (doc.metadata.type === 'audio') {
         const audioId = `audio_${doc.metadata.file_hash}_${index}`;
         return (
@@ -47,6 +51,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
               startTime={doc.metadata.start_time}
               audioId={audioId}
               lazyLoad={true}
+              isExpanded={isExpanded}
             />
           </div>
         );
@@ -300,7 +305,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
                 <>
                   {doc.metadata &&
                     doc.metadata.type === 'audio' &&
-                    renderAudioPlayer(doc, index)}
+                    renderAudioPlayer(doc, index, isExpanded)}
                   {doc.metadata &&
                     doc.metadata.type === 'youtube' &&
                     renderYouTubePlayer(doc, index)}
