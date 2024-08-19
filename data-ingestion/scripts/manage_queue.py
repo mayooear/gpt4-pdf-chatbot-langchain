@@ -344,10 +344,16 @@ def print_queue_status(queue, items=None):
 
     audio_estimate = get_estimate("audio_file")
     video_estimate = get_estimate("youtube_video")
-    if audio_estimate:
+    
+    if audio_estimate and audio_estimate.get('time') is not None and audio_estimate.get('size') is not None:
         print(f"Average processing time for audio files: {timedelta(seconds=int(audio_estimate['time']))} for {audio_estimate['size'] / (1024*1024):.2f} MB")
-    if video_estimate:
+    else:
+        print("No data available for audio file processing times.")
+    
+    if video_estimate and video_estimate.get('time') is not None and video_estimate.get('size') is not None:
         print(f"Average processing time for YouTube videos: {timedelta(seconds=int(video_estimate['time']))} for {video_estimate['size'] / (1024*1024):.2f} MB")
+    else:
+        print("No data available for YouTube video processing times.")
 
 
 def main():
