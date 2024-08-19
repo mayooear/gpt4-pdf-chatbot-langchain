@@ -172,7 +172,7 @@ def process_file(
             except Exception as e:
                 error_msg = f"Error processing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
                 logger.error(error_msg)
-                logger.exception(f"Caught exception: {e}")
+                logger.error(f"Caught exception: {e}")
                 local_report["errors"] += 1
                 local_report["error_details"].append(error_msg)
                 return local_report
@@ -232,9 +232,6 @@ def worker(task_queue, result_queue, args, stop_event):
 
 def process_item(item, args, client, index):
     """Process a media item (audio file or YouTube video) in a separate process"""
-    # Ensure logging is configured for this process
-    configure_logging(args.debug)
-    logger = logging.getLogger(__name__)
     logger.debug(f"Processing item: {item}")
 
     error_report = {
