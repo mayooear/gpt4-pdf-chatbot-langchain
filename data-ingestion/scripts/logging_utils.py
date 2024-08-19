@@ -13,14 +13,14 @@ class ColorFormatter(logging.Formatter):
         return super().format(record)
 
 def configure_logging(debug=False):
-    # Configure the root logger with color formatter
-    formatter = ColorFormatter("%(asctime)s - %(levelname)s - %(message)s")
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    
     root_logger = logging.getLogger()
+    if not root_logger.handlers:  # Only add handler if none exist
+        formatter = ColorFormatter("%(asctime)s - %(levelname)s - %(message)s")
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        root_logger.addHandler(handler)
+    
     root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
-    root_logger.addHandler(handler)
 
     # Configure specific loggers
     loggers_to_adjust = [
