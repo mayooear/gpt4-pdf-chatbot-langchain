@@ -518,7 +518,7 @@ def save_youtube_transcription(youtube_data, file_path, transcripts):
     
     # Get media metadata and store it in youtube_data
     try:
-        title, author, duration, url = get_media_metadata(file_path)
+        title, author, duration, url, album = get_media_metadata(file_path)
         youtube_data["media_metadata"] = {
             "title": title,
             "author": author,
