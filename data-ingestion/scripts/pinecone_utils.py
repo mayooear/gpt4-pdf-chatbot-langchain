@@ -4,7 +4,6 @@ import sys
 import hashlib
 import logging
 from pinecone import Pinecone, ServerlessSpec
-from media_utils import get_media_metadata
 from pinecone.core.client.exceptions import NotFoundException, PineconeException
 
 logger = logging.getLogger(__name__)
