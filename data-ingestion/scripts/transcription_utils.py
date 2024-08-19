@@ -4,12 +4,13 @@ import sqlite3
 import gzip
 import json
 import time
-from openai import OpenAI, APIError, APITimeoutError
+from openai import OpenAI, APIError, APITimeoutError, APIConnectionError
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
+    before_sleep_log
 )
 from tqdm import tqdm
 from media_utils import get_file_hash, split_audio, get_media_metadata
@@ -40,10 +41,15 @@ class RateLimitError(Exception):
 
 
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    retry=retry_if_exception_type((APITimeoutError, APIError)),
-    reraise=False,
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    retry=(
+        retry_if_exception_type(APIConnectionError) |
+        retry_if_exception_type(APITimeoutError) |
+        retry_if_exception_type(APIError)
+    ),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True
 )
 def transcribe_chunk(
     client, chunk, previous_transcript=None, cumulative_time=0, file_name=""
@@ -51,6 +57,7 @@ def transcribe_chunk(
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as temp_file:
             chunk.export(temp_file.name, format="mp3")
+            chunk_size = os.path.getsize(temp_file.name)
 
             transcription_options = {
                 "file": open(temp_file.name, "rb"),
@@ -87,34 +94,25 @@ def transcribe_chunk(
         }
 
         return simplified_transcript
-    except APITimeoutError:
-        logger.error(f"OpenAI API request timed out for file {file_name}. Retrying...")
+    except (APIConnectionError, APITimeoutError) as e:
+        logger.warning(f"OpenAI API connection error for file {file_name}: {e}. Retrying...")
         raise
     except APIError as e:
-        if e.code == 429:
-            logger.error(
-                f"OpenAI API error for file {file_name}: {e}. Rate limit exceeded."
-            )
+        if e.status_code == 429:
+            logger.error(f"OpenAI API rate limit exceeded for file {file_name}: {e}")
             raise RateLimitError("Rate limit exceeded")
-        elif (
-            e.code == 400
-            and "The audio file could not be decoded or its format is not supported."
-            in str(e)
-        ):
-            logger.error(
-                f"OpenAI API error for file {file_name}: {e}. The audio file could not be decoded or its format is not supported. Skipping this chunk."
-            )
-            raise UnsupportedAudioFormatError(
-                f"Unsupported audio format for file {file_name}"
-            )
+        elif e.status_code == 400 and "audio file could not be decoded" in str(e).lower():
+            logger.error(f"OpenAI API error for file {file_name}: {e}. Unsupported audio format.")
+            raise UnsupportedAudioFormatError(f"Unsupported audio format for file {file_name}")
         logger.error(f"OpenAI API error for file {file_name}: {e}")
         raise
     except Exception as e:
-        logger.error(f"Error transcribing chunk for file {file_name}: {str(e)}")
+        logger.error(f"Unexpected error transcribing chunk for file {file_name}: {str(e)}")
         logger.error(
             f"Full response: {transcript_dict if 'transcript_dict' in locals() else 'Not available'}"
         )
-        return None
+        logger.error(f"Chunk size: {chunk_size / (1024 * 1024):.2f} MB")
+        raise
 
 
 def init_db():

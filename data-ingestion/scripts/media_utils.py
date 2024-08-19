@@ -74,10 +74,44 @@ def get_file_hash(file_path):
     return hasher.hexdigest()
 
 
+def split_chunk_by_duration(chunk, max_duration_ms):
+    sub_chunks = []
+    for start_ms in range(0, len(chunk), max_duration_ms):
+        end_ms = min(start_ms + max_duration_ms, len(chunk))
+        sub_chunks.append(chunk[start_ms:end_ms])
+    return sub_chunks
+
+
+def calculate_max_duration_ms(chunk, max_size_bytes):
+    bytes_per_ms = len(chunk.raw_data) / len(chunk)
+    return int(max_size_bytes / bytes_per_ms)
+
+
+def split_chunk_evenly(chunk, max_chunk_size):
+    total_size = len(chunk.raw_data)
+    num_chunks = -(-total_size // max_chunk_size)  # Ceiling division
+    chunk_duration = len(chunk) / num_chunks
+    
+    sub_chunks = []
+    for i in range(num_chunks):
+        start_ms = int(i * chunk_duration)
+        end_ms = int((i + 1) * chunk_duration) if i < num_chunks - 1 else len(chunk)
+        sub_chunks.append(chunk[start_ms:end_ms])
+    
+    return sub_chunks
+
+
 def split_audio(
-    file_path, min_silence_len=1000, silence_thresh=-32, max_chunk_size=25 * 1024 * 1024
+    file_path
 ):
     """Split audio file into chunks based on silence or maximum size."""
+
+    min_silence_len = 1000
+    silence_thresh = -32
+    # Reduce max_chunk_size to stay well under 25MB
+    max_chunk_size = int(25 * 1024 * 1024 * 0.9)  # Approximately 22.5 MB
+    openai_limit = 25 * 1024 * 1024  # 25 MB in bytes
+
     logger.debug(f"Starting split_audio for file: {file_path}")
     file_extension = os.path.splitext(file_path)[1].lower()
     if file_extension == '.mp3':
@@ -155,14 +189,33 @@ def split_audio(
 
     logger.debug(f"Number of combined chunks after merging small chunks: {len(combined_chunks)}")
 
+    logger.debug(f"Chunk sizes for file {file_path}:")
+    for i, chunk in enumerate(combined_chunks):
+        chunk_size = len(chunk.raw_data)
+        logger.debug(f"Chunk {i+1} size: {chunk_size / (1024 * 1024):.2f} MB")
+
     # Split any chunks that are still too large
     final_chunks = []
-    for chunk in combined_chunks:
-        if len(chunk.raw_data) > max_chunk_size:
-            sub_chunks = [chunk[i:i+max_chunk_size] for i in range(0, len(chunk), max_chunk_size)]
+    logger.debug(f"Processing {len(combined_chunks)} combined chunks")
+    for i, chunk in enumerate(combined_chunks):
+        chunk_size = len(chunk.raw_data)
+        if chunk_size > max_chunk_size:
+            logger.debug(f"Chunk {i+1}, size {chunk_size / (1024 * 1024):.2f} MB, exceeds max size. Splitting into sub-chunks.")
+            sub_chunks = split_chunk_evenly(chunk, max_chunk_size)
+            logger.debug(f"Created {len(sub_chunks)} sub-chunks for chunk {i+1}:")
+            for j, sub_chunk in enumerate(sub_chunks):
+                sub_chunk_size = len(sub_chunk.raw_data)
+                logger.debug(f"Sub-chunk {j+1}, size: {sub_chunk_size / (1024 * 1024):.2f} MB, duration: {len(sub_chunk) / 1000:.2f} seconds")
             final_chunks.extend(sub_chunks)
         else:
+            logger.debug(f"Adding chunk {i+1} to final chunks without splitting")
             final_chunks.append(chunk)
+    logger.debug(f"Final chunk count: {len(final_chunks)}")
+
+    for i, chunk in enumerate(final_chunks):
+        chunk_size = len(chunk.raw_data)
+        if chunk_size > openai_limit:
+            logger.warning(f"Chunk {i+1} exceeds OpenAI limit: {chunk_size / (1024 * 1024):.2f} MB")
 
     return final_chunks
 

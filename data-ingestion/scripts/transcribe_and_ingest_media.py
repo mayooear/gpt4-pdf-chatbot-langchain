@@ -16,6 +16,8 @@ from transcription_utils import (
     get_saved_transcription,
     load_youtube_data_map,
     save_youtube_transcription,
+    RateLimitError,
+    UnsupportedAudioFormatError
 )
 from pinecone_utils import (
     load_pinecone,
@@ -31,6 +33,7 @@ import signal
 from processing_time_estimates import save_estimate
 import time
 from queue import Empty
+from tenacity import RetryError
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +112,24 @@ def process_file(
                 local_report["errors"] += 1
                 local_report["error_details"].append(error_msg)
                 return local_report
+        except RetryError as e:
+            error_msg = f"Failed to transcribe {file_name} after multiple retries: {str(e)}"
+            logger.error(error_msg)
+            local_report["errors"] += 1
+            local_report["error_details"].append(error_msg)
+            return local_report
+        except RateLimitError:
+            error_msg = f"Rate limit exceeded while transcribing {file_name}. Terminating process."
+            logger.error(error_msg)
+            local_report["errors"] += 1
+            local_report["error_details"].append(error_msg)
+            return local_report
+        except UnsupportedAudioFormatError as e:
+            error_msg = f"{str(e)}. Stopping processing for file {file_name}."
+            logger.error(error_msg)
+            local_report["errors"] += 1
+            local_report["error_details"].append(error_msg)
+            return local_report
         except Exception as e:
             error_msg = f"Error transcribing {'YouTube video' if is_youtube_video else 'file'} {file_name}: {str(e)}"
             logger.error(error_msg)
@@ -479,7 +500,7 @@ def main():
             with tqdm(total=total_items, desc="Processing items") as pbar:
                 while items_processed < total_items:
                     try:
-                        item_id, report = result_queue.get(timeout=120)
+                        item_id, report = result_queue.get(timeout=300)
                         if item_id is not None:
                             ingest_queue.update_item_status(
                                 item_id,
@@ -506,7 +527,7 @@ def main():
                             )
 
                     except Empty:
-                        logging.warning(
+                        logging.info(
                             "Main loop: Timeout while waiting for results. Continuing..."
                         )
 
