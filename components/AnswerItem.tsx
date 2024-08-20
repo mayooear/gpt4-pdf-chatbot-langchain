@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
@@ -10,29 +10,29 @@ import { collectionsConfig } from '@/utils/client/collectionsConfig';
 
 interface AnswerItemProps {
   answer: Answer;
-  expandedQuestions: Set<string>;
-  handleExpandQuestion: (answerId: string) => void;
   handleLikeCountChange: (answerId: string, newLikeCount: number) => void;
   handleCopyLink: (answerId: string) => void;
   handleDelete?: (answerId: string) => void;
   linkCopied: string | null;
   likeStatuses: Record<string, boolean>;
   isSudoUser: boolean;
+  isFullPage?: boolean;
 }
 
 const SIMILARITY_THRESHOLD = 0.15;
 
 const AnswerItem: React.FC<AnswerItemProps> = ({
   answer,
-  expandedQuestions,
-  handleExpandQuestion,
   handleLikeCountChange,
   handleCopyLink,
   handleDelete,
   linkCopied,
   likeStatuses,
   isSudoUser,
+  isFullPage = false,
 }) => {
+  const [expanded, setExpanded] = useState(isFullPage);
+
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     if (!question) {
       console.error('renderTruncatedQuestion called with undefined question');
@@ -59,39 +59,59 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
   };
 
   return (
-    <div className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow">
+    <div
+      className={`bg-white p-2 sm:p-2.5 ${
+        isFullPage ? '' : 'mb-4'
+      } rounded-lg shadow`}
+    >
       <div className="flex items-start">
         <span className="material-icons mt-1 mr-2 flex-shrink-0">
           question_answer
         </span>
         <div className="flex-grow min-w-0">
           <div className="mb-2">
-            <Link href={`/answers/${answer.id}`} legacyBehavior>
-              <a className="text-black-600 hover:underline cursor-pointer">
-                <b className="block break-words">
-                  {expandedQuestions.has(answer.id) ? (
-                    answer.question.split('\n').map((line, i) => (
-                      <React.Fragment key={i}>
-                        {line}
-                        {i < answer.question.split('\n').length - 1 && <br />}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <>
-                      {renderTruncatedQuestion(answer.question, 200)}
-                      {answer.question.length > 200 && '...'}
-                    </>
-                  )}
-                </b>
-              </a>
-            </Link>
-            {answer.question.length > 200 &&
-              !expandedQuestions.has(answer.id) && (
+            {isFullPage ? (
+              <b className="block break-words">
+                {expanded ? (
+                  answer.question.split('\n').map((line, i) => (
+                    <React.Fragment key={i}>
+                      {line}
+                      {i < answer.question.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <>
+                    {renderTruncatedQuestion(answer.question, 600)}
+                    {answer.question.length > 600 && '...'}
+                  </>
+                )}
+              </b>
+            ) : (
+              <Link href={`/answers/${answer.id}`} legacyBehavior>
+                <a className="text-black-600 hover:underline cursor-pointer">
+                  <b className="block break-words">
+                    {expanded ? (
+                      answer.question.split('\n').map((line, i) => (
+                        <React.Fragment key={i}>
+                          {line}
+                          {i < answer.question.split('\n').length - 1 && <br />}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <>
+                        {renderTruncatedQuestion(answer.question, 200)}
+                        {answer.question.length > 200 && '...'}
+                      </>
+                    )}
+                  </b>
+                </a>
+              </Link>
+            )}
+            {((isFullPage && answer.question.length > 600) ||
+              (!isFullPage && answer.question.length > 200)) &&
+              !expanded && (
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleExpandQuestion(answer.id);
-                  }}
+                  onClick={() => setExpanded(true)}
                   className="text-black hover:underline ml-2"
                 >
                   <b>See More</b>
@@ -116,7 +136,10 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
       </div>
       <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
         <div className="markdownanswer overflow-x-auto">
-          <TruncatedMarkdown markdown={answer.answer} maxCharacters={600} />
+          <TruncatedMarkdown
+            markdown={answer.answer}
+            maxCharacters={isFullPage ? 4000 : 600}
+          />
           {answer.sources && (
             <SourcesList
               sources={answer.sources}

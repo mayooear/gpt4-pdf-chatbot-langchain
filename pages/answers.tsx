@@ -1,23 +1,14 @@
 import Layout from '@/components/layout';
-import CopyButton from '@/components/CopyButton';
-import LikeButton from '@/components/LikeButton';
-import SourcesList from '@/components/SourcesList';
-import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import debounce from 'lodash/debounce';
-import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
-import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
 import { initGA, logEvent } from '@/utils/client/analytics';
 import React from 'react';
-import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import AnswerItem from '@/components/AnswerItem';
-
-const SIMILARITY_THRESHOLD = 0.15;
 
 const AllAnswers = () => {
   const router = useRouter();
@@ -40,22 +31,6 @@ const AllAnswers = () => {
 
   // State to control the delayed spinner visibility
   const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
-
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(
-    new Set(),
-  );
-
-  const handleExpandQuestion = (answerId: string) => {
-    setExpandedQuestions((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(answerId)) {
-        newSet.delete(answerId);
-      } else {
-        newSet.add(answerId);
-      }
-      return newSet;
-    });
-  };
 
   const [isRestoringScroll, setIsRestoringScroll] = useState(false);
 
@@ -430,14 +405,13 @@ const AllAnswers = () => {
                 <AnswerItem
                   key={answer.id}
                   answer={answer}
-                  expandedQuestions={expandedQuestions}
-                  handleExpandQuestion={handleExpandQuestion}
                   handleLikeCountChange={handleLikeCountChange}
                   handleCopyLink={handleCopyLink}
                   handleDelete={isSudoUser ? handleDelete : undefined}
                   linkCopied={linkCopied}
                   likeStatuses={likeStatuses}
                   isSudoUser={isSudoUser}
+                  isFullPage={false}
                 />
               ))}
             </div>

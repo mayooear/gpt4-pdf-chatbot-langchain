@@ -1,25 +1,13 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout';
-import CopyButton from '@/components/CopyButton';
-import LikeButton from '@/components/LikeButton';
-import SourcesList from '@/components/SourcesList';
-import TruncatedMarkdown from '@/components/TruncatedMarkdown';
+import AnswerItem from '@/components/AnswerItem';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
 import { isSudo } from '@/utils/client/cookieUtils';
-import { collectionsConfig } from '@/utils/client/collectionsConfig';
-import { formatDistanceToNow } from 'date-fns';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { logEvent } from '@/utils/client/analytics';
-import React from 'react';
 import Head from 'next/head';
-
-type RelatedQuestion = {
-  id: string;
-  title: string;
-  similarity: number;
-};
 
 const SingleAnswer = () => {
   const router = useRouter();
@@ -28,30 +16,7 @@ const SingleAnswer = () => {
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [relatedQuestions, setRelatedQuestions] = useState<RelatedQuestion[]>(
-    [],
-  );
-
-  const renderTruncatedQuestion = (question: string, maxLength: number) => {
-    const truncated = question.slice(0, maxLength);
-    return truncated.split('\n').map((line, i, arr) => (
-      <React.Fragment key={i}>
-        {line}
-        {i < arr.length - 1 && <br />}
-      </React.Fragment>
-    ));
-  };
-
-  const handleCopyLink = () => {
-    const url = `${window.location.origin}/answers/${answerId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-      logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
-    });
-  };
 
   useEffect(() => {
     const fetchAnswer = async () => {
@@ -90,16 +55,6 @@ const SingleAnswer = () => {
     }
   }, [answer]);
 
-  useEffect(() => {
-    if (answer && answer.relatedQuestionsV2) {
-      const SIMILARITY_THRESHOLD = 0.15;
-      const filteredQuestions = answer.relatedQuestionsV2.filter(
-        (q) => q.similarity >= SIMILARITY_THRESHOLD,
-      );
-      setRelatedQuestions(filteredQuestions);
-    }
-  }, [answer]);
-
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     if (answer) {
       setAnswer({
@@ -108,6 +63,15 @@ const SingleAnswer = () => {
       });
     }
     logEvent('like_answer', 'Engagement', answerId);
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/answers/${answerId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+      logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
+    });
   };
 
   const handleDelete = async (answerId: string) => {
@@ -158,128 +122,16 @@ const SingleAnswer = () => {
         <title>Ask Ananda Library: {answer.question.substring(0, 150)}</title>
       </Head>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div className="bg-white p-2.5 m-2.5">
-          <div className="flex items-center">
-            <span className="material-icons">question_answer</span>
-            <div className="ml-4 flex-grow">
-              <div className="mb-2">
-                <b className="text-black-600 block">
-                  {expanded ? (
-                    answer.question.split('\n').map((line, i) => (
-                      <React.Fragment key={i}>
-                        {line}
-                        {i < answer.question.split('\n').length - 1 && <br />}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <>
-                      {renderTruncatedQuestion(answer.question, 600)}
-                      {answer.question.length > 600 && '...'}
-                    </>
-                  )}
-                  {answer.question.length > 600 && !expanded && (
-                    <button
-                      onClick={() => setExpanded(true)}
-                      className="text-black hover:underline ml-2"
-                    >
-                      Show More
-                    </button>
-                  )}
-                </b>
-              </div>
-              <div className="text-sm text-gray-500">
-                {formatDistanceToNow(
-                  new Date(answer.timestamp._seconds * 1000),
-                  { addSuffix: true },
-                )}
-                <span className="ml-4">
-                  {answer.collection
-                    ? collectionsConfig[
-                        answer.collection as keyof typeof collectionsConfig
-                      ].replace(/ /g, '\u00a0')
-                    : 'Unknown\u00a0Collection'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-100 p-2.5 rounded">
-            <div className="markdownanswer">
-              <TruncatedMarkdown
-                markdown={answer.answer}
-                maxCharacters={4000}
-              />
-              {answer.sources && <SourcesList sources={answer.sources} />}
-              <div className="flex items-center">
-                <CopyButton
-                  markdown={answer.answer}
-                  answerId={answer.id}
-                  sources={answer.sources}
-                  question={answer.question}
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className="ml-4 text-black-600 hover:underline flex items-center"
-                  title="Copy link to clipboard"
-                >
-                  <span className="material-icons">
-                    {linkCopied ? 'check' : 'link'}
-                  </span>
-                </button>
-                <div className="ml-4">
-                  <LikeButton
-                    key={`${answer.id}-${likeStatuses[answer.id]}`}
-                    answerId={answer.id}
-                    initialLiked={likeStatuses[answer.id] || false}
-                    likeCount={answer.likeCount}
-                    onLikeCountChange={handleLikeCountChange}
-                  />
-                </div>
-                {isSudoUser && (
-                  <>
-                    <button
-                      onClick={() => handleDelete(answer.id)}
-                      className="ml-4 text-red-600"
-                    >
-                      <span className="material-icons">delete</span>
-                    </button>
-                    <span className="ml-6">IP: ({answer.ip})</span>
-                    {answer.vote === -1 && (
-                      <button className="ml-4 text-red-600" title="Downvote">
-                        <span className="material-icons">thumb_down</span>
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        {relatedQuestions.length > 0 && (
-          <div className="bg-white p-2.5 m-2.5 mt-4">
-            <h2 className="text-xl font-bold mb-2">Related Questions</h2>
-            <ul className="list-disc list-inside">
-              {relatedQuestions.map((relatedQuestion) => (
-                <li key={relatedQuestion.id}>
-                  <a
-                    href={`/answers/${relatedQuestion.id}`}
-                    className="text-blue-600 hover:underline"
-                    onClick={() =>
-                      logEvent(
-                        'click_related_question',
-                        'Engagement',
-                        `Related Question ID: ${relatedQuestion.id}, Title: ${relatedQuestion.title}`,
-                      )
-                    }
-                  >
-                    {relatedQuestion.title.length > 150
-                      ? `${relatedQuestion.title.slice(0, 150)}...`
-                      : relatedQuestion.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <AnswerItem
+          answer={answer}
+          handleLikeCountChange={handleLikeCountChange}
+          handleCopyLink={handleCopyLink}
+          handleDelete={handleDelete}
+          linkCopied={linkCopied ? answer.id : null}
+          likeStatuses={likeStatuses}
+          isSudoUser={isSudoUser}
+          isFullPage={true}
+        />
       </div>
     </Layout>
   );
