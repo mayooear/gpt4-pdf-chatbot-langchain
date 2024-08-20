@@ -392,14 +392,14 @@ def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
 
     # Filter out music chunks
     original_word_count = len(words)
-    words = [word for word in words if not re.match(r'^♪+$', word["word"])]
+    words = [word for word in words if not re.match(r'^[♪🎵🎶♫♬🔊]+$', word["word"])]
     total_words = len(words)
     if total_words != original_word_count:
         logger.debug(f"Filtered out music chunks. Remaining words: {total_words}")
 
     # Set a timeout for the function
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(60)  # Set timeout to 60 seconds
+    signal.alarm(60)
 
     try:
         # Calculate the number of chunks needed
