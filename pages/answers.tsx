@@ -15,6 +15,7 @@ import { initGA, logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
+import AnswerItem from '@/components/AnswerItem';
 
 const SIMILARITY_THRESHOLD = 0.15;
 
@@ -58,50 +59,61 @@ const AllAnswers = () => {
 
   const [isRestoringScroll, setIsRestoringScroll] = useState(false);
 
-  // Function to save scroll position
+  // Scroll position management functions
   const saveScrollPosition = () => {
     const scrollY = window.scrollY;
     sessionStorage.setItem('answersScrollPosition', scrollY.toString());
   };
 
-  // Function to get saved scroll position
   const getSavedScrollPosition = () => {
     const savedPosition = sessionStorage.getItem('answersScrollPosition');
     return savedPosition ? parseInt(savedPosition, 10) : 0;
   };
 
-  // Add this useEffect to save scroll position periodically
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
+    document.body.offsetHeight; // Force a reflow
+  };
+
+  // Scroll position related effects
   useEffect(() => {
     const intervalId = setInterval(saveScrollPosition, 1000);
-
     return () => clearInterval(intervalId);
   }, []);
 
-  // Modify this useEffect to save scroll position when navigating away
   useEffect(() => {
     const handleBeforeUnload = () => {
       saveScrollPosition();
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
-  // Modify this useEffect to handle popstate
   useEffect(() => {
     const handlePopState = () => {
       setIsRestoringScroll(true);
     };
-
     window.addEventListener('popstate', handlePopState);
-
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
+
+  useEffect(() => {
+    if (isRestoringScroll && !isLoading && initialLoadComplete) {
+      const savedPosition = getSavedScrollPosition();
+      setTimeout(() => {
+        window.scrollTo(0, savedPosition);
+        setIsRestoringScroll(false);
+        sessionStorage.removeItem('answersScrollPosition');
+      }, 100);
+    }
+  }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
   useEffect(() => {
     // Reset answers when sortBy changes
@@ -211,18 +223,6 @@ const AllAnswers = () => {
       initGA();
     }
   }, [router.isReady, urlPage, urlSortBy, debouncedFetch]);
-
-  useEffect(() => {
-    if (isRestoringScroll && !isLoading && initialLoadComplete) {
-      const savedPosition = getSavedScrollPosition();
-      setTimeout(() => {
-        window.scrollTo(0, savedPosition);
-        setIsRestoringScroll(false);
-        // Clear the saved position after restoring
-        sessionStorage.removeItem('answersScrollPosition');
-      }, 100); // Small delay to ensure content is rendered
-    }
-  }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
   const updateUrl = useCallback(
     (page: number, sortBy: string) => {
@@ -357,20 +357,6 @@ const AllAnswers = () => {
     }
   };
 
-  const renderTruncatedQuestion = (question: string, maxLength: number) => {
-    if (!question) {
-      console.error('renderTruncatedQuestion called with undefined question');
-      return null;
-    }
-    const truncated = question.slice(0, maxLength);
-    return truncated.split('\n').map((line, i, arr) => (
-      <React.Fragment key={i}>
-        {line}
-        {i < arr.length - 1 && <br />}
-      </React.Fragment>
-    ));
-  };
-
   const handleCopyLink = (answerId: string) => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -380,41 +366,17 @@ const AllAnswers = () => {
     });
   };
 
-  const truncateTitle = (title: string, maxLength: number) => {
-    return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
-  };
+  // Track if we're changing pages
+  const [isChangingPage, setIsChangingPage] = useState(false);
 
-  const handleRelatedQuestionClick = (
-    relatedQuestionId: string,
-    relatedQuestionTitle: string,
-  ) => {
-    logEvent(
-      'click_related_question',
-      'Engagement',
-      `Related Question ID: ${relatedQuestionId}, Title: ${relatedQuestionTitle}`,
-    );
-  };
-
-  // Add this function to scroll to top
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'auto',
-    });
-    // Force a reflow to ensure the scroll takes effect immediately
-    document.body.offsetHeight;
-  };
-
-  // Modify handlePageChange to scroll to top immediately
   const handlePageChange = (newPage: number) => {
-    scrollToTop(); // Scroll to top immediately
+    scrollToTop();
     setIsChangingPage(true);
-    setAnswers([]); // Clear answers immediately
+    setAnswers([]);
     setCurrentPage(newPage);
     sessionStorage.removeItem('answersScrollPosition');
     updateUrl(newPage, sortBy);
 
-    // Use setTimeout to ensure the UI updates before fetching
     setTimeout(() => {
       if (debouncedFetch) {
         debouncedFetch(newPage, sortBy, true);
@@ -424,9 +386,6 @@ const AllAnswers = () => {
       }
     }, 0);
   };
-
-  // Add a new state for tracking if we're changing pages
-  const [isChangingPage, setIsChangingPage] = useState(false);
 
   return (
     <Layout>
@@ -467,167 +426,19 @@ const AllAnswers = () => {
         ) : (
           <div key={`${currentPage}-${sortBy}`}>
             <div>
-              {answers.map((answer, index) => (
-                <div
+              {answers.map((answer) => (
+                <AnswerItem
                   key={answer.id}
-                  className="bg-white p-2 sm:p-2.5 mb-4 rounded-lg shadow"
-                >
-                  <div className="flex items-start">
-                    <span className="material-icons mt-1 mr-2 flex-shrink-0">
-                      question_answer
-                    </span>
-                    <div className="flex-grow min-w-0">
-                      <div className="mb-2">
-                        <Link href={`/answers/${answer.id}`} legacyBehavior>
-                          <a className="text-black-600 hover:underline cursor-pointer">
-                            <b className="block break-words">
-                              {expandedQuestions.has(answer.id) ? (
-                                answer.question.split('\n').map((line, i) => (
-                                  <React.Fragment key={i}>
-                                    {line}
-                                    {i <
-                                      answer.question.split('\n').length -
-                                        1 && <br />}
-                                  </React.Fragment>
-                                ))
-                              ) : (
-                                <>
-                                  {renderTruncatedQuestion(
-                                    answer.question,
-                                    200,
-                                  )}
-                                  {answer.question.length > 200 && '...'}
-                                </>
-                              )}
-                            </b>
-                          </a>
-                        </Link>
-                        {answer.question.length > 200 &&
-                          !expandedQuestions.has(answer.id) && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleExpandQuestion(answer.id);
-                              }}
-                              className="text-black hover:underline ml-2"
-                            >
-                              <b>See More</b>
-                            </button>
-                          )}
-                      </div>
-                      <div className="text-sm text-gray-500 flex flex-wrap">
-                        <span className="mr-4">
-                          {formatDistanceToNow(
-                            new Date(answer.timestamp._seconds * 1000),
-                            { addSuffix: true },
-                          )}
-                        </span>
-                        <span>
-                          {answer.collection
-                            ? collectionsConfig[
-                                answer.collection as keyof typeof collectionsConfig
-                              ].replace(/ /g, '\u00a0')
-                            : 'Unknown\u00a0Collection'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
-                    <div className="markdownanswer overflow-x-auto">
-                      <TruncatedMarkdown
-                        markdown={answer.answer}
-                        maxCharacters={600}
-                      />
-                      {answer.sources && (
-                        <SourcesList
-                          sources={answer.sources}
-                          collectionName={answer.collection}
-                        />
-                      )}
-                      {answer.relatedQuestionsV2 &&
-                        answer.relatedQuestionsV2.filter(
-                          (q) => q.similarity >= SIMILARITY_THRESHOLD,
-                        ).length > 0 && (
-                          <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
-                            <h3 className="text-lg !font-bold mb-2">
-                              Related Questions
-                            </h3>
-                            <ul className="list-disc pl-2">
-                              {answer.relatedQuestionsV2
-                                .filter(
-                                  (q) => q.similarity >= SIMILARITY_THRESHOLD,
-                                )
-                                .map((relatedQuestion) => (
-                                  <li key={relatedQuestion.id} className="ml-0">
-                                    <a
-                                      href={`/answers/${relatedQuestion.id}`}
-                                      className="text-blue-600 hover:underline"
-                                      onClick={() =>
-                                        handleRelatedQuestionClick(
-                                          relatedQuestion.id,
-                                          relatedQuestion.title,
-                                        )
-                                      }
-                                    >
-                                      {truncateTitle(
-                                        relatedQuestion.title,
-                                        150,
-                                      )}
-                                    </a>
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        )}
-                      <div className="flex flex-wrap items-center mt-2">
-                        <CopyButton
-                          markdown={answer.answer}
-                          answerId={answer.id}
-                          sources={answer.sources}
-                          question={answer.question}
-                        />
-                        <button
-                          onClick={() => handleCopyLink(answer.id)}
-                          className="ml-2 sm:ml-4 text-black-600 hover:underline flex items-center"
-                          title="Copy link to clipboard"
-                        >
-                          <span className="material-icons">
-                            {linkCopied === answer.id ? 'check' : 'link'}
-                          </span>
-                        </button>
-                        <div className="ml-2 sm:ml-4">
-                          <LikeButton
-                            answerId={answer.id}
-                            initialLiked={likeStatuses[answer.id] || false}
-                            likeCount={answer.likeCount}
-                            onLikeCountChange={handleLikeCountChange}
-                          />
-                        </div>
-                        {isSudoUser && (
-                          <>
-                            <button
-                              onClick={() => handleDelete(answer.id)}
-                              className="ml-4 text-red-600"
-                            >
-                              <span className="material-icons">delete</span>
-                            </button>
-                            <span className="ml-6">IP: ({answer.ip})</span>
-                            {answer.vote === -1 && (
-                              <button
-                                className="ml-4 text-red-600"
-                                title="Downvote"
-                              >
-                                <span className="material-icons">
-                                  thumb_down
-                                </span>
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  answer={answer}
+                  expandedQuestions={expandedQuestions}
+                  handleExpandQuestion={handleExpandQuestion}
+                  handleLikeCountChange={handleLikeCountChange}
+                  handleCopyLink={handleCopyLink}
+                  handleDelete={isSudoUser ? handleDelete : undefined}
+                  linkCopied={linkCopied}
+                  likeStatuses={likeStatuses}
+                  isSudoUser={isSudoUser}
+                />
               ))}
             </div>
 
