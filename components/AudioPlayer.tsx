@@ -10,6 +10,12 @@ interface AudioPlayerProps {
   isExpanded?: boolean;
 }
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+  </div>
+);
+
 export function AudioPlayer({
   src,
   startTime,
@@ -21,6 +27,7 @@ export function AudioPlayer({
   const { currentlyPlayingId, setCurrentlyPlayingId } = useAudioContext();
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [showSpinner, setShowSpinner] = useState(false);
 
   const {
     audioRef,
@@ -63,8 +70,14 @@ export function AudioPlayer({
   useEffect(() => {
     if ((!lazyLoad || isExpanded) && !isLoaded) {
       fetchAudioUrl();
+      const timer = setTimeout(() => {
+        if (!isLoaded && !error) {
+          setShowSpinner(true);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [lazyLoad, isExpanded, isLoaded, fetchAudioUrl]);
+  }, [lazyLoad, isExpanded, isLoaded, fetchAudioUrl, error]);
 
   useEffect(() => {
     if (currentlyPlayingId && currentlyPlayingId !== audioId && isPlaying) {
@@ -113,6 +126,7 @@ export function AudioPlayer({
       {audioError && (
         <div className="text-red-500 mb-1 text-sm px-2">{audioError}</div>
       )}
+      {showSpinner && !isLoaded && !error && !audioError && <LoadingSpinner />}
       <div className="flex items-center justify-between px-2">
         <button
           onClick={handleTogglePlayPause}
