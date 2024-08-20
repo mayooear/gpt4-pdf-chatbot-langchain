@@ -26,6 +26,9 @@ def exponential_backoff(attempt):
 
 
 def upload_to_s3(file_path, s3_key, max_attempts=5):
+    if not s3_key:
+        raise ValueError("s3_key must be provided")
+
     s3_client = get_s3_client()
     bucket_name = get_bucket_name()
 
