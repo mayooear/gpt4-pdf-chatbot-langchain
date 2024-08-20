@@ -306,28 +306,31 @@ export default function Home() {
                     )}
                     <div
                       key={`chatMessage-${index}`}
-                      className={`${className} p-4`}
+                      className={`${className} p-2 px-3`}
                       ref={
                         index === messages.length - 1 ? lastMessageRef : null
                       }
                     >
                       <div className="flex items-start">
-                        <div className="flex-shrink-0 mr-4">{icon}</div>
+                        <div className="flex-shrink-0 mr-2">{icon}</div>
                         <div className="flex-grow">
-                          <div className="prose max-w-none">
+                          <div className="max-w-none">
                             {message.sourceDocs && (
-                              <SourcesList
-                                sources={message.sourceDocs}
-                                collectionName={
-                                  collectionChanged
-                                    ? message.collection
-                                    : undefined
-                                }
-                              />
+                              <div className="mb-2">
+                                <SourcesList
+                                  sources={message.sourceDocs}
+                                  collectionName={
+                                    collectionChanged
+                                      ? message.collection
+                                      : undefined
+                                  }
+                                />
+                              </div>
                             )}
                             <ReactMarkdown
                               remarkPlugins={[gfm]}
                               linkTarget="_blank"
+                              className="mt-1"
                             >
                               {message.message
                                 .replace(/\n/g, '  \n')
@@ -335,7 +338,7 @@ export default function Home() {
                             </ReactMarkdown>
                           </div>
                           {/* Action icons container */}
-                          <div className="mt-4 flex items-center space-x-2">
+                          <div className="mt-2 flex items-center space-x-2">
                             {message.type === 'apiMessage' && index !== 0 && (
                               <>
                                 <CopyButton

@@ -234,9 +234,9 @@ const SourcesList: React.FC<SourcesListProps> = ({
   };
 
   return (
-    <div className="bg-white pt-2 pb-3 px-3 rounded-lg mt-0 sourcesContainer">
+    <div className="bg-white sourcesContainer pb-4">
       {sources.length > 0 && (
-        <div className="flex justify-between items-end w-full mb-2">
+        <div className="flex justify-between items-center w-full border-b border-gray-200 px-3 py-1">
           <div className="flex items-baseline">
             <h3 className="text-base font-bold mr-2">Sources</h3>
             <a
@@ -257,64 +257,67 @@ const SourcesList: React.FC<SourcesListProps> = ({
           )}
         </div>
       )}
-      {sources.map((doc, index) => {
-        const isExpanded = expandedSources.has(index);
-        return (
-          <details
-            key={index}
-            className={`${styles.sourceDocsContainer} ${
-              isExpanded && index !== 0 ? 'mt-4' : ''
-            } border-b border-gray-200 last:border-b-0 group`}
-            open={isExpanded}
-          >
-            <summary
-              onClick={(e) => handleSummaryClick(e, index, doc)}
-              className="flex items-center cursor-pointer list-none p-2 hover:bg-gray-50"
+      <div className="px-3">
+        {sources.map((doc, index) => {
+          const isExpanded = expandedSources.has(index);
+          const isLastSource = index === sources.length - 1;
+          return (
+            <details
+              key={index}
+              className={`${styles.sourceDocsContainer} ${
+                isLastSource ? '' : 'border-b border-gray-200'
+              } group`}
+              open={isExpanded}
             >
-              <div className="grid grid-cols-[auto_1fr_auto] items-center w-full gap-2">
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90 arrow-icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </span>
-                  <span className="material-icons text-sm ml-1">
-                    {getSourceIcon(doc)}
-                  </span>
+              <summary
+                onClick={(e) => handleSummaryClick(e, index, doc)}
+                className="flex items-center cursor-pointer list-none py-1 px-2 hover:bg-gray-50"
+              >
+                <div className="grid grid-cols-[auto_1fr_auto] items-center w-full gap-2">
+                  <div className="flex items-center">
+                    <span className="inline-block w-4 h-4 transition-transform duration-200 transform group-open:rotate-90 arrow-icon">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </span>
+                    <span className="material-icons text-sm ml-1">
+                      {getSourceIcon(doc)}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    {renderSourceTitle(doc)}
+                  </div>
+                  <div className="text-right">{renderLibraryName(doc)}</div>
                 </div>
-                <div className="flex items-center">
-                  {renderSourceTitle(doc)}
-                </div>
-                <div className="text-right">{renderLibraryName(doc)}</div>
+              </summary>
+              <div className="pl-5 pb-1">
+                {isExpanded && (
+                  <>
+                    {doc.metadata &&
+                      doc.metadata.type === 'audio' &&
+                      renderAudioPlayer(doc, index, isExpanded)}
+                    {doc.metadata &&
+                      doc.metadata.type === 'youtube' &&
+                      renderYouTubePlayer(doc, index)}
+                  </>
+                )}
+                <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                  {doc.pageContent}
+                </ReactMarkdown>
               </div>
-            </summary>
-            <div className="pl-5 mt-2 pb-2">
-              {isExpanded && (
-                <>
-                  {doc.metadata &&
-                    doc.metadata.type === 'audio' &&
-                    renderAudioPlayer(doc, index, isExpanded)}
-                  {doc.metadata &&
-                    doc.metadata.type === 'youtube' &&
-                    renderYouTubePlayer(doc, index)}
-                </>
-              )}
-              <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
-                {doc.pageContent}
-              </ReactMarkdown>
-            </div>
-          </details>
-        );
-      })}
+            </details>
+          );
+        })}
+      </div>
     </div>
   );
 };
