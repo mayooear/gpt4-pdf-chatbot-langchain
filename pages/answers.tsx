@@ -3,7 +3,7 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import SourcesList from '@/components/SourcesList';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import debounce from 'lodash/debounce';
 import { formatDistanceToNow } from 'date-fns';
 import { Answer } from '@/types/answer';
@@ -114,59 +114,6 @@ const AllAnswers = () => {
   const hasInitiallyFetched = useRef(false);
   const hasFetchedLikeStatuses = useRef(false);
 
-  useEffect(() => {
-    debouncedFetchRef.current = debounce((page: number, sortBy: string) => {
-      if (currentFetchRef.current) {
-        console.log('Fetch already in progress, skipping');
-        return;
-      }
-
-      currentFetchRef.current = fetchAnswers(page, sortBy).finally(() => {
-        currentFetchRef.current = null;
-        if (!hasInitiallyFetched.current) {
-          hasInitiallyFetched.current = true;
-          setInitialLoadComplete(true);
-          setIsRestoringScroll(true);
-        }
-      });
-    }, 300);
-
-    return () => {
-      if (debouncedFetchRef.current) {
-        (debouncedFetchRef.current as any).cancel();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (router.isReady && debouncedFetchRef.current) {
-      const pageFromUrl = Number(urlPage) || 1;
-      const sortByFromUrl = (urlSortBy as string) || 'mostRecent';
-
-      setSortBy(sortByFromUrl);
-      setCurrentPage(pageFromUrl);
-      setIsSortByInitialized(true);
-
-      if (debouncedFetchRef.current) {
-        debouncedFetchRef.current(pageFromUrl, sortByFromUrl);
-      }
-
-      initGA();
-    }
-  }, [router.isReady, urlPage, urlSortBy]);
-
-  useEffect(() => {
-    if (isRestoringScroll && !isLoading && initialLoadComplete) {
-      const savedPosition = getSavedScrollPosition();
-      setTimeout(() => {
-        window.scrollTo(0, savedPosition);
-        setIsRestoringScroll(false);
-        // Clear the saved position after restoring
-        sessionStorage.removeItem('answersScrollPosition');
-      }, 100); // Small delay to ensure content is rendered
-    }
-  }, [isRestoringScroll, isLoading, initialLoadComplete]);
-
   const fetchAnswers = useCallback(
     async (
       page: number,
@@ -215,26 +162,99 @@ const AllAnswers = () => {
     [],
   );
 
-  const updateUrl = (page: number, sortBy: string) => {
-    if (router.isReady) {
-      let url = '/answers';
-      const params = new URLSearchParams();
+  const debouncedFetch = useMemo(
+    () =>
+      debounce(
+        (page: number, sortBy: string, isPageChange: boolean = false) => {
+          if (currentFetchRef.current) {
+            console.log('Fetch already in progress, skipping');
+            return;
+          }
 
-      if (page !== 1) {
-        params.append('page', page.toString());
+          currentFetchRef.current = fetchAnswers(
+            page,
+            sortBy,
+            isPageChange,
+          ).finally(() => {
+            currentFetchRef.current = null;
+            if (!hasInitiallyFetched.current) {
+              hasInitiallyFetched.current = true;
+              setInitialLoadComplete(true);
+              setIsRestoringScroll(true);
+            }
+          });
+        },
+        300,
+      ),
+    [fetchAnswers],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debouncedFetch) {
+        debouncedFetch.cancel();
       }
+    };
+  }, [debouncedFetch]);
 
-      if (sortBy !== 'mostRecent') {
-        params.append('sortBy', sortBy);
-      }
+  useEffect(() => {
+    if (router.isReady && debouncedFetch) {
+      const pageFromUrl = Number(urlPage) || 1;
+      const sortByFromUrl = (urlSortBy as string) || 'mostRecent';
 
-      if (params.toString()) {
-        url += '?' + params.toString();
-      }
+      setSortBy(sortByFromUrl);
+      setCurrentPage(pageFromUrl);
+      setIsSortByInitialized(true);
 
-      router.push(url, undefined, { shallow: true });
+      debouncedFetch(pageFromUrl, sortByFromUrl);
+
+      initGA();
     }
-  };
+  }, [router.isReady, urlPage, urlSortBy, debouncedFetch]);
+
+  useEffect(() => {
+    if (isRestoringScroll && !isLoading && initialLoadComplete) {
+      const savedPosition = getSavedScrollPosition();
+      setTimeout(() => {
+        window.scrollTo(0, savedPosition);
+        setIsRestoringScroll(false);
+        // Clear the saved position after restoring
+        sessionStorage.removeItem('answersScrollPosition');
+      }, 100); // Small delay to ensure content is rendered
+    }
+  }, [isRestoringScroll, isLoading, initialLoadComplete]);
+
+  const updateUrl = useCallback(
+    (page: number, sortBy: string) => {
+      if (router.isReady) {
+        let path = '/answers';
+        const params = new URLSearchParams();
+
+        if (page !== 1) {
+          params.append('page', page.toString());
+        }
+
+        if (sortBy !== 'mostRecent') {
+          params.append('sortBy', sortBy);
+        }
+
+        if (params.toString()) {
+          path += '?' + params.toString();
+        }
+
+        // Use router.replace() with the 'as' parameter
+        router.replace(
+          {
+            pathname: '/answers',
+            query: { page: page.toString(), sortBy },
+          },
+          path,
+          { shallow: true },
+        );
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (router.isReady && isSortByInitialized) {
@@ -243,7 +263,14 @@ const AllAnswers = () => {
         updateUrl(currentPage, sortBy);
       }
     }
-  }, [sortBy, currentPage, router.isReady, isSortByInitialized]);
+  }, [
+    sortBy,
+    currentPage,
+    router.isReady,
+    isSortByInitialized,
+    router.query.sortBy,
+    updateUrl,
+  ]);
 
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
@@ -319,10 +346,10 @@ const AllAnswers = () => {
       updateUrl(1, newSortBy);
       setIsChangingPage(true);
 
-      if (debouncedFetchRef.current) {
-        debouncedFetchRef.current(1, newSortBy, true);
+      if (debouncedFetch) {
+        debouncedFetch(1, newSortBy, true);
       } else {
-        console.warn('debouncedFetchRef.current is null in handleSortChange');
+        console.warn('debouncedFetch is null in handleSortChange');
         fetchAnswers(1, newSortBy, true);
       }
 
@@ -389,10 +416,10 @@ const AllAnswers = () => {
 
     // Use setTimeout to ensure the UI updates before fetching
     setTimeout(() => {
-      if (debouncedFetchRef.current) {
-        debouncedFetchRef.current(newPage, sortBy, true);
+      if (debouncedFetch) {
+        debouncedFetch(newPage, sortBy, true);
       } else {
-        console.warn('debouncedFetchRef.current is null in handlePageChange');
+        console.warn('debouncedFetch is null in handlePageChange');
         fetchAnswers(newPage, sortBy, true);
       }
     }, 0);
