@@ -179,7 +179,12 @@ const SourcesList: React.FC<SourcesListProps> = ({
 
   const renderSourceTitle = (doc: Document<Record<string, any>>) => {
     // Extract the title using the helper function
-    const sourceTitle = formatTitle(extractTitle(doc.metadata));
+    let sourceTitle = formatTitle(extractTitle(doc.metadata));
+
+    // For audio sources with album metadata, format as "Album > Title"
+    if (doc.metadata.type === 'audio' && doc.metadata.album) {
+      sourceTitle = `${doc.metadata.album} > ${sourceTitle}`;
+    }
 
     return (
       <span className="text-black-600 font-medium">
