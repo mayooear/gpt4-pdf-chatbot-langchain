@@ -38,7 +38,7 @@ def count_documents(db, env_prefix):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Count documents in Firestore chatLogs collection.')
     parser.add_argument('-e', '--env', type=str, choices=['dev', 'prod'], required=True, help='Environment (dev or prod)')
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

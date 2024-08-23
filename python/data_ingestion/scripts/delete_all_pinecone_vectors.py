@@ -14,7 +14,7 @@ def get_pinecone_client():
 
 def run():
     parser = argparse.ArgumentParser(description="Delete all Pinecone vectors")
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

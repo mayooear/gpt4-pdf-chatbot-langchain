@@ -75,7 +75,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Fetch and print a Firestore question document, stripping out words from sources.')
     parser.add_argument('-e', '--env', type=str, choices=['dev', 'prod'], default='dev', help='Environment (dev or prod)')
     parser.add_argument('-q', '--question_id', type=str, default='noZ9ZiY5QzkSbmv9pEpA', help='Question ID to fetch')
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

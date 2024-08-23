@@ -46,7 +46,7 @@ logger = configure_logging(debug=True)
 
 def main():
     parser = ArgumentParser(description="Audio processing test")
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

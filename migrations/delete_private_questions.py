@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Delete private entries from Firestore chatLogs collection.')
     parser.add_argument('-e', '--env', type=str, choices=['dev', 'prod'], required=True, help='Environment (dev or prod)')
     parser.add_argument('--dry-run', action='store_true', help='Perform a dry run without deleting entries')
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

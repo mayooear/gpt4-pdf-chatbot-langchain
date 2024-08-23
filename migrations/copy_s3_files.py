@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--source', type=str, default='public/audio/', help='Source prefix in S3 bucket')
     parser.add_argument('-d', '--destination', type=str, default='public/audio/treasures/', help='Destination prefix in S3 bucket')
     parser.add_argument('--dryrun', action='store_true', help='Perform a dry run without actually copying files')
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     # Load environment variables

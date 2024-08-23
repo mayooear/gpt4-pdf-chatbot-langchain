@@ -19,7 +19,7 @@ def load_env(site_id):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load environment variables")
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     load_env(args.site)

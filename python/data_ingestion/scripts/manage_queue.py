@@ -397,7 +397,7 @@ def main():
     )
     parser.add_argument("--remove", help="Remove a specific item from the queue by ID")
     parser.add_argument("--status", action="store_true", help="Print the queue status")
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     initialize_environment(args)

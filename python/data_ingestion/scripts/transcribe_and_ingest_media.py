@@ -423,7 +423,7 @@ def main():
         help="Continue processing even if filename conflicts are found",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument('--site', help='Site ID for environment variables')
+    parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
     initialize_environment(args)
