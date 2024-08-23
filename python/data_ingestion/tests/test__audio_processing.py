@@ -1,21 +1,19 @@
 import unittest
 import os
-import sys
 import logging
 from openai import OpenAI
 from pinecone.core.client.exceptions import PineconeException
 from unittest.mock import patch, MagicMock
-from data_ingestion.scripts.IngestQueue import IngestQueue  
 from botocore.exceptions import ClientError
-from data_ingestion.scripts.s3_utils import S3UploadError, upload_to_s3
+from argparse import ArgumentParser
+from util.env_utils import load_env
+from data_ingestion.scripts.IngestQueue import IngestQueue  
 from data_ingestion.scripts.transcribe_and_ingest_media import process_file
 from data_ingestion.scripts.transcription_utils import TimeoutException, transcribe_media, chunk_transcription
 from data_ingestion.scripts.pinecone_utils import store_in_pinecone, load_pinecone, create_embeddings
-from data_ingestion.scripts.s3_utils import upload_to_s3
+from data_ingestion.scripts.s3_utils import upload_to_s3, S3UploadError, upload_to_s3
 from data_ingestion.scripts.media_utils import get_media_metadata
 from data_ingestion.tests.test_utils import trim_audio
-from util.env_utils import load_env
-
 
 def configure_logging(debug=False):
     # Configure the root logger
@@ -45,12 +43,24 @@ def configure_logging(debug=False):
 # Configure logging (you can set debug=True here for more verbose output)
 logger = configure_logging(debug=True)
 
-# Load .env file from two directories above scripts/
-# TODO: hardcoded site for now
-load_env('anandaChatbot')
+
+def main():
+    parser = ArgumentParser(description="Audio processing test")
+    parser.add_argument('--site', help='Site ID for environment variables')
+    args = parser.parse_args()
+
+    # Load environment variables
+    load_env(args.site)
 
 
 class TestAudioProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        parser = ArgumentParser()
+        parser.add_argument('--site', default='anandaChatbot', help='Site ID for environment variables')
+        args, _ = parser.parse_known_args()
+        load_env(args.site)
+
     def setUp(self):
         self.test_audio_path = (
             "media/media/unit-test-data/how-to-commune-with-god.mp3"
@@ -267,5 +277,4 @@ class TestAudioProcessing(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    logger.debug("Starting test suite")
-    unittest.main()
+    main()

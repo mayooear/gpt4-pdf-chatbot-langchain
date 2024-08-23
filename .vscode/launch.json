@@ -1,51 +1,46 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "npm run dev",
-            "request": "launch",
-            "runtimeArgs": [
-                "run",
-                "dev"
-            ],
-            "runtimeExecutable": "npm",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node"
-        },
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "npm run dev anandaChatbot",
+      "request": "launch",
+      "runtimeArgs": ["run", "dev", "anandaChatbot"],
+      "runtimeExecutable": "npm",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node"
+    },
 
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: update_related_answers.py",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/data-ingestion/scripts/update_related_answers.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": ["-e", "dev"]
-        },
-        {
-            "name": "Python: transcribe_and_ingest_media.py",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/data-ingestion/scripts/transcribe_and_ingest_media.py",
-            "cwd": "${workspaceFolder}/data-ingestion/scripts",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "args": ["--debug"]
-        }
-    ]
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: update_related_answers.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/data_ingestion/scripts/update_related_answers.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": ["-e", "dev"]
+    },
+    {
+      "name": "Python: transcribe_and_ingest_media.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/data_ingestion/scripts/transcribe_and_ingest_media.py",
+      "cwd": "${workspaceFolder}/data_ingestion/scripts",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "args": ["--debug"]
+    }
+  ]
 }

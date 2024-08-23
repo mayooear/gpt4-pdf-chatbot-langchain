@@ -32,6 +32,7 @@ accidental data loss. The --title option can only be used when --library is spec
 import os
 import argparse
 from pinecone import Pinecone
+
 from util.env_utils import load_env
 
 def construct_prefix(file_type, library=None, title=None):
@@ -68,6 +69,12 @@ if __name__ == "__main__":
         description="Delete Pinecone records by file type, optional library name, and optional title."
     )
     parser.add_argument(
+        "--site",
+        type=str,
+        required=True,
+        help="Site ID for environment variables"
+    )
+    parser.add_argument(
         "--file-type",
         type=str,
         required=True,
@@ -80,10 +87,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--title", type=str, help="Title of the media (optional, requires --library)"
     )
-    parser.add_argument('--site', help='Site ID for environment variables')
     args = parser.parse_args()
 
-    # Load environment variables
     load_env(args.site)
 
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")

@@ -14,8 +14,9 @@ from util.env_utils import load_env
 # Suppress specific warning from fpdf
 warnings.filterwarnings("ignore", message="cmap value too big/small")
 
-# Load environment variables - hardcoded site for now
+# TODO: hardcoded site for now
 load_env('anandaChatbot')
+
 
 # Database configuration
 db_config = {

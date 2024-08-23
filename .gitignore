@@ -1,13 +1,15 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # data ingestion specific
-/data-ingestion/docs/
-/data-ingestion/docs-*/
-/data-ingestion/media/
-/data-ingestion/ingestion_checkpoint.json
-/data-ingestion/scripts/queue/
-/data-ingestion/scripts/queue-*/
-/data-ingestion/scripts/data/
+/python/data_ingestion/docs/
+/python/data_ingestion/docs-*/
+/python/data_ingestion/db-to-pdf/docs-*/
+/python/data_ingestion/db-to-pdf/freejoehunt/
+/python/data_ingestion/media/
+/python/data_ingestion/ingestion_checkpoint.json
+/python/data_ingestion/scripts/queue/
+/python/data_ingestion/scripts/queue-*/
+/python/data_ingestion/scripts/data/
 *.mp3
 
 # firestore
@@ -47,6 +49,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.*
 
 # vercel
 .vercel

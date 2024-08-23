@@ -8,6 +8,7 @@ import argparse
 from datetime import datetime
 from util.env_utils import load_env
 
+
 def initialize_firestore(env_prefix):
     # Load the service account credentials from the JSON string
     credentials_json = os.getenv("FIREBASE_ADMINSDK_JSON")

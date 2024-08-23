@@ -5,7 +5,8 @@ import os
 from google.cloud import firestore
 from google.oauth2 import service_account
 import json
-from dotenv import load_dotenv
+from util.env_utils import load_env
+
 
 def initialize_firestore(env_prefix):
     # Load the service account credentials from the JSON string
@@ -66,14 +67,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Delete private entries from Firestore chatLogs collection.')
     parser.add_argument('-e', '--env', type=str, choices=['dev', 'prod'], required=True, help='Environment (dev or prod)')
     parser.add_argument('--dry-run', action='store_true', help='Perform a dry run without deleting entries')
+    parser.add_argument('--site', help='Site ID for environment variables')
     args = parser.parse_args()
 
-    # Determine the directory of the script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    env_path = os.path.join(script_dir, '../.env')
-
-    # Load environment variables from .env file
-    load_dotenv(env_path)
+    # Load environment variables
+    load_env(args.site)
 
     env_prefix = args.env
     try:

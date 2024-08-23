@@ -4,21 +4,19 @@ from datetime import timedelta
 import os
 import logging
 from tqdm import tqdm
-from IngestQueue import IngestQueue
-from logging_utils import configure_logging
-from util.env_utils import load_env
-from youtube_utils import extract_youtube_id, get_playlist_videos
-from media_utils import get_file_hash
-from processing_time_estimates import get_estimate, estimate_total_processing_time
 from openpyxl import load_workbook
 from collections import defaultdict
-import sys
 import pytz
 from datetime import datetime
 import json
+from data_ingestion.scripts.IngestQueue import IngestQueue
+from data_ingestion.scripts.logging_utils import configure_logging
+from data_ingestion.scripts.youtube_utils import extract_youtube_id, get_playlist_videos
+from data_ingestion.scripts.media_utils import get_file_hash
+from data_ingestion.scripts.processing_time_estimates import get_estimate, estimate_total_processing_time
+from util.env_utils import load_env
 
 # Load library configuration
-# TODO: start using main config file
 with open('library_config.json', 'r') as f:
     LIBRARY_CONFIG = json.load(f)
 

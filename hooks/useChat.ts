@@ -105,7 +105,8 @@ export const useChat = (
     } catch (error) {
       setLoading(false);
       setError(
-        'An error occurred while fetching the data. Please email Michael and let him know!',
+        'An error occurred while fetching the data. ' +
+          'Please click "Contact" in the site footer to email Michael and let him know!',
       );
       console.log('error', error);
     }

@@ -1,10 +1,22 @@
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const site = process.env.SITE_NAME || 'default';
+const envFile = path.join(__dirname, `.env.${site}`);
+
+dotenv.config({ path: envFile });
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   webpack: (config, { dev, isServer }) => {
     config.experiments = { ...config.experiments, topLevelAwait: true };
-    
+
     if (dev && !isServer) {
       // Disable optimization in development mode
       config.optimization = {
@@ -12,7 +24,7 @@ const nextConfig = {
         splitChunks: false,
       };
     }
-    
+
     return config;
   },
   async rewrites() {
@@ -22,6 +34,9 @@ const nextConfig = {
         destination: 'https://ask.anandalibary.org/api/sudoCookie',
       },
     ];
+  },
+  env: {
+    SITE_NAME: site,
   },
 };
 

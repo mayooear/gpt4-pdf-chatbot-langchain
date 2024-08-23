@@ -5,10 +5,16 @@ import sys
 import logging
 from openai import OpenAI
 from tqdm import tqdm
-from media_utils import get_media_metadata, print_chunk_statistics
-from logging_utils import configure_logging
-from IngestQueue import IngestQueue
-from transcription_utils import (
+from multiprocessing import Pool, cpu_count, Queue, Event
+import atexit
+import signal
+import time
+from queue import Empty
+from tenacity import RetryError
+from data_ingestion.scripts.media_utils import get_media_metadata, print_chunk_statistics
+from data_ingestion.scripts.logging_utils import configure_logging
+from data_ingestion.scripts.IngestQueue import IngestQueue
+from data_ingestion.scripts.transcription_utils import (
     init_db,
     transcribe_media,
     chunk_transcription,
@@ -18,22 +24,16 @@ from transcription_utils import (
     RateLimitError,
     UnsupportedAudioFormatError
 )
-from pinecone_utils import (
+from data_ingestion.scripts.pinecone_utils import (
     load_pinecone,
     create_embeddings,
     store_in_pinecone,
     clear_library_vectors,
 )
-from s3_utils import upload_to_s3, S3UploadError
+from data_ingestion.scripts.s3_utils import upload_to_s3, S3UploadError
+from data_ingestion.scripts.youtube_utils import download_youtube_audio, extract_youtube_id
+from data_ingestion.scripts.processing_time_estimates import save_estimate
 from util.env_utils import load_env
-from youtube_utils import download_youtube_audio, extract_youtube_id
-from multiprocessing import Pool, cpu_count, Queue, Event
-import atexit
-import signal
-from processing_time_estimates import save_estimate
-import time
-from queue import Empty
-from tenacity import RetryError
 
 logger = logging.getLogger(__name__)
 

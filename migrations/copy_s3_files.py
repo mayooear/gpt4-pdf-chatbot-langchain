@@ -2,16 +2,14 @@
 
 import os
 import argparse
-from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
+from util.env_utils import load_env
 
 # Determine the directory of the script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(script_dir, '../.env')
 
-# Load environment variables from .env file
-load_dotenv(env_path)
 
 def initialize_s3_client():
     try:
@@ -61,7 +59,11 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--source', type=str, default='public/audio/', help='Source prefix in S3 bucket')
     parser.add_argument('-d', '--destination', type=str, default='public/audio/treasures/', help='Destination prefix in S3 bucket')
     parser.add_argument('--dryrun', action='store_true', help='Perform a dry run without actually copying files')
+    parser.add_argument('--site', help='Site ID for environment variables')
     args = parser.parse_args()
+
+    # Load environment variables
+    load_env(args.site)
 
     source_bucket = 'ananda-chatbot'
     dest_bucket = 'ananda-chatbot'

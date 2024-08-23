@@ -1,24 +1,17 @@
 import unittest
 import os
-import sys
 import logging
 import random
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, COMM
-from IngestQueue import IngestQueue
+from data_ingestion.scripts.IngestQueue import IngestQueue
+from data_ingestion.scripts.youtube_utils import download_youtube_audio
+from data_ingestion.scripts.transcription_utils import transcribe_media
+from data_ingestion.scripts.pinecone_utils import store_in_pinecone, load_pinecone
+from data_ingestion.scripts.s3_utils import upload_to_s3
+from data_ingestion.tests.test_utils import trim_audio
+from data_ingestion.scripts.media_utils import get_media_metadata
 from util.env_utils import load_env
-
-# Add the parent directory (scripts/) to the Python path
-# TODO: still needed?
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(parent_dir)
-
-from youtube_utils import download_youtube_audio
-from transcription_utils import transcribe_media
-from pinecone_utils import store_in_pinecone, load_pinecone
-from s3_utils import upload_to_s3
-from test_utils import trim_audio
-from media_utils import get_media_metadata
 
 YOUTUBE_URLS = [
     "https://youtu.be/MvyIpKLbayc?si=Nk9M7EDQ5oYngQkT",
@@ -61,7 +54,7 @@ def configure_logging(debug=False):
 # Configure logging (you can set debug=True here for more verbose output)
 logger = configure_logging(debug=True)
 
-# Load .env file from two directories above scripts/
+# Load environment variables
 # TODO: hardcoded site for now
 load_env('anandaChatbot')
 

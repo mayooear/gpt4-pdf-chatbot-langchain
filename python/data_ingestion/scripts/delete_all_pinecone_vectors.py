@@ -1,8 +1,7 @@
 import argparse
 import os
-from pinecone import Pinecone
 from util.env_utils import load_env
-
+from pinecone import Pinecone
 
 def get_pinecone_client():
     api_key = os.getenv("PINECONE_API_KEY")
@@ -14,7 +13,7 @@ def get_pinecone_client():
 
 
 def run():
-    parser = argparse.ArgumentParser(description='Delete all Pinecone vectors')
+    parser = argparse.ArgumentParser(description="Delete all Pinecone vectors")
     parser.add_argument('--site', help='Site ID for environment variables')
     args = parser.parse_args()
 

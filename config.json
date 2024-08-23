@@ -1,0 +1,32 @@
+{
+  "anandaChatbot": {
+    "name": "Ananda Chatbot",
+    "datasetPath": "./data-ingestion/docs",
+    "collectionConfig": {
+      "master_swami": "Master and Swami",
+      "whole_library": "All authors"
+    },
+    "libraryMappings": {
+      "Ananda Youtube": {
+        "displayName": "Ananda YouTube",
+        "url": "https://www.youtube.com/user/AnandaWorldwide"
+      },
+      "Treasures": {
+        "displayName": "Treasures",
+        "url": "https://www.treasuresalongthepath.com/"
+      },
+      "Ananda Library": {
+        "displayName": "Ananda Library",
+        "url": "https://www.anandalibrary.org/"
+      }
+    }
+  },
+  "jairamChatbot": {
+    "name": "Jairam Chatbot",
+    "datasetPath": "./data-ingestion/docs-jram",
+    "collectionConfig": {
+      "collection1": "All Documents"
+    },
+    "libraryMappings": {}
+  }
+}

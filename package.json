@@ -6,7 +6,7 @@
   "author": "Michael Olivier",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.js",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --noEmit",

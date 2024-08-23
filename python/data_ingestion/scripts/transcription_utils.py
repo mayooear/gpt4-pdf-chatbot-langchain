@@ -13,13 +13,11 @@ from tenacity import (
     before_sleep_log
 )
 from tqdm import tqdm
-from media_utils import get_file_hash, split_audio, get_media_metadata
-from youtube_utils import load_youtube_data_map, save_youtube_data_map
 import logging
-from moviepy.editor import VideoFileClip
-from pydub import AudioSegment
 import re
 import signal
+from data_ingestion.scripts.media_utils import get_file_hash, split_audio, get_media_metadata
+from data_ingestion.scripts.youtube_utils import load_youtube_data_map, save_youtube_data_map
 
 logger = logging.getLogger(__name__)
 

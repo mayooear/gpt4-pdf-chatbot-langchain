@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import shutil
-from IngestQueue import IngestQueue
+from data_ingestion.scripts.IngestQueue import IngestQueue
 
 # Add the parent directory (scripts/) to the Python path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
