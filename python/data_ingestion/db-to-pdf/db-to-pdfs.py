@@ -15,7 +15,7 @@ from util.env_utils import load_env
 warnings.filterwarnings("ignore", message="cmap value too big/small")
 
 # TODO: hardcoded site for now
-load_env('anandaChatbot')
+load_env('ananda')
 
 
 # Database configuration

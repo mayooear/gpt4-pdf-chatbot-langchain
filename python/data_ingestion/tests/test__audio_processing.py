@@ -57,7 +57,7 @@ class TestAudioProcessing(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         parser = ArgumentParser()
-        parser.add_argument('--site', default='anandaChatbot', help='Site ID for environment variables')
+        parser.add_argument('--site', default='ananda', help='Site ID for environment variables')
         args, _ = parser.parse_known_args()
         load_env(args.site)
 

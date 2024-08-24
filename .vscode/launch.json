@@ -5,17 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "npm run dev anandaChatbot",
+      "name": "npm run dev ananda",
       "request": "launch",
-      "runtimeArgs": ["run", "dev", "anandaChatbot"],
+      "runtimeArgs": ["run", "dev", "ananda"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/**"],
       "type": "node"
     },
     {
-      "name": "npm run dev jairamChatbot",
+      "name": "npm run dev jairam",
       "request": "launch",
-      "runtimeArgs": ["run", "dev", "jairamChatbot"],
+      "runtimeArgs": ["run", "dev", "jairam"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/**"],
       "type": "node"

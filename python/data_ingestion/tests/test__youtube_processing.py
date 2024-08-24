@@ -56,7 +56,7 @@ logger = configure_logging(debug=True)
 
 # Load environment variables
 # TODO: hardcoded site for now
-load_env('anandaChatbot')
+load_env('ananda')
 
 class TestYouTubeProcessing(unittest.TestCase):
     def setUp(self):

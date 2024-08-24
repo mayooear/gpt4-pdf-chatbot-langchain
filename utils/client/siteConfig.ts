@@ -1,7 +1,7 @@
 import config from '@/config.json';
 
 // Get the current site ID from an environment variable
-const SITE_ID = process.env.SITE_ID || 'anandaChatbot';
+const SITE_ID = process.env.SITE_ID || 'ananda';
 
 // Get the site config for the current site
 export interface SiteConfig {

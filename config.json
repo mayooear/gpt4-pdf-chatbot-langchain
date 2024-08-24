@@ -1,5 +1,5 @@
 {
-  "anandaChatbot": {
+  "ananda": {
     "name": "Ananda Chatbot",
     "datasetPath": "./data-ingestion/docs",
     "collectionConfig": {
@@ -21,7 +21,7 @@
       }
     }
   },
-  "jairamChatbot": {
+  "jairam": {
     "name": "Jairam Chatbot",
     "datasetPath": "./data-ingestion/docs-jram",
     "collectionConfig": {

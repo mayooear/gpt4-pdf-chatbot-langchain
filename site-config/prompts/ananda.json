@@ -1,0 +1,20 @@
+{
+  "variables": {
+    "librarySizeSwamiMaster": "4,000",
+    "librarySizeWholeLibrary": "6,100",
+    "treasuresTalks": "623",
+    "youtubeVideos": "800",
+    "bhaktanFiles": "717"
+  },
+  "templates": {
+    "baseTemplate": {
+      "file": "ananda-base.txt"
+    },
+    "generalGuidelines": {
+      "content": "If you don't know the answer, DO NOT try to make up an answer. Say you don't know, and   inform them that they can try changing search settings or rephrase their query."
+    },
+    "additionalContent": {
+      "file": "ananda-additional.txt"
+    }
+  }
+}

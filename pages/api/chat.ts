@@ -91,7 +91,7 @@ export default async function handler(
         ],
       });
 
-      const chain = makeChain(retriever, collection as CollectionKey);
+      const chain = await makeChain(retriever);
 
       const pastMessages = history
         .map((message: [string, string]) => {
