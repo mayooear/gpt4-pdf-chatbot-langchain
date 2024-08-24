@@ -41,7 +41,7 @@ export default function Layout({ children }: LayoutProps) {
       <header className="sticky top-0 z-40 bg-white w-full">
         {isDev && (
           <div className="bg-blue-500 text-white text-center py-1 w-full">
-            Dev server
+            Dev server (site: {process.env.SITE_ID})
           </div>
         )}
         <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">

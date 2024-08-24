@@ -6,7 +6,16 @@ import { isDevelopment } from '@/utils/env';
 if (!fbadmin.apps.length) {
   const serviceAccountJson = process.env.FIREBASE_ADMINSDK_JSON;
   if (typeof serviceAccountJson !== 'string') {
-    throw new Error('The FIREBASE_ADMINSDK_JSON environment variable is not set or not a string.');
+    if (serviceAccountJson === undefined) {
+      throw new Error(
+        'The FIREBASE_ADMINSDK_JSON environment variable is not set.',
+      );
+    } else if (typeof serviceAccountJson !== 'string') {
+      console.error('Type of serviceAccountJson:', typeof serviceAccountJson);
+      throw new Error(
+        'The FIREBASE_ADMINSDK_JSON environment variable is not a string.',
+      );
+    }
   }
   const serviceAccount = JSON.parse(serviceAccountJson);
 

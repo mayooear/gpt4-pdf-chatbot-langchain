@@ -5,7 +5,7 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const site = process.env.SITE_NAME || 'default';
+const site = process.env.SITE_ID || 'default';
 
 // Only load from .env file in development
 if (process.env.NODE_ENV === 'development') {
@@ -39,7 +39,7 @@ const nextConfig = {
     ];
   },
   env: {
-    SITE_NAME: site,
+    SITE_ID: site,
   },
 };
 

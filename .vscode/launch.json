@@ -12,7 +12,14 @@
       "skipFiles": ["<node_internals>/**"],
       "type": "node"
     },
-
+    {
+      "name": "npm run dev jairamChatbot",
+      "request": "launch",
+      "runtimeArgs": ["run", "dev", "jairamChatbot"],
+      "runtimeExecutable": "npm",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node"
+    },
     {
       "name": "Python: Current File",
       "type": "python",
