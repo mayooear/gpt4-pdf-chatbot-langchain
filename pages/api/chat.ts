@@ -4,7 +4,7 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
 import { makeChain, CollectionKey } from '@/utils/server/makechain';
 import { getPineconeClient } from '@/utils/server/pinecone-client';
-import { PINECONE_INDEX_NAME } from '@/config/pinecone';
+import { getPineconeIndexName } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
@@ -45,7 +45,7 @@ export default async function handler(
 
     try {
       const pinecone = await getPineconeClient();
-      const index = pinecone.Index(PINECONE_INDEX_NAME);
+      const index = pinecone.Index(getPineconeIndexName());
 
       const filter: {
         type: { $in: string[] };
@@ -156,7 +156,7 @@ export default async function handler(
     } catch (error: any) {
       console.log('error', error);
       if (error.name === 'PineconeNotFoundError') {
-        console.error('Pinecone index not found:', PINECONE_INDEX_NAME);
+        console.error('Pinecone index not found:', getPineconeIndexName());
         return res.status(404).json({
           error:
             'The specified Pinecone index does not exist. Please notify your administrator.',

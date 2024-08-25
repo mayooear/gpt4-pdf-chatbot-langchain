@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Message } from '@/types/chat';
 import { Document } from 'langchain/document';
-import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
+import { getGreeting } from '@/utils/client/siteConfig';
 
 export const useChat = (
   collection: string,
@@ -20,7 +20,7 @@ export const useChat = (
   }>({
     messages: [
       {
-        message: 'Hi GuruBuddy! How can I help you on our path today?',
+        message: getGreeting(),
         type: 'apiMessage',
       },
     ],

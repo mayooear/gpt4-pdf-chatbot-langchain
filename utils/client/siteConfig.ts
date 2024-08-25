@@ -6,7 +6,7 @@ const SITE_ID = process.env.SITE_ID || 'ananda';
 // Get the site config for the current site
 export interface SiteConfig {
   name: string;
-  datasetPath: string;
+  greeting: string;
   collectionConfig: {
     [key: string]: string;
   };
@@ -22,8 +22,8 @@ export type CollectionKey = keyof typeof collectionsConfig;
 // Utility function to get the site name
 export const getSiteName = () => siteConfig.name;
 
-// Utility function to get the dataset path
-export const getDatasetPath = () => siteConfig.datasetPath;
+// Add a function to get the greeting
+export const getGreeting = () => siteConfig.greeting;
 
 // Export the entire site config for use in other parts of the application
 export default siteConfig;

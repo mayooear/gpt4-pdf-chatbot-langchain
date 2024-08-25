@@ -95,15 +95,7 @@ const getFullTemplate = async (siteId: string) => {
   // Get the base template
   let fullTemplate = processedConfig.baseTemplate || '';
 
-  // Replace all other template keys and variables in the base template
-  for (const [key, value] of Object.entries(processedConfig)) {
-    if (key !== 'baseTemplate') {
-      const placeholder = new RegExp(`\\$\\{${key}\\}`, 'g');
-      fullTemplate = fullTemplate.replace(placeholder, value);
-    }
-  }
-
-  // Replace any remaining variables from the 'variables' object
+  // Replace variables from the 'variables' object
   if (config.variables) {
     for (const [key, value] of Object.entries(config.variables)) {
       const placeholder = new RegExp(`\\{${key}\\}`, 'g');

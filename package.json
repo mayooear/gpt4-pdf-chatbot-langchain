@@ -12,7 +12,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
-    "ingest": "NODE_OPTIONS='--max-old-space-size=6000' tsx -r dotenv/config data-ingestion/scripts/ingest-text-data.ts",
+    "ingest": "NODE_OPTIONS='--max-old-space-size=6000' tsx -r dotenv/config scripts/ingest-text-data.ts",
     "ingest-trace": "NODE_OPTIONS='--max-old-space-size=6000 --trace-deprecation' tsx -r dotenv/config scripts/ingest-text-data.ts",
     "emulator": "firebase emulators:start --import ./emulator-data --export-on-exit ./emulator-data --inspect-functions"
   },

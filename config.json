@@ -1,7 +1,7 @@
 {
   "ananda": {
     "name": "Ananda Chatbot",
-    "datasetPath": "./data-ingestion/docs",
+    "greeting": "Hi GuruBuddy! How can I help you on our path today?",
     "collectionConfig": {
       "master_swami": "Master and Swami",
       "whole_library": "All authors"
@@ -23,7 +23,7 @@
   },
   "jairam": {
     "name": "Jairam Chatbot",
-    "datasetPath": "./data-ingestion/docs-jram",
+    "greeting": "What can I answer for you about Joe Hunt's case?",
     "collectionConfig": {
       "collection1": "All Documents"
     },

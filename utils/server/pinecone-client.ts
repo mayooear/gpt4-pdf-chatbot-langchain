@@ -1,27 +1,32 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
-if (!process.env.PINECONE_API_KEY) {
-  throw new Error('Pinecone API key missing');
-}
+let pineconeInstance: Pinecone | null = null;
 
 async function initPinecone() {
+  if (!process.env.PINECONE_API_KEY) {
+    throw new Error('Pinecone API key missing');
+  }
+
   try {
     const pinecone = new Pinecone({
-      apiKey: process.env.PINECONE_API_KEY || '',
+      apiKey: process.env.PINECONE_API_KEY,
     });
 
     return pinecone;
   } catch (error) {
-    console.log('error', error);
+    console.error('Error initializing Pinecone:', error);
     throw new Error('Failed to initialize Pinecone Client');
   }
 }
 
 export const getPineconeClient = async () => {
-  try {
-    return await initPinecone();
-  } catch (error) {
-    console.error('Pinecone error:', error);
-    throw new Error('Pinecone error');
+  if (!pineconeInstance) {
+    try {
+      pineconeInstance = await initPinecone();
+    } catch (error) {
+      console.error('Pinecone error:', error);
+      throw new Error('Pinecone error');
+    }
   }
+  return pineconeInstance;
 };
