@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/relatedQuestions?updateBatch=50",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }
