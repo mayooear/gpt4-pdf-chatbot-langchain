@@ -1,28 +1,40 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
-import Popup from '@/components/popup';
-import usePopup from '@/hooks/usePopup';
+// React and Next.js imports
+import { useRef, useState, useEffect, useMemo, Fragment } from 'react';
+import { GetServerSideProps } from 'next';
 import Link from 'next/link';
-import Layout from '@/components/layout';
-import styles from '@/styles/Home.module.css';
 import Image from 'next/image';
-import { Fragment } from 'react';
-import ReactMarkdown from 'react-markdown';
-import gfm from 'remark-gfm';
+
+// Component imports
+import Layout from '@/components/layout';
+import Popup from '@/components/popup';
 import LoadingDots from '@/components/ui/LoadingDots';
 import ShareDialog from '@/components/ShareDialog';
 import CopyButton from '@/components/CopyButton';
 import SourcesList from '@/components/SourcesList';
-import { useRandomQueries } from '@/hooks/useRandomQueries';
-import Cookies from 'js-cookie';
 import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
+import { ChatInput } from '@/components/ChatInput';
+
+// Hook imports
+import usePopup from '@/hooks/usePopup';
+import { useRandomQueries } from '@/hooks/useRandomQueries';
+import { useChat } from '@/hooks/useChat';
+
+// Utility imports
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
-import { ChatInput } from '@/components/ChatInput';
-import { useChat } from '@/hooks/useChat';
 import { handleVote as handleVoteUtil } from '@/utils/client/voteHandler';
+import { SiteConfig } from '@/utils/client/siteConfig';
 
-export default function Home() {
+// Third-party library imports
+import ReactMarkdown from 'react-markdown';
+import gfm from 'remark-gfm';
+import Cookies from 'js-cookie';
+
+// Styles
+import styles from '@/styles/Home.module.css';
+
+export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [collection, setCollection] = useState<string>('master_swami');
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
@@ -40,6 +52,7 @@ export default function Home() {
     [],
     privateSession,
     mediaTypes,
+    siteConfig,
   );
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
@@ -461,3 +474,19 @@ export default function Home() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const siteId = process.env.SITE_ID || 'default';
+
+  // Fetch the site config
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/siteConfig?siteId=${siteId}`,
+  );
+  const siteConfig = await res.json();
+
+  return {
+    props: {
+      siteConfig,
+    },
+  };
+};

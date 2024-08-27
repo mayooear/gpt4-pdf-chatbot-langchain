@@ -9,6 +9,7 @@ import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
+import { getFromCache, setInCache } from '@/utils/server/redisUtils';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 

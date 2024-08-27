@@ -1,14 +1,7 @@
-/**
- * Change the namespace to the namespace on Pinecone you'd like to store your embeddings.
- */
-
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadEnv } from '../utils/server/loadEnv.js';
 
 function loadEnvVariables() {
-  const site = process.env.SITE_ID || 'default';
-  const envFile = path.join(process.cwd(), `.env.${site}`);
-  dotenv.config({ path: envFile });
+  loadEnv();
 
   if (!process.env.PINECONE_INDEX_NAME) {
     throw new Error('Missing Pinecone index name in .env file');

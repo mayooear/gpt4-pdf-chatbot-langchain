@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Message } from '@/types/chat';
 import { Document } from 'langchain/document';
 import { logEvent } from '@/utils/client/analytics';
-import { getGreeting } from '@/utils/client/siteConfig';
+import { getGreeting, SiteConfig } from '@/utils/client/siteConfig';
 
 export const useChat = (
   collection: string,
   history: [string, string][],
   privateSession: boolean,
   mediaTypes: { text: boolean; audio: boolean },
+  siteConfig: SiteConfig,
 ) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export const useChat = (
   }>({
     messages: [
       {
-        message: getGreeting(),
+        message: getGreeting(siteConfig),
         type: 'apiMessage',
       },
     ],

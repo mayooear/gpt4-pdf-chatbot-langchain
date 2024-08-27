@@ -11,7 +11,7 @@ declare global {
 
 let isInitialized = false;
 
-export const initGA = () => {
+export const initGoogleAnalytics = () => {
   if (isDevelopment()) {
     console.log('Development mode: Skipping GA initialization');
     return Promise.resolve();
@@ -26,7 +26,7 @@ export const initGA = () => {
     const script = document.createElement('script');
     script.src = `https://www.googletagmanager.com/gtag/js?id=G-9551DZXPEZ`;
     script.async = true;
-    
+
     script.onload = () => {
       window.dataLayer = window.dataLayer || [];
       window.gtag = function gtag() {
@@ -61,21 +61,28 @@ export const logPageView = (url: string) => {
   }
 };
 
-export const logEvent = async (action: string, category: string, label: string, value?: number) => {
+export const logEvent = async (
+  action: string,
+  category: string,
+  label: string,
+  value?: number,
+) => {
   if (isDevelopment()) {
-    console.log(`Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`);
+    console.log(
+      `Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`,
+    );
     return;
   }
 
   if (!isInitialized) {
-    await initGA();
+    await initGoogleAnalytics();
   }
-  
+
   if (typeof window.gtag === 'function') {
     window.gtag('event', action, {
-      'event_category': category,
-      'event_label': label,
-      'value': value
+      event_category: category,
+      event_label: label,
+      value: value,
     });
   }
 };

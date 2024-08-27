@@ -1,6 +1,6 @@
 {
   "ananda": {
-    "name": "Ananda Chatbot",
+    "name": "The Ananda Chatbot",
     "greeting": "Hi GuruBuddy! How can I help you on our path today?",
     "collectionConfig": {
       "master_swami": "Master and Swami",
@@ -22,7 +22,7 @@
     }
   },
   "jairam": {
-    "name": "Jairam Chatbot",
+    "name": "The Free Joe Hunt Chatbot",
     "greeting": "What can I answer for you about Joe Hunt's case?",
     "collectionConfig": {
       "collection1": "All Documents"

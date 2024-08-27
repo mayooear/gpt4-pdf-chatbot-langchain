@@ -1,17 +1,11 @@
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const site = process.env.SITE_ID || 'default';
+import { loadEnv } from './utils/server/loadEnv.js';
 
 // Only load from .env file in development
 if (process.env.NODE_ENV === 'development') {
-  const envFile = path.join(__dirname, `.env.${site}`);
-  dotenv.config({ path: envFile });
+  loadEnv();
 }
+
+const site = process.env.SITE_ID || 'default';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
