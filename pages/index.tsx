@@ -34,7 +34,13 @@ import Cookies from 'js-cookie';
 // Styles
 import styles from '@/styles/Home.module.css';
 
-export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
+export default function Home({
+  siteConfig,
+  error,
+}: {
+  siteConfig: SiteConfig | null;
+  error?: string;
+}) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [collection, setCollection] = useState<string>('master_swami');
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
@@ -47,13 +53,12 @@ export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
     audio: boolean;
     youtube: boolean;
   }>({ text: true, audio: true, youtube: true });
-  const { messageState, loading, error, handleSubmit } = useChat(
-    collection,
-    [],
-    privateSession,
-    mediaTypes,
-    siteConfig,
-  );
+  const {
+    messageState,
+    loading,
+    error: chatError,
+    handleSubmit,
+  } = useChat(collection, [], privateSession, mediaTypes, siteConfig);
   const { messages, history } = messageState;
   const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
@@ -235,9 +240,12 @@ export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
     }
   }, [messages]);
 
-  // Render the component only after the collection has been determined
-  if (collection === undefined) {
-    return <LoadingDots color="#000" />;
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  if (!siteConfig) {
+    return <div>Loading...</div>;
   }
 
   if (isMaintenanceMode) {
@@ -433,7 +441,7 @@ export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
               handleCollectionChange={handleCollectionChange}
               handlePrivateSessionChange={handlePrivateSessionChange}
               collection={collection}
-              error={error}
+              error={chatError}
               randomQueries={randomQueries}
               shuffleQueries={shuffleQueries}
               privateSession={privateSession}
@@ -478,17 +486,40 @@ export default function Home({ siteConfig }: { siteConfig: SiteConfig }) {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
 
-  // Fetch the site config
-  const res = await fetch(`/api/siteConfig?siteId=${siteId}`, {
-    headers: {
-      Host: context.req.headers.host || '',
-    },
-  });
-  const siteConfig = await res.json();
+  try {
+    // Construct the full URL using the request object
+    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
+    const host = context.req.headers.host || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
 
-  return {
-    props: {
-      siteConfig,
-    },
-  };
+    // Fetch the site config
+    const res = await fetch(
+      `${baseUrl}/api/siteConfig?siteId=${encodeURIComponent(siteId)}`,
+      {
+        headers: {
+          Host: context.req.headers.host || '',
+        },
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const siteConfig = await res.json();
+
+    return {
+      props: {
+        siteConfig,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching site config:', error);
+    return {
+      props: {
+        siteConfig: null,
+        error: 'Failed to fetch site configuration',
+      },
+    };
+  }
 };
