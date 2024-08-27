@@ -1,104 +1,105 @@
-  .markdownanswer {
-    line-height: 1.35;
-  }
+.markdownanswer {
+  line-height: 1.35;
+}
 
-  .markdownanswer p {
-    margin-top: 0.45rem;
-    margin-bottom: 0.45rem;
-  }
+.markdownanswer p {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+}
 
-  .markdownanswer a:hover {
-    opacity: 0.8;
-    text-decoration: underline;
-  }
+.markdownanswer a:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
 
-  .markdownanswer a {
-    color: black;
-  }
-  
-  .markdownanswer code {
-    color: #15cb19;
-    font-weight: 500;
-    white-space: pre-wrap !important;
-  }
+.markdownanswer a {
+  color: black;
+}
 
-  .markdownanswer ol,
-  .markdownanswer ul {
-    margin-left: 2rem;
-  }
+.markdownanswer code {
+  color: #15cb19;
+  font-weight: 500;
+  white-space: pre-wrap !important;
+}
 
-  .markdownanswer ol {
-    list-style-type: decimal;
-  }
+.markdownanswer ol,
+.markdownanswer ul {
+  margin-left: 2rem;
+}
 
-  .markdownanswer ul {
-    list-style-type: disc;
-  }
+.markdownanswer ol {
+  list-style-type: decimal;
+}
 
-  .markdownanswer h1 {
-    font-size: 2rem;
-    font-weight: 400;
-    margin-top: 1rem;
-  }
+.markdownanswer ul {
+  list-style-type: disc;
+}
 
-  .markdownanswer h2 {
-    font-size: 1.5rem;
-    font-weight: 300;
-    margin-top: 0.75rem;
-  }
+.markdownanswer h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  margin-top: 1rem;
+}
 
-  .markdownanswer h3 {
-    font-size: 1.1rem;
-    font-weight: 200;
-    margin-top: 0.5rem;
-  }
+.markdownanswer h2 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-top: 0.75rem;
+}
 
-  .markdownanswer h4 {
-    font-size: 1.05rem;
-    font-weight: 150;
-    margin-top: 0.25rem;
-  }
+.markdownanswer h3 {
+  font-size: 1.2rem;
+  font-weight: 200;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
 
-  .markdownanswer table {
-    width: 100%;
-    border-collapse: collapse;
-  }
+.markdownanswer h4 {
+  font-size: 1.05rem;
+  font-weight: 150;
+  margin-top: 0.25rem;
+}
 
-  .markdownanswer th,
-  .markdownanswer td {
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-  }
+.markdownanswer table {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-  .markdownanswer th {
-    background-color: #f8f8f8;
-  }
+.markdownanswer th,
+.markdownanswer td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+}
 
-  .markdownanswer blockquote {
-    padding-left: 1rem;
-    border-left: 4px solid #ddd;
-    margin: 1rem 0;
-    color: #666;
-  }
+.markdownanswer th {
+  background-color: #f8f8f8;
+}
 
-  .markdownanswer hr {
-    border: 0;
-    height: 1px;
-    background: #ccc;
-    margin: 1rem 0;
-  }
+.markdownanswer blockquote {
+  padding-left: 1rem;
+  border-left: 4px solid #ddd;
+  margin: 1rem 0;
+  color: #666;
+}
 
-  .heart-button {
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-  }
-  
-  .heart-button.liked {
-    color: red;
-  }
- 
-  .heart-button:hover {
-    color: #ff8585; 
-  }
+.markdownanswer hr {
+  border: 0;
+  height: 1px;
+  background: #ccc;
+  margin: 1rem 0;
+}
+
+.heart-button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.heart-button.liked {
+  color: red;
+}
+
+.heart-button:hover {
+  color: #ff8585;
+}
