@@ -11,9 +11,15 @@ declare global {
 
 let isInitialized = false;
 
+export const isAnalyticsDisabled = () => {
+  return (
+    isDevelopment() || process.env.NEXT_PUBLIC_DISABLE_ANALYTICS === 'true'
+  );
+};
+
 export const initGoogleAnalytics = () => {
-  if (isDevelopment()) {
-    console.log('Development mode: Skipping GA initialization');
+  if (isAnalyticsDisabled()) {
+    console.log('Analytics disabled: Skipping GA initialization');
     return Promise.resolve();
   }
 
@@ -41,16 +47,22 @@ export const initGoogleAnalytics = () => {
     script.onerror = (error) => {
       console.error('Failed to load GA script:', error);
       console.error('Script src:', script.src);
-      resolve();
+      resolve(); // Resolve the promise to prevent hanging
     };
 
-    document.head.appendChild(script);
+    // Check if the script can be added to the document
+    try {
+      document.head.appendChild(script);
+    } catch (error) {
+      console.error('Error appending GA script to head:', error);
+      resolve(); // Resolve the promise to prevent hanging
+    }
   });
 };
 
 export const logPageView = (url: string) => {
-  if (isDevelopment()) {
-    console.log(`Development mode: Skipping logPageView for URL: ${url}`);
+  if (isAnalyticsDisabled()) {
+    console.log(`Analytics disabled: Skipping logPageView for URL: ${url}`);
     return;
   }
 
@@ -67,9 +79,9 @@ export const logEvent = async (
   label: string,
   value?: number,
 ) => {
-  if (isDevelopment()) {
+  if (isAnalyticsDisabled()) {
     console.log(
-      `Development mode: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`,
+      `Analytics disabled: Skipping logEvent for action: ${action}, category: ${category}, label: ${label}, value: ${value}`,
     );
     return;
   }

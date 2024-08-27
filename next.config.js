@@ -47,6 +47,8 @@ const nextConfig = {
   },
   env: {
     SITE_ID: site,
+    NEXT_PUBLIC_DISABLE_ANALYTICS:
+      process.env.NEXT_PUBLIC_DISABLE_ANALYTICS || 'false',
   },
 };
 
