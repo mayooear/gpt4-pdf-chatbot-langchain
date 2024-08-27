@@ -4,13 +4,13 @@ import { Document } from 'langchain/document';
 import { logEvent } from '@/utils/client/analytics';
 import { getGreeting, SiteConfig } from '@/utils/client/siteConfig';
 
-export const useChat = (
+export function useChat(
   collection: string,
   history: [string, string][],
   privateSession: boolean,
   mediaTypes: { text: boolean; audio: boolean },
-  siteConfig: SiteConfig,
-) => {
+  siteConfig?: SiteConfig | null,
+) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [messageState, setMessageState] = useState<{
@@ -70,6 +70,7 @@ export const useChat = (
           history,
           privateSession,
           mediaTypes,
+          siteConfig,
         }),
       });
       const data = await response.json();
@@ -119,4 +120,4 @@ export const useChat = (
     messageState,
     handleSubmit,
   };
-};
+}

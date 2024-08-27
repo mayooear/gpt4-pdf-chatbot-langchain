@@ -14,4 +14,6 @@ export type CollectionKey = keyof ReturnType<typeof getCollectionsConfig>;
 
 export const getSiteName = (siteConfig: SiteConfig) => siteConfig.name;
 
-export const getGreeting = (siteConfig: SiteConfig) => siteConfig.greeting;
+export function getGreeting(siteConfig?: SiteConfig | null): string {
+  return siteConfig?.greeting || 'Hello! How can I assist you today?';
+}
