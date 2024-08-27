@@ -5,7 +5,7 @@ import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
-import { initGA, logEvent } from '@/utils/client/analytics';
+import { initGoogleAnalytics, logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import AnswerItem from '@/components/AnswerItem';
@@ -194,8 +194,6 @@ const AllAnswers = () => {
       setIsSortByInitialized(true);
 
       debouncedFetch(pageFromUrl, sortByFromUrl);
-
-      initGA();
     }
   }, [router.isReady, urlPage, urlSortBy, debouncedFetch]);
 
