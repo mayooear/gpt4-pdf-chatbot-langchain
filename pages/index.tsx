@@ -479,9 +479,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
 
   // Fetch the site config
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/siteConfig?siteId=${siteId}`,
-  );
+  const res = await fetch(`/api/siteConfig?siteId=${siteId}`, {
+    headers: {
+      Host: context.req.headers.host || '',
+    },
+  });
   const siteConfig = await res.json();
 
   return {
