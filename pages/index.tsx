@@ -3,6 +3,8 @@ import { useRef, useState, useEffect, useMemo, Fragment } from 'react';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import fs from 'fs/promises';
+import path from 'path';
 
 // Component imports
 import Layout from '@/components/layout';
@@ -487,26 +489,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
 
   try {
-    // Construct the full URL using the request object
-    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
-    const host = context.req.headers.host || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
+    // Read the config file directly
+    const configPath = path.join(process.cwd(), 'site-config', 'config.json');
+    const configData = await fs.readFile(configPath, 'utf8');
+    const allConfigs = JSON.parse(configData);
+    const siteConfig = allConfigs[siteId];
 
-    // Fetch the site config
-    const res = await fetch(
-      `${baseUrl}/api/siteConfig?siteId=${encodeURIComponent(siteId)}`,
-      {
-        headers: {
-          Host: context.req.headers.host || '',
-        },
-      },
-    );
-
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+    if (!siteConfig) {
+      throw new Error(`Configuration not found for site ID: ${siteId}`);
     }
-
-    const siteConfig = await res.json();
 
     return {
       props: {
@@ -518,7 +509,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         siteConfig: null,
-        error: 'Failed to fetch site configuration',
+        error:
+          'Failed to fetch site configuration. Please notify an administrator.',
       },
     };
   }
