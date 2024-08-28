@@ -109,15 +109,9 @@ export default async function handler(
       });
       const sourceDocuments = await documentPromise;
       const processedSourceDocuments = [...sourceDocuments];
-      let sourceTitlesString = '';
-      if (processedSourceDocuments && processedSourceDocuments.length > 0) {
-        const sourceTitles = processedSourceDocuments.map((doc: any) => {
-          console.log('source:', doc);
-          return doc.metadata.title;
-        });
-        sourceTitlesString = '\nSources:\n* ' + sourceTitles.join('\n* ');
-        console.log(sourceTitlesString);
-      }
+
+      console.log('question:', question); // TMP XXX
+      console.log('processedSourceDocuments:', processedSourceDocuments); // TMP XXX
 
       let docId: string | undefined;
 
