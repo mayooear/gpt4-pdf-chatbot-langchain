@@ -10,7 +10,7 @@ export default async function handler(
   // Set CORS headers
   const allowedOrigin =
     process.env.NODE_ENV === 'production'
-      ? 'https://ask.anandalibrary.org'
+      ? `https://${req.headers.host}`
       : 'http://localhost:3000';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');

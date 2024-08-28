@@ -28,6 +28,7 @@ const nextConfig = {
     return [
       {
         source: '/api/sudoCookie',
+        // TODO: change this to the correct URL for the site
         destination: 'https://ask.anandalibary.org/api/sudoCookie',
       },
     ];
