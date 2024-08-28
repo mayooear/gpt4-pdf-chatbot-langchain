@@ -198,7 +198,10 @@ export default function Home({
 
   useEffect(() => {
     // Retrieve and set the collection from the cookie
-    const savedCollection = Cookies.get('selectedCollection') || 'master_swami';
+    // TODO: This is a hack for jairam site test
+    const savedCollection =
+      Cookies.get('selectedCollection') ||
+      (process.env.SITE_ID === 'jairam' ? 'whole_library' : 'master_swami');
     setCollection(savedCollection);
 
     // Focus the text area only on the client side after the component has mounted.
