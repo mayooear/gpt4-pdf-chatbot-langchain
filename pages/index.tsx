@@ -3,8 +3,6 @@ import { useRef, useState, useEffect, useMemo, Fragment } from 'react';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import fs from 'fs/promises';
-import path from 'path';
 
 // Component imports
 import Layout from '@/components/layout';
@@ -26,7 +24,13 @@ import { useChat } from '@/hooks/useChat';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 import { handleVote as handleVoteUtil } from '@/utils/client/voteHandler';
-import { SiteConfig } from '@/utils/client/siteConfig';
+import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
+import { SiteConfig } from '@/types/siteConfig';
+import {
+  getCollectionsConfig,
+  getEnableMediaTypeSelection,
+  getEnableAuthorSelection,
+} from '@/utils/client/siteConfig';
 
 // Third-party library imports
 import ReactMarkdown from 'react-markdown';
@@ -44,7 +48,13 @@ export default function Home({
   error?: string;
 }) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
-  const [collection, setCollection] = useState<string>('master_swami');
+  const [collection, setCollection] = useState<string>(() => {
+    if (getEnableAuthorSelection(siteConfig)) {
+      const collections = getCollectionsConfig(siteConfig);
+      return Object.keys(collections)[0] || '';
+    }
+    return '';
+  });
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
   const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
@@ -72,7 +82,9 @@ export default function Home({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
-    setMediaTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+    if (getEnableMediaTypeSelection(siteConfig)) {
+      setMediaTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+    }
   };
 
   // popup message for new users
@@ -83,12 +95,12 @@ export default function Home({
   );
 
   const handleCollectionChange = (newCollection: string) => {
-    if (newCollection !== collection) {
+    if (getEnableAuthorSelection(siteConfig) && newCollection !== collection) {
       setCollectionChanged(true);
+      setCollection(newCollection);
+      Cookies.set('selectedCollection', newCollection, { expires: 365 });
+      logEvent('change_collection', 'UI', newCollection);
     }
-    setCollection(newCollection);
-    Cookies.set('selectedCollection', newCollection, { expires: 365 });
-    logEvent('change_collection', 'UI', newCollection);
   };
 
   const [collectionQueries, setCollectionQueries] = useState({});
@@ -274,7 +286,7 @@ export default function Home({
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
       <Layout>
         <LikePrompt show={showLikePrompt} />
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col h-full">
           {privateSession && (
             <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
               <span className="material-icons text-2xl mr-2">lock</span>
@@ -454,6 +466,7 @@ export default function Home({
               handleMediaTypeChange={handleMediaTypeChange}
               isControlsMenuOpen={isControlsMenuOpen}
               setIsControlsMenuOpen={setIsControlsMenuOpen}
+              siteConfig={siteConfig}
             />
           </div>
           {privateSession && (
@@ -489,11 +502,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
 
   try {
-    // Read the config file directly
-    const configPath = path.join(process.cwd(), 'site-config', 'config.json');
-    const configData = await fs.readFile(configPath, 'utf8');
-    const allConfigs = JSON.parse(configData);
-    const siteConfig = allConfigs[siteId];
+    const siteConfig = await loadSiteConfig(siteId);
 
     if (!siteConfig) {
       throw new Error(`Configuration not found for site ID: ${siteId}`);
@@ -505,12 +514,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     };
   } catch (error) {
-    console.error('Error fetching site config:', error);
+    console.error('Error loading site config:', error);
     return {
       props: {
         siteConfig: null,
         error:
-          'Failed to fetch site configuration. Please notify an administrator.',
+          'Failed to load site configuration. Please notify an administrator.',
       },
     };
   }

@@ -37,7 +37,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="mx-auto flex flex-col min-h-screen max-w-[800px]">
+    <div className="mx-auto flex flex-col h-screen max-w-[800px]">
       <header className="sticky top-0 z-40 bg-white w-full">
         {isDev && (
           <div className="bg-blue-500 text-white text-center py-1 w-full">
@@ -100,8 +100,8 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
       </header>
-      <div className="flex-grow">
-        <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
+      <div className="flex-grow overflow-auto">
+        <main className="flex flex-col h-full">{children}</main>
       </div>
       <Footer />
     </div>

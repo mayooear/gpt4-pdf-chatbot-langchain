@@ -9,7 +9,13 @@ interface RandomQueriesProps {
   isMobile: boolean;
 }
 
-const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, isLoading, shuffleQueries, isMobile }) => {
+const RandomQueries: React.FC<RandomQueriesProps> = ({
+  queries,
+  onQueryClick,
+  isLoading,
+  shuffleQueries,
+  isMobile,
+}) => {
   const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
 
   const handleQueryClick = (query: string) => {
@@ -36,13 +42,19 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
             aria-label="Refresh queries"
             disabled={isLoading}
           >
-            <span className="material-icons text-blue-600 hover:text-blue-800">autorenew</span>
+            <span className="material-icons text-blue-600 hover:text-blue-800">
+              autorenew
+            </span>
           </button>
         </div>
         {isMobile ? (
           <div className="flex items-center">
             <button
-              className={`flex-grow text-left break-words ${isLoading ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}
+              className={`flex-grow text-left break-words ${
+                isLoading
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-blue-600 hover:text-blue-800 hover:underline'
+              }`}
               onClick={() => handleQueryClick(queries[currentQueryIndex])}
               disabled={isLoading}
             >
@@ -52,9 +64,18 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({ queries, onQueryClick, is
         ) : (
           <ul className="list-none w-full">
             {queries.slice(0, 3).map((query, index) => (
-              <li key={index} className={`mb-2 ${isLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}>
+              <li
+                key={index}
+                className={`mb-2 ${
+                  isLoading
+                    ? 'text-gray-400'
+                    : 'text-blue-600 hover:text-blue-800 hover:underline'
+                }`}
+              >
                 <button
-                  className={`focus:outline-none focus:underline w-full text-left break-words ${isLoading ? 'cursor-not-allowed' : ''}`}
+                  className={`focus:outline-none focus:underline w-full text-left break-words ${
+                    isLoading ? 'cursor-not-allowed' : ''
+                  }`}
                   onClick={() => handleQueryClick(query)}
                   aria-label={`Sample query: ${query}`}
                   disabled={isLoading}

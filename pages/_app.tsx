@@ -12,7 +12,7 @@ import {
 } from '@/utils/client/analytics';
 import { useRouter } from 'next/router';
 import { AudioProvider } from '@/contexts/AudioContext';
-import { SiteConfig } from '@/utils/client/siteConfig';
+import { SiteConfig } from '@/types/siteConfig';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -30,16 +30,17 @@ function MyApp({ Component, pageProps }: AppProps) {
       logPageView(router.pathname);
     }
 
-    // Fetch site config
+    // Load site config
     try {
-      const response = await fetch('/api/siteConfig');
+      const siteId = process.env.SITE_ID || 'default';
+      const response = await fetch(`/api/siteConfig?siteId=${siteId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch site config');
       }
       const config = await response.json();
       setSiteConfig(config);
     } catch (error) {
-      console.error('Error fetching site config:', error);
+      console.error('Error loading site config:', error);
       toast.error('Failed to load site configuration');
     }
   };

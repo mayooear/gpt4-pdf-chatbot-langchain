@@ -19,7 +19,10 @@
         "displayName": "Ananda Library",
         "url": "https://www.anandalibrary.org/"
       }
-    }
+    },
+    "enableSuggestedQueries": true,
+    "enableMediaTypeSelection": true,
+    "enableAuthorSelection": true
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -27,6 +30,9 @@
     "collectionConfig": {
       "collection1": "All Documents"
     },
-    "libraryMappings": {}
+    "libraryMappings": {},
+    "enableSuggestedQueries": false,
+    "enableMediaTypeSelection": false,
+    "enableAuthorSelection": false
   }
 }

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Message } from '@/types/chat';
 import { Document } from 'langchain/document';
 import { logEvent } from '@/utils/client/analytics';
-import { getGreeting, SiteConfig } from '@/utils/client/siteConfig';
+import { getGreeting } from '@/utils/client/siteConfig';
+import { SiteConfig } from '@/types/siteConfig';
 
 export function useChat(
   collection: string,
@@ -21,7 +22,7 @@ export function useChat(
   }>({
     messages: [
       {
-        message: getGreeting(siteConfig),
+        message: getGreeting(siteConfig ?? null),
         type: 'apiMessage',
       },
     ],
