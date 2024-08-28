@@ -500,6 +500,7 @@ export default function Home({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
+  console.log('getServerSideProps siteId', siteId);
 
   try {
     const siteConfig = await loadSiteConfig(siteId);
