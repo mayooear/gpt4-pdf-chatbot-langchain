@@ -360,6 +360,24 @@ const AllAnswers = () => {
     }, 0);
   };
 
+  const checkSudoStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sudoCookie', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      setIsSudoUser(data.sudoCookieValue);
+    } catch (error) {
+      console.error('Error checking sudo status:', error);
+      setIsSudoUser(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkSudoStatus();
+  }, [checkSudoStatus]);
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-4 px-4 sm:px-6 lg:px-8">
