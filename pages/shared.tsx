@@ -13,6 +13,11 @@ import { getOrCreateUUID } from '@/utils/client/uuid';
 import { toast } from 'react-toastify';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { Answer } from '@/types/answer';
+import { SiteConfig } from '@/types/siteConfig';
+
+interface SharedAnswersProps {
+  siteConfig: SiteConfig | null;
+}
 
 interface Share {
   id: string;
@@ -23,7 +28,7 @@ interface Share {
   createdAt: number; // Unix timestamp format
 }
 
-const SharedAnswers = () => {
+const SharedAnswers = ({ siteConfig }: SharedAnswersProps) => {
   const [shares, setShares] = useState<Share[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [page, setPage] = useState(0);
@@ -161,7 +166,7 @@ const SharedAnswers = () => {
   }, [inView, hasMore, isLoading]);
 
   return (
-    <Layout>
+    <Layout siteConfig={siteConfig}>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {isLoading && !initialLoadComplete && showDelayedSpinner ? (
           <div className="flex justify-center items-center h-screen">

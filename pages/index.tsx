@@ -1,6 +1,5 @@
 // React and Next.js imports
 import { useRef, useState, useEffect, useMemo, Fragment } from 'react';
-import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -24,7 +23,6 @@ import { useChat } from '@/hooks/useChat';
 import { logEvent } from '@/utils/client/analytics';
 import { getCollectionQueries } from '@/utils/client/collectionQueries';
 import { handleVote as handleVoteUtil } from '@/utils/client/voteHandler';
-import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import { SiteConfig } from '@/types/siteConfig';
 import {
   getCollectionsConfig,
@@ -42,10 +40,8 @@ import styles from '@/styles/Home.module.css';
 
 export default function Home({
   siteConfig,
-  error,
 }: {
   siteConfig: SiteConfig | null;
-  error?: string;
 }) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [collection, setCollection] = useState<string>(() => {
@@ -257,17 +253,9 @@ export default function Home({
     }
   }, [messages]);
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  if (!siteConfig) {
-    return <div>Loading...</div>;
-  }
-
   if (isMaintenanceMode) {
     return (
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <h1 className="text-3xl font-bold">
             This page is currently down for maintenance until approx. 1pm PT.
@@ -287,7 +275,7 @@ export default function Home({
   return (
     <>
       {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <LikePrompt show={showLikePrompt} />
         <div className="flex flex-col h-full">
           {privateSession && (
@@ -500,30 +488,3 @@ export default function Home({
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const siteId = process.env.SITE_ID || 'default';
-
-  try {
-    const siteConfig = await loadSiteConfig(siteId);
-
-    if (!siteConfig) {
-      throw new Error(`Configuration not found for site ID: ${siteId}`);
-    }
-
-    return {
-      props: {
-        siteConfig,
-      },
-    };
-  } catch (error) {
-    console.error('Error loading site config:', error);
-    return {
-      props: {
-        siteConfig: null,
-        error:
-          'Failed to load site configuration. Please notify an administrator.',
-      },
-    };
-  }
-};

@@ -1,3 +1,4 @@
+import { SiteConfig } from '@/types/siteConfig';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout';
@@ -9,7 +10,11 @@ import { getOrCreateUUID } from '@/utils/client/uuid';
 import { logEvent } from '@/utils/client/analytics';
 import Head from 'next/head';
 
-const SingleAnswer = () => {
+interface SingleAnswerProps {
+  siteConfig: SiteConfig | null;
+}
+
+const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   const router = useRouter();
   const { answerId } = router.query;
   const [answer, setAnswer] = useState<Answer | null>(null);
@@ -97,7 +102,7 @@ const SingleAnswer = () => {
 
   if (notFound) {
     return (
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <div className="flex justify-center items-center h-screen">
           <p className="text-lg text-gray-600">Answer not found.</p>
         </div>
@@ -107,7 +112,7 @@ const SingleAnswer = () => {
 
   if (!answer) {
     return (
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <div className="flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
           <p className="text-lg text-gray-600 ml-4">Loading...</p>
@@ -117,7 +122,7 @@ const SingleAnswer = () => {
   }
 
   return (
-    <Layout>
+    <Layout siteConfig={siteConfig}>
       <Head>
         <title>Ask Ananda Library: {answer.question.substring(0, 150)}</title>
       </Head>

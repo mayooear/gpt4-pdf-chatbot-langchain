@@ -3,8 +3,13 @@ import Layout from '@/components/layout';
 import { useRouter } from 'next/router';
 import DownvotedAnswerReview from '@/components/DownvotedAnswerReview';
 import { Answer } from '@/types/answer';
+import { SiteConfig } from '@/types/siteConfig';
 
-const DownvotesReview = () => {
+interface DownvotesReviewProps {
+  siteConfig: SiteConfig | null;
+}
+
+const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
   const [downvotedAnswers, setDownvotedAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -30,11 +35,11 @@ const DownvotesReview = () => {
   }, []);
 
   if (isLoading) {
-    return <Layout>Loading...</Layout>;
+    return <Layout siteConfig={siteConfig}>Loading...</Layout>;
   }
 
   return (
-    <Layout>
+    <Layout siteConfig={siteConfig}>
       <h1 className="text-2xl font-bold mb-4">Review Downvoted Answers</h1>
       {downvotedAnswers.length === 0 ? (
         <p>No downvoted answers to review.</p>

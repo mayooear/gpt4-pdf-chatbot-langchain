@@ -3,13 +3,16 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { logEvent } from '@/utils/client/analytics';
+import { getParentSiteUrl, getParentSiteName } from '@/utils/client/siteConfig';
 import Footer from './Footer';
+import { SiteConfig } from '@/types/siteConfig';
 
 interface LayoutProps {
   children?: React.ReactNode;
+  siteConfig: SiteConfig | null;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, siteConfig }: LayoutProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDev, setIsDev] = useState(false);
@@ -36,6 +39,9 @@ export default function Layout({ children }: LayoutProps) {
     logEvent('click_back_to_library', 'Navigation', '');
   };
 
+  const parentSiteUrl = getParentSiteUrl(siteConfig);
+  const parentSiteName = getParentSiteName(siteConfig);
+
   return (
     <div className="mx-auto flex flex-col h-screen max-w-[800px]">
       <header className="sticky top-0 z-40 bg-white w-full">
@@ -47,13 +53,15 @@ export default function Layout({ children }: LayoutProps) {
         <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">
           <nav className="ml-2 pl-1">
             <div className="space-x-10">
-              <Link
-                href="https://www.anandalibrary.org/"
-                className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-                onClick={handleBackToLibrary}
-              >
-                ← Ananda Library
-              </Link>
+              {parentSiteUrl && (
+                <Link
+                  href={parentSiteUrl}
+                  className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
+                  onClick={handleBackToLibrary}
+                >
+                  ← {parentSiteName}
+                </Link>
+              )}
               <Link
                 href="/"
                 className={`hover:text-slate-600 cursor-pointer ${
@@ -103,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex-grow overflow-auto">
         <main className="flex flex-col h-full">{children}</main>
       </div>
-      <Footer />
+      <Footer siteConfig={siteConfig} />
     </div>
   );
 }

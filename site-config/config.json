@@ -1,7 +1,12 @@
 {
   "ananda": {
     "name": "The Ananda Chatbot",
+    "tagline": "Explore, Discover, Learn – Uncover the treasures of our path.",
     "greeting": "Hi GuruBuddy! How can I help you on our path today?",
+    "parent_site_url": "https://www.anandalibrary.org",
+    "parent_site_name": "Ananda Library",
+    "help_url": "https://www.anandalibrary.org/content/ai-chatbot-intro/",
+    "help_text": "Help",
     "collectionConfig": {
       "master_swami": "Master and Swami",
       "whole_library": "All authors"
@@ -26,7 +31,12 @@
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
-    "greeting": "What can I answer for you about Joe Hunt's case?",
+    "tagline": "Uncover the Truth. Explore Joe Hunt's Fight for Justice.",
+    "greeting": "What can I answer for you about Joe Hunt's case and story?",
+    "parent_site_url": "https://freejoehunt.com",
+    "parent_site_name": "Free Joe Hunt",
+    "help_url": "",
+    "help_text": "",
     "collectionConfig": {
       "collection1": "All Documents"
     },

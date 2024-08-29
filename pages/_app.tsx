@@ -1,10 +1,10 @@
 import '@/styles/base.css';
 import '@/styles/globals.css';
 import 'react-toastify/dist/ReactToastify.css';
-import type { AppProps } from 'next/app';
+import type { AppProps, AppContext } from 'next/app';
 import { Inter } from 'next/font/google';
-import { ToastContainer, toast } from 'react-toastify';
-import { useEffect, useState } from 'react';
+import { ToastContainer } from 'react-toastify';
+import { useEffect } from 'react';
 import {
   initGoogleAnalytics,
   logPageView,
@@ -13,40 +13,27 @@ import {
 import { useRouter } from 'next/router';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { SiteConfig } from '@/types/siteConfig';
+import { getCommonClientSideProps } from '@/utils/client/getCommonClientSideProps';
 
 const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
 });
 
-function MyApp({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [showLoading, setShowLoading] = useState(false);
-
-  const setupApp = async () => {
-    if (process.env.NODE_ENV === 'production') {
-      await initGoogleAnalytics();
-      logPageView(router.pathname);
-    }
-
-    // Load site config
-    try {
-      const siteId = process.env.SITE_ID || 'default';
-      const response = await fetch(`/api/siteConfig?siteId=${siteId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch site config');
-      }
-      const config = await response.json();
-      setSiteConfig(config);
-    } catch (error) {
-      console.error('Error loading site config:', error);
-      toast.error('Failed to load site configuration');
-    }
+interface CustomAppProps extends AppProps {
+  pageProps: {
+    siteConfig: SiteConfig | null;
   };
+}
+
+function MyApp({ Component, pageProps }: CustomAppProps) {
+  const router = useRouter();
 
   useEffect(() => {
-    setupApp();
+    if (process.env.NODE_ENV === 'production') {
+      initGoogleAnalytics();
+      logPageView(router.pathname);
+    }
 
     const handleRouteChange = (url: string) => {
       if (process.env.NODE_ENV === 'production') {
@@ -56,31 +43,27 @@ function MyApp({ Component, pageProps }: AppProps) {
 
     router.events.on('routeChangeComplete', handleRouteChange);
 
-    // Set a timer to show loading message after 3.5 seconds
-    const timer = setTimeout(() => {
-      setShowLoading(true);
-    }, 3500);
-
-    // Clear the timer if siteConfig is loaded before 3.5 seconds
     return () => {
-      clearTimeout(timer);
       router.events.off('routeChangeComplete', handleRouteChange);
     };
   }, [router]);
 
-  if (!siteConfig) {
-    return showLoading ? <div>Loading...</div> : null;
-  }
-
   return (
     <AudioProvider>
       <main className={inter.variable}>
-        <Component {...pageProps} siteConfig={siteConfig} />
+        <Component {...pageProps} />
       </main>
       <ToastContainer />
     </AudioProvider>
   );
 }
+
+MyApp.getInitialProps = async (appContext: AppContext) => {
+  const ctx = appContext.ctx;
+  const result = await getCommonClientSideProps(ctx);
+
+  return { pageProps: result.props };
+};
 
 export function reportWebVitals(metric: any) {
   if (process.env.NODE_ENV === 'production') {

@@ -7,7 +7,16 @@ export const getCollectionsConfig = (siteConfig: SiteConfig | null) =>
 export type CollectionKey = keyof ReturnType<typeof getCollectionsConfig>;
 
 export const getSiteName = (siteConfig: SiteConfig | null) =>
-  siteConfig?.name ?? '';
+  siteConfig?.name ?? 'AI Chatbot';
+
+export const getTagline = (siteConfig: SiteConfig | null) =>
+  siteConfig?.tagline ?? 'Explore, Discover, Learn';
+
+export const getParentSiteUrl = (siteConfig: SiteConfig | null) =>
+  siteConfig?.parent_site_url ?? '';
+
+export const getParentSiteName = (siteConfig: SiteConfig | null) =>
+  siteConfig?.parent_site_name ?? '';
 
 export function getGreeting(siteConfig: SiteConfig | null): string {
   return siteConfig?.greeting ?? 'Hello! How can I assist you today?';

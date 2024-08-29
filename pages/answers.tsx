@@ -9,8 +9,13 @@ import { initGoogleAnalytics, logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import AnswerItem from '@/components/AnswerItem';
+import { SiteConfig } from '@/types/siteConfig';
 
-const AllAnswers = () => {
+interface AllAnswersProps {
+  siteConfig: SiteConfig | null;
+}
+
+const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const router = useRouter();
   const { sortBy: urlSortBy, page: urlPage } = router.query;
   const [sortBy, setSortBy] = useState<string>('mostRecent');
@@ -379,7 +384,7 @@ const AllAnswers = () => {
   }, [checkSudoStatus]);
 
   return (
-    <Layout>
+    <Layout siteConfig={siteConfig}>
       <div className="flex justify-between items-center mb-4 px-4 sm:px-6 lg:px-8">
         <div></div>
         <div className="flex items-center mt-0.5">
