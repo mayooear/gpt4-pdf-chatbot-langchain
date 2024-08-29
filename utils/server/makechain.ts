@@ -134,7 +134,6 @@ const combineDocumentsFn = (
 
 export const makeChain = async (retriever: VectorStoreRetriever) => {
   const siteId = process.env.SITE_ID || 'default';
-  console.log('makechain siteId', siteId);
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
 

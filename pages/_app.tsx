@@ -33,7 +33,6 @@ function MyApp({ Component, pageProps }: AppProps) {
     // Load site config
     try {
       const siteId = process.env.SITE_ID || 'default';
-      console.log('setupApp siteId', siteId);
       const response = await fetch(`/api/siteConfig?siteId=${siteId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch site config');

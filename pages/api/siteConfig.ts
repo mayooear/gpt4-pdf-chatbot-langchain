@@ -22,7 +22,6 @@ export default async function handler(
 
   const siteId =
     (req.query.siteId as string) || process.env.SITE_ID || 'default';
-  console.log('siteConfig handler siteId', siteId);
   const config = await loadSiteConfig(siteId);
 
   if (!config) {
