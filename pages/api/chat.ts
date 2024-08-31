@@ -110,9 +110,6 @@ export default async function handler(
       const sourceDocuments = await documentPromise;
       const processedSourceDocuments = [...sourceDocuments];
 
-      console.log('question:', question); // TMP XXX
-      console.log('processedSourceDocuments:', processedSourceDocuments); // TMP XXX
-
       let docId: string | undefined;
 
       if (!privateSession) {
