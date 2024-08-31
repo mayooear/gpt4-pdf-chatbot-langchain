@@ -129,6 +129,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <AnswerItem
           answer={answer}
+          siteConfig={siteConfig}
           handleLikeCountChange={handleLikeCountChange}
           handleCopyLink={handleCopyLink}
           handleDelete={handleDelete}

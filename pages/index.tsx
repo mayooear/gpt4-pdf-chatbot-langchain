@@ -18,6 +18,7 @@ import { ChatInput } from '@/components/ChatInput';
 import usePopup from '@/hooks/usePopup';
 import { useRandomQueries } from '@/hooks/useRandomQueries';
 import { useChat } from '@/hooks/useChat';
+import { useMultipleCollections } from '@/hooks/useMultipleCollections';
 
 // Utility imports
 import { logEvent } from '@/utils/client/analytics';
@@ -253,6 +254,10 @@ export default function Home({
     }
   }, [messages]);
 
+  const hasMultipleCollections = useMultipleCollections(
+    siteConfig || undefined,
+  );
+
   if (isMaintenanceMode) {
     return (
       <Layout siteConfig={siteConfig}>
@@ -346,9 +351,9 @@ export default function Home({
                                 <SourcesList
                                   sources={message.sourceDocs}
                                   collectionName={
-                                    collectionChanged
+                                    collectionChanged && hasMultipleCollections
                                       ? message.collection
-                                      : undefined
+                                      : null
                                   }
                                 />
                               </div>

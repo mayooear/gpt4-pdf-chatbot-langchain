@@ -21,7 +21,7 @@ const extractTitle = (metadata: Record<string, any>): string => {
 
 interface SourcesListProps {
   sources: Document<Record<string, any>>[];
-  collectionName?: string;
+  collectionName?: string | null;
 }
 
 const SourcesList: React.FC<SourcesListProps> = ({
@@ -138,11 +138,6 @@ const SourcesList: React.FC<SourcesListProps> = ({
       'UI',
       expandedSources.has(index) ? 'collapsed' : 'expanded',
     );
-  };
-
-  const handleAccordionExpand = (index: number | null) => {
-    setExpandedAccordionSource(index);
-    logEvent('expand_sources', 'UI', index !== null ? 'expanded' : 'collapsed');
   };
 
   const handleSourceClick = (
@@ -301,7 +296,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
                   <div className="flex items-center">
                     {renderSourceTitle(doc)}
                   </div>
-                  <div className="text-right">{renderLibraryName(doc)}</div>
+                  <div className="text-right">
+                    {doc.metadata.library &&
+                      doc.metadata.library !== 'Default Library' &&
+                      renderLibraryName(doc)}
+                  </div>
                 </div>
               </summary>
               <div className="pl-5 pb-1">

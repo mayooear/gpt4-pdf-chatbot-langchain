@@ -426,6 +426,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
                 <AnswerItem
                   key={answer.id}
                   answer={answer}
+                  siteConfig={siteConfig}
                   handleLikeCountChange={handleLikeCountChange}
                   handleCopyLink={handleCopyLink}
                   handleDelete={isSudoUser ? handleDelete : undefined}

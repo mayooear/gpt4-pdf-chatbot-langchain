@@ -3,14 +3,20 @@ import Link from 'next/link';
 import { Answer, AdminAction } from '@/types/answer';
 import TruncatedMarkdown from './TruncatedMarkdown';
 import SourcesList from './SourcesList';
+import { useMultipleCollections } from '../hooks/useMultipleCollections';
+import { SiteConfig } from '../types/siteConfig';
 
 interface DownvotedAnswerReviewProps {
   answer: Answer;
+  siteConfig: SiteConfig;
 }
 
 const DownvotedAnswerReview: React.FC<DownvotedAnswerReviewProps> = ({
   answer,
+  siteConfig,
 }) => {
+  const hasMultipleCollections = useMultipleCollections(siteConfig);
+
   const [adminAction, setAdminAction] = useState<AdminAction | undefined>(
     answer.adminAction,
   );
@@ -61,7 +67,12 @@ const DownvotedAnswerReview: React.FC<DownvotedAnswerReviewProps> = ({
       <div className="mb-4">
         <TruncatedMarkdown markdown={answer.answer} maxCharacters={300} />
       </div>
-      {parsedSources.length > 0 && <SourcesList sources={parsedSources} />}
+      {parsedSources.length > 0 && (
+        <SourcesList
+          sources={parsedSources}
+          collectionName={hasMultipleCollections ? answer.collection : null}
+        />
+      )}
       <div className="mt-2 text-sm text-gray-600">
         Downvoted on: {formatTimestamp(answer.timestamp)}
       </div>

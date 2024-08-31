@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
@@ -7,6 +7,8 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import { Answer } from '@/types/answer';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
+import { useMultipleCollections } from '@/hooks/useMultipleCollections';
+import { SiteConfig } from '@/types/siteConfig';
 
 interface AnswerItemProps {
   answer: Answer;
@@ -17,6 +19,7 @@ interface AnswerItemProps {
   likeStatuses: Record<string, boolean>;
   isSudoUser: boolean;
   isFullPage?: boolean;
+  siteConfig: SiteConfig | null;
 }
 
 const SIMILARITY_THRESHOLD = 0.15;
@@ -30,7 +33,11 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
   likeStatuses,
   isSudoUser,
   isFullPage = false,
+  siteConfig,
 }) => {
+  const hasMultipleCollections = useMultipleCollections(
+    siteConfig || undefined,
+  );
   const [expanded, setExpanded] = useState(isFullPage);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
@@ -124,13 +131,15 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 addSuffix: true,
               })}
             </span>
-            <span>
-              {answer.collection
-                ? collectionsConfig[
-                    answer.collection as keyof typeof collectionsConfig
-                  ].replace(/ /g, '\u00a0')
-                : 'Unknown\u00a0Collection'}
-            </span>
+            {hasMultipleCollections && (
+              <span>
+                {answer.collection
+                  ? collectionsConfig[
+                      answer.collection as keyof typeof collectionsConfig
+                    ]?.replace(/ /g, '\u00a0') || 'Unknown\u00a0Collection'
+                  : 'Unknown\u00a0Collection'}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -143,7 +152,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
           {answer.sources && (
             <SourcesList
               sources={answer.sources}
-              collectionName={answer.collection}
+              collectionName={hasMultipleCollections ? answer.collection : null}
             />
           )}
           {answer.relatedQuestionsV2 &&

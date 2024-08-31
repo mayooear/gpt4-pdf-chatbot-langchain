@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
 import { Answer } from '@/types/answer';
 import { SiteConfig } from '@/types/siteConfig';
+import { useMultipleCollections } from '@/hooks/useMultipleCollections';
 
 interface SharedAnswersProps {
   siteConfig: SiteConfig | null;
@@ -29,6 +30,10 @@ interface Share {
 }
 
 const SharedAnswers = ({ siteConfig }: SharedAnswersProps) => {
+  const hasMultipleCollections = useMultipleCollections(
+    siteConfig || undefined,
+  );
+
   const [shares, setShares] = useState<Share[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [page, setPage] = useState(0);
@@ -202,6 +207,11 @@ const SharedAnswers = ({ siteConfig }: SharedAnswersProps) => {
                       {answers[share.answerId].sources && (
                         <SourcesList
                           sources={answers[share.answerId].sources || []}
+                          collectionName={
+                            hasMultipleCollections
+                              ? answers[share.answerId].collection
+                              : null
+                          }
                         />
                       )}
                       {/* Render the interaction buttons */}
