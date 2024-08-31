@@ -3,15 +3,24 @@ import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
 import Cookies from 'js-cookie';
 import styles from '@/styles/Home.module.css';
+import { getOtherVisitorsReference } from '@/utils/client/siteConfig';
+import { SiteConfig } from '@/types/siteConfig';
 
 interface ShareDialogProps {
-    markdownAnswer: string;
-    answerId: string;
-    onClose: () => void;
-    onShareSuccess: () => void; 
+  markdownAnswer: string;
+  answerId: string;
+  onClose: () => void;
+  onShareSuccess: () => void;
+  siteConfig: SiteConfig | null;
 }
-    
-const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onClose, onShareSuccess }) => {
+
+const ShareDialog: React.FC<ShareDialogProps> = ({
+  markdownAnswer,
+  answerId,
+  onClose,
+  onShareSuccess,
+  siteConfig,
+}) => {
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
   const [comments, setComments] = useState<string>('');
@@ -57,7 +66,6 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
       // Save the first and last name to cookies
       Cookies.set('firstName', firstName, { expires: 365 });
       Cookies.set('lastName', lastName, { expires: 365 });
-
     } catch (e) {
       setError('An error occurred while sharing the answer.');
     } finally {
@@ -68,15 +76,21 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
   // Function to close the ShareDialog when the backdrop is clicked
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-        onClose(); // Call the onClose prop function to close the dialog
+      onClose(); // Call the onClose prop function to close the dialog
     }
   };
-    
+
+  const otherVisitorsReference = getOtherVisitorsReference(siteConfig);
+
   return (
     <div className={styles.shareDialogBackdrop} onClick={handleBackdropClick}>
       <div className={styles.shareDialog} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeButton} onClick={onClose}>&times;</button>
-        <h2 className={styles.shareDialogTitle}>Share Answer with Gurubhais</h2>
+        <button className={styles.closeButton} onClick={onClose}>
+          &times;
+        </button>
+        <h2 className={styles.shareDialogTitle}>
+          Share Answer with {otherVisitorsReference}
+        </h2>
         {error && <div className={styles.errorMessage}>{error}</div>}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <input
@@ -103,14 +117,20 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ markdownAnswer, answerId, onC
           disabled={isSubmitting}
         />
         <div className="markdownanswer">
-            <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank"> 
-              {`${markdownAnswer.split(" ").slice(0, 50).join(" ")}... **See more**`}
-            </ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+            {`${markdownAnswer
+              .split(' ')
+              .slice(0, 50)
+              .join(' ')}... **See more**`}
+          </ReactMarkdown>
         </div>
-        <button className={styles.shareButton} onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Sharing...' : 'Share Answer'}
+        <button
+          className={styles.shareButton}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Sharing...' : 'Share Answer'}
         </button>
-
       </div>
     </div>
   );

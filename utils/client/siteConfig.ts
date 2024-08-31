@@ -33,3 +33,9 @@ export const getEnableMediaTypeSelection = (siteConfig: SiteConfig | null) =>
 
 export const getEnableAuthorSelection = (siteConfig: SiteConfig | null) =>
   siteConfig?.enableAuthorSelection ?? false;
+
+export const getWelcomePopupHeading = (siteConfig: SiteConfig | null) =>
+  siteConfig?.welcome_popup_heading ?? 'Welcome!';
+
+export const getOtherVisitorsReference = (siteConfig: SiteConfig | null) =>
+  siteConfig?.other_visitors_reference ?? 'other visitors';

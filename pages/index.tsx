@@ -279,9 +279,15 @@ export default function Home({
 
   return (
     <>
-      {showPopup && <Popup message={popupMessage} onClose={closePopup} />}
+      {showPopup && (
+        <Popup
+          message={popupMessage}
+          onClose={closePopup}
+          siteConfig={siteConfig}
+        />
+      )}
       <Layout siteConfig={siteConfig}>
-        <LikePrompt show={showLikePrompt} />
+        <LikePrompt show={showLikePrompt} siteConfig={siteConfig} />
         <div className="flex flex-col h-full">
           {privateSession && (
             <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
@@ -486,6 +492,7 @@ export default function Home({
               answerId={currentAnswerId}
               onClose={() => setShowShareDialog(false)}
               onShareSuccess={() => handleShareSuccess(currentAnswerId)}
+              siteConfig={siteConfig}
             />
           </div>
         )}
