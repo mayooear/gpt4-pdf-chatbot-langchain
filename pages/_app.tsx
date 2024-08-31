@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'next/router';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { SiteConfig } from '@/types/siteConfig';
-import { getCommonClientSideProps } from '@/utils/client/getCommonClientSideProps';
+import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -60,7 +60,7 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
 
 MyApp.getInitialProps = async (appContext: AppContext) => {
   const ctx = appContext.ctx;
-  const result = await getCommonClientSideProps(ctx);
+  const result = await getCommonSiteConfigProps(ctx);
 
   return { pageProps: result.props };
 };

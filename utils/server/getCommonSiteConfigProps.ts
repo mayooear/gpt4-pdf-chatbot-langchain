@@ -1,7 +1,7 @@
 import { NextPageContext } from 'next';
-import { loadSiteConfig } from '../server/loadSiteConfig';
+import { loadSiteConfig } from './loadSiteConfig';
 
-export const getCommonClientSideProps = async (context: NextPageContext) => {
+export const getCommonSiteConfigProps = async (context: NextPageContext) => {
   const siteId = process.env.SITE_ID || 'default';
 
   try {
