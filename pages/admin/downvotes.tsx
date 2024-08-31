@@ -38,6 +38,12 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
     return <Layout siteConfig={siteConfig}>Loading...</Layout>;
   }
 
+  if (!siteConfig) {
+    return (
+      <Layout siteConfig={null}>Error: Site configuration not available</Layout>
+    );
+  }
+
   return (
     <Layout siteConfig={siteConfig}>
       <h1 className="text-2xl font-bold mb-4">Review Downvoted Answers</h1>
@@ -45,7 +51,11 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
         <p>No downvoted answers to review.</p>
       ) : (
         downvotedAnswers.map((answer) => (
-          <DownvotedAnswerReview key={answer.id} answer={answer} />
+          <DownvotedAnswerReview
+            key={answer.id}
+            answer={answer}
+            siteConfig={siteConfig}
+          />
         ))
       )}
     </Layout>
