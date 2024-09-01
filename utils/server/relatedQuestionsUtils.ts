@@ -202,13 +202,22 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
         throw new Error('Invalid question format');
       }
       const cleanedQuestion = removeNonAscii(q.question);
-      if (!cleanedQuestion) {
+      if (!cleanedQuestion || cleanedQuestion.trim() === '') {
         console.warn(
           `Skipping question ID ${q.id} after removing non-ASCII characters: ${q.question}`,
         );
         continue;
       }
-      const rakeKeywords = rake.generate(cleanedQuestion);
+      let rakeKeywords = [];
+      try {
+        rakeKeywords = rake.generate(cleanedQuestion);
+      } catch (error) {
+        console.error(
+          `Error in rake, generating keywords for question ID ${q.id}:`,
+          error,
+        );
+        continue;
+      }
       tfidf.addDocument(cleanedQuestion);
       const tfidfKeywords = tfidf
         .listTerms(tfidf.documents.length - 1)
