@@ -7,7 +7,7 @@ their audio. Allow users to share the best answers they get with each other
 through a social sharing interface.
 
 Audio and video results are shown inline with a player queued to the moment
-matched in the transcript.
+matched in the transcript!
 
 Tech stack used includes LangChain, Pinecone, Typescript, Openai, Next.js,
 Google Firestore, AWS, and Python. LangChain is a framework that makes it easier
