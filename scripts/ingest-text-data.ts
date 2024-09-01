@@ -26,6 +26,7 @@ import pMap from 'p-map';
 import path from 'path';
 import { parseArgs } from 'util';
 import { config } from 'dotenv';
+import { Pinecone } from '@pinecone-database/pinecone';
 
 const CHECKPOINT_FILE = './pdf-docs/text_ingestion_checkpoint.json';
 
@@ -36,15 +37,31 @@ const CHECKPOINT_FILE = './pdf-docs/text_ingestion_checkpoint.json';
  * @returns A hash string representing the folder's current state
  */
 async function createFolderSignature(directory: string): Promise<string> {
-  const files = await fsPromises.readdir(directory);
-  const pdfFiles = files.filter((file: string) =>
+  async function getFilesRecursively(dir: string): Promise<string[]> {
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          console.log(`Searching subdirectory: ${fullPath}`);
+          return getFilesRecursively(fullPath);
+        } else {
+          return fullPath;
+        }
+      }),
+    );
+    return files.flat();
+  }
+
+  const allFiles = await getFilesRecursively(directory);
+  const pdfFiles = allFiles.filter((file) =>
     file.toLowerCase().endsWith('.pdf'),
   );
+  console.log(`Total PDF files found: ${pdfFiles.length}`);
 
   const fileInfos = await Promise.all(
     pdfFiles.map(async (file) => {
-      const fullPath = path.join(directory, file);
-      const stats = await fsPromises.stat(fullPath);
+      const stats = await fsPromises.stat(file);
       return `${file}:${stats.mtime.getTime()}`;
     }),
   );
@@ -220,9 +237,42 @@ process.on('SIGINT', async () => {
       '\nGraceful shutdown initiated. Press Ctrl+C again to force exit.',
     );
     isExiting = true;
-    // Optionally, you can save the current state here
   }
 });
+
+async function createPineconeIndexIfNotExists(
+  pinecone: Pinecone,
+  indexName: string,
+) {
+  try {
+    await pinecone.describeIndex(indexName);
+    console.log(`Index ${indexName} already exists.`);
+  } catch (error: any) {
+    if (error.name === 'PineconeNotFoundError' || error.status === 404) {
+      console.log(`Index ${indexName} does not exist. Creating...`);
+      try {
+        await pinecone.createIndex({
+          name: indexName,
+          dimension: 1536,
+          metric: 'cosine',
+          spec: {
+            serverless: {
+              cloud: 'aws',
+              region: 'us-east-1', // or your preferred region
+            },
+          },
+        });
+        console.log(`Index ${indexName} created successfully.`);
+      } catch (createError) {
+        console.error('Error creating Pinecone index:', createError);
+        process.exit(1);
+      }
+    } else {
+      console.error('Error checking Pinecone index:', error);
+      process.exit(1);
+    }
+  }
+}
 
 export const run = async (keepData: boolean, libraryName: string) => {
   console.log(`\nProcessing documents from ${filePath}`);
@@ -239,92 +289,116 @@ export const run = async (keepData: boolean, libraryName: string) => {
     process.exit(1);
   }
 
-  let pinecone;
+  console.log('PINECONE_API_KEY:', process.env.PINECONE_API_KEY);
+  console.log('PINECONE_ENVIRONMENT:', process.env.PINECONE_ENVIRONMENT);
+
+  let pinecone: Pinecone;
   try {
     pinecone = await getPineconeClient();
+    console.log('Pinecone client initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Pinecone:', error);
     return;
   }
 
+  const indexName = getPineconeIngestIndexName();
+  console.log('Attempting to create/check index:', indexName);
+  await createPineconeIndexIfNotExists(pinecone, indexName);
+
   let pineconeIndex: Index;
   try {
-    pineconeIndex = pinecone.Index(getPineconeIngestIndexName());
+    pineconeIndex = pinecone.Index(indexName);
   } catch (error) {
     console.error('Error getting pinecone index:', error);
     process.exit(1);
   }
 
-  const prefix = `text||${libraryName}||`;
+  if (!keepData) {
+    const prefix = `text||${libraryName}||`;
+    let vectorIds: string[] = [];
+    let paginationToken: string | undefined;
 
-  let vectorIds: string[] = [];
-  let paginationToken: string | undefined;
+    console.log(`Attempting to list vectors with prefix: "${prefix}"`);
 
-  console.log(`Attempting to list vectors with prefix: "${prefix}"`);
+    try {
+      do {
+        if (isExiting) {
+          console.log('Graceful shutdown: stopping vector count.');
+          break;
+        }
 
-  try {
-    do {
-      const response = await pineconeIndex.listPaginated({
-        prefix,
-        paginationToken,
-      });
+        const response = await pineconeIndex.listPaginated({
+          prefix,
+          paginationToken,
+        });
 
-      if (response.vectors) {
-        const pageVectorIds = response.vectors
-          .map((vector) => vector.id)
-          .filter((id) => id !== undefined) as string[];
-        console.log(`Found ${pageVectorIds.length} vectors on this page`);
-        vectorIds.push(...pageVectorIds);
-      } else {
-        console.log('No vectors found in this response');
-      }
+        if (response.vectors) {
+          const pageVectorIds = response.vectors
+            .map((vector) => vector.id)
+            .filter((id) => id !== undefined) as string[];
+          console.log(`Found ${pageVectorIds.length} vectors on this page`);
+          vectorIds.push(...pageVectorIds);
+        } else {
+          console.log('No vectors found in this response');
+        }
 
-      paginationToken = response.pagination?.next;
-    } while (paginationToken);
-  } catch (error) {
-    console.error('Error listing records:', error);
-    process.exit(1);
-  }
-
-  console.log(`Total vectors found: ${vectorIds.length}`);
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  await new Promise<void>((resolve) => {
-    if (vectorIds.length === 0) {
-      console.log('The index contains 0 vectors. Proceeding with adding more.');
-      rl.close();
-      resolve();
-    } else {
-      rl.question(
-        `The index contains ${
-          vectorIds.length
-        } vectors. Do you want to proceed with ${
-          keepData ? 'adding more' : 'deleting and then adding more'
-        }? (y/N) `,
-        async (answer) => {
-          if (answer.toLowerCase().charAt(0) !== 'y') {
-            console.log('Ingestion process aborted.');
-            process.exit(0);
-          }
-          rl.close();
-          if (!keepData) {
-            await clearAnandaLibraryTextVectors(pineconeIndex, libraryName);
-          }
-          resolve();
-        },
-      );
+        paginationToken = response.pagination?.next;
+      } while (paginationToken && !isExiting);
+    } catch (error) {
+      console.error('Error listing records:', error);
+      process.exit(1);
     }
-  });
+
+    if (isExiting) {
+      console.log('Vector counting interrupted. Exiting...');
+      process.exit(0);
+    }
+
+    console.log(`Total vectors found: ${vectorIds.length}`);
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    await new Promise<void>((resolve) => {
+      if (vectorIds.length === 0) {
+        console.log(
+          'The index contains 0 vectors. Proceeding with adding more.',
+        );
+        rl.close();
+        resolve();
+      } else {
+        rl.question(
+          `The index contains ${vectorIds.length} vectors. Do you want to proceed with deleting and then adding more? (y/N) `,
+          async (answer) => {
+            if (answer.toLowerCase().charAt(0) !== 'y') {
+              console.log('Ingestion process aborted.');
+              process.exit(0);
+            }
+            rl.close();
+            await clearAnandaLibraryTextVectors(pineconeIndex, libraryName);
+            resolve();
+          },
+        );
+      }
+    });
+  } else {
+    console.log('Keeping existing data. Proceeding with adding more vectors.');
+  }
 
   let rawDocs: any;
   try {
-    const directoryLoader = new DirectoryLoader(filePath, {
-      '.pdf': (path: string) => new PDFLoader(path),
-    });
+    console.log(`Searching for PDFs in: ${filePath}`);
+    const directoryLoader = new DirectoryLoader(
+      filePath,
+      {
+        '.pdf': (path: string) => {
+          return new PDFLoader(path);
+        },
+      },
+      true,
+    );
     rawDocs = await directoryLoader.load();
     console.log('Number of items in rawDocs:', rawDocs.length);
   } catch (error) {
@@ -366,18 +440,31 @@ export const run = async (keepData: boolean, libraryName: string) => {
         process.exit(0);
       }
 
-      await processDocument(rawDocs[i], vectorStore, i, libraryName);
-      await saveCheckpoint(i + 1, currentFolderSignature);
-      console.log(
-        `Processed document ${i + 1} of ${rawDocs.length} (${Math.floor(
-          ((i + 1) / rawDocs.length) * 100,
-        )}% done)`,
-      );
+      try {
+        await processDocument(rawDocs[i], vectorStore, i, libraryName);
+        await saveCheckpoint(i + 1, currentFolderSignature);
+        console.log(
+          `Processed document ${i + 1} of ${rawDocs.length} (${Math.floor(
+            ((i + 1) / rawDocs.length) * 100,
+          )}% done)`,
+        );
+      } catch (error: any) {
+        if (
+          error.message.includes('InsufficientQuotaError') ||
+          error.message.includes('429')
+        ) {
+          console.error('OpenAI API quota exceeded.');
+          process.exit(1);
+        } else {
+          throw error; // Re-throw if it's not the quota error
+        }
+      }
     }
 
     console.log(`Ingestion complete. ${rawDocs.length} documents processed.`);
   } catch (error: any) {
     console.error('Failed to ingest documents:', error);
+    process.exit(1);
   }
 };
 
@@ -392,6 +479,7 @@ const { values } = parseArgs({
     'file-path': { type: 'string' },
     site: { type: 'string' },
     'library-name': { type: 'string' },
+    'keep-data': { type: 'boolean', short: 'k' },
   },
 });
 
@@ -399,13 +487,14 @@ const site = values['site'] || 'default';
 loadEnv(site);
 console.log('PINECONE_API_KEY:', process.env.PINECONE_API_KEY);
 
-const filePath =
-  values['file-path'] || process.env.PDF_DIRECTORY || './pdf-docs/docs';
+const filePath = path.resolve(
+  values['file-path'] || process.env.PDF_DIRECTORY || './pdf-docs/docs',
+);
+console.log(`Using file path: ${filePath}`);
 
 const theLibraryName = values['library-name'] || 'Default Library';
 
-const keepData =
-  process.argv.includes('--keep-data') || process.argv.includes('-k');
+const keepData = values['keep-data'] || false;
 
 (async () => {
   await run(keepData, theLibraryName);
