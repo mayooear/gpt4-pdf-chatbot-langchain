@@ -1,0 +1,89 @@
+.markdownanswer {
+  line-height: 1.5;
+}
+
+.markdownanswer a:hover {
+  opacity: 0.8;
+}
+
+.markdownanswer a {
+  color: #b13a3a;
+  font-weight: 500;
+}
+
+.markdownanswer code {
+  color: #15cb19;
+  font-weight: 500;
+  white-space: pre-wrap !important;
+}
+
+.markdownanswer p {
+  margin-top: 0.45rem;
+  margin-bottom: 0.6rem;
+}
+
+.markdownanswer ol {
+  list-style-type: decimal;
+  margin: 1rem;
+}
+
+.markdownanswer ul {
+  list-style-type: disc;
+  margin: 1rem;
+}
+
+.markdownanswer h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  margin-top: 1rem;
+}
+
+.markdownanswer h2 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-top: 0.75rem;
+}
+
+.markdownanswer h3 {
+  font-size: 1.2rem;
+  font-weight: 200;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdownanswer h4 {
+  font-size: 1.05rem;
+  font-weight: 150;
+  margin-top: 0.25rem;
+}
+
+.markdownanswer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+}
+
+.markdownanswer td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+}
+
+.markdownanswer th {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  background-color: #f8f8f8;
+}
+
+.markdownanswer blockquote {
+  padding-left: 1rem;
+  border-left: 4px solid #ddd;
+  margin: 1rem 0;
+  color: #666;
+}
+
+.markdownanswer hr {
+  border: 0;
+  height: 1px;
+  background: #ccc;
+  margin: 1rem 0;
+}

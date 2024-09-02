@@ -9,6 +9,7 @@ import { Answer } from '@/types/answer';
 import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { useMultipleCollections } from '@/hooks/useMultipleCollections';
 import { SiteConfig } from '@/types/siteConfig';
+import markdownStyles from '@/styles/MarkdownStyles.module.css';
 
 interface AnswerItemProps {
   answer: Answer;
@@ -144,7 +145,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
         </div>
       </div>
       <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
-        <div className="markdownanswer overflow-x-auto">
+        <div className={`${markdownStyles.markdownanswer} overflow-x-auto`}>
           <TruncatedMarkdown
             markdown={answer.answer}
             maxCharacters={isFullPage ? 4000 : 600}

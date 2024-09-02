@@ -38,6 +38,7 @@ import Cookies from 'js-cookie';
 
 // Styles
 import styles from '@/styles/Home.module.css';
+import markdownStyles from '@/styles/MarkdownStyles.module.css';
 
 export default function Home({
   siteConfig,
@@ -367,7 +368,7 @@ export default function Home({
                             <ReactMarkdown
                               remarkPlugins={[gfm]}
                               linkTarget="_blank"
-                              className="mt-1"
+                              className={`mt-1 ${markdownStyles.markdownanswer}`}
                             >
                               {message.message
                                 .replace(/\n/g, '  \n')

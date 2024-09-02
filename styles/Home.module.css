@@ -243,10 +243,6 @@
     width: 20rem;
   }
 
-  .markdownanswer code {
-    white-space: pre-wrap !important;
-  }
-
   .footer {
     font-size: 0.7rem;
     width: 100%;
@@ -458,30 +454,6 @@
   border: none;
   background: none;
   cursor: pointer;
-}
-
-.markdownanswer {
-  line-height: 1.75;
-}
-
-.markdownanswer a:hover {
-  opacity: 0.8;
-}
-
-.markdownanswer a {
-  color: #b13a3a;
-  font-weight: 500;
-}
-
-.markdownanswer code {
-  color: #15cb19;
-  font-weight: 500;
-  white-space: pre-wrap !important;
-}
-
-.markdownanswer ol,
-.markdownanswer ul {
-  margin: 1rem;
 }
 
 .libraryNameLink,
