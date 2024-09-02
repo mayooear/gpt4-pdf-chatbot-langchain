@@ -7,7 +7,10 @@ interface TruncatedMarkdownProps {
   maxCharacters: number;
 }
 
-const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({ markdown, maxCharacters }) => {
+const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({
+  markdown,
+  maxCharacters,
+}) => {
   const [isTruncated, setIsTruncated] = useState(true);
 
   const toggleTruncated = (event: React.MouseEvent) => {
@@ -18,21 +21,22 @@ const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({ markdown, maxChar
   const shouldTruncate = markdown.length >= maxCharacters * 1.1;
 
   const displayedMarkdown = useMemo(() => {
-    const endOfTruncatedContent = markdown.slice(0, maxCharacters).lastIndexOf(" ");
-    return isTruncated && shouldTruncate ? markdown.slice(0, endOfTruncatedContent) : markdown;
+    const endOfTruncatedContent = markdown
+      .slice(0, maxCharacters)
+      .lastIndexOf(' ');
+    return isTruncated && shouldTruncate
+      ? markdown.slice(0, endOfTruncatedContent)
+      : markdown;
   }, [markdown, maxCharacters, isTruncated, shouldTruncate]);
 
   return (
     <div>
-      <ReactMarkdown
-        remarkPlugins={[gfm]}
-        className="inline"
-      >
+      <ReactMarkdown remarkPlugins={[gfm]} className="inline">
         {displayedMarkdown}
       </ReactMarkdown>
       {isTruncated && shouldTruncate && (
         <a href="#" onClick={toggleTruncated} className="inline">
-          ...<b>See&nbsp;more</b>
+          ...See&nbsp;more
         </a>
       )}
     </div>

@@ -182,12 +182,18 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
 
     return (
-      <span className="text-black-600 font-medium">
+      <span
+        className={
+          doc.metadata.source
+            ? 'text-blue-600 font-medium'
+            : 'text-black font-medium'
+        }
+      >
         {doc.metadata.source ? (
           <a
             href={doc.metadata.source}
             onClick={(e) => handleSourceClick(e, doc.metadata.source)}
-            className="text-blue-600 hover:underline"
+            className="hover:underline"
           >
             {sourceTitle}
           </a>
@@ -206,7 +212,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
       <a
         href={libraryUrl}
         onClick={(e) => handleLibraryClick(e, doc.metadata.library)}
-        className={`${styles.libraryNameLink} text-gray-400 hover:text-gray-600 text-sm`}
+        className={`${styles.libraryNameLink} text-gray-400 hover:text-gray-600 text-sm hover:underline`}
       >
         {libraryName}
       </a>
@@ -245,7 +251,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
                 e.preventDefault();
                 handleExpandAll();
               }}
-              className="text-sm text-blue-500 hover:underline"
+              className="text-sm text-blue-600 hover:underline"
             >
               {expandedSources.size === 0 ? '(expand all)' : '(collapse all)'}
             </a>

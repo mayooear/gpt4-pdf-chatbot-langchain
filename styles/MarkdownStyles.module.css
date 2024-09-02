@@ -7,7 +7,7 @@
 }
 
 .markdownanswer a {
-  color: #b13a3a;
+  color: #2563eb; /* Tailwind's blue-600 */
   font-weight: 500;
 }
 
