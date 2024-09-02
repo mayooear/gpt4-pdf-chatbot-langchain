@@ -35,7 +35,7 @@ For the Ananda Library, we have provided code that can take a wordpress MySQL
 database and generate PDF files for all of the published content. For us, that
 is about 7,000 documents.
 
-700 Audio files and 800+ YouTube videos.
+we have also transcribed and ingested 1,500 Audio files and 800+ YouTube videos.
 
 ## Enhanced Frontend with Social Media Sharing
 
@@ -186,19 +186,20 @@ debugging, and to avoid charges for using the Firebase services.
    pyenv local ananda-library-chatbot
    ```
 
-## Optional: generate PDF files from Wordpress Database
+## Data Ingestion
 
-First, you need to import a MySQL data dump from wordpress into local MySQL (or set up access to the DB).
+### Optional: Generate PDF files from Wordpress Database
+
+If you don't already have PDF files, you can generate them from a Wordpress
+database.
+
+First, you need to import a MySQL data dump from wordpress into local MySQL
+(or set up access to the DB).
 
 Second, you run _python db-to-pdfs.py_ from the `python/data-ingestion/db-to-pdf/`
 directory to generate PDF files.
 
-Third, you optionally run _python filter-pdfs-to-new-dir.py_ from the same
-directory to get just a subset of the PDFs, e.g., just swami and master.
-
-Fourth, put the file set you want in `doc/`.
-
-## Convert your PDF files to embeddings
+### Convert your PDF files to embeddings
 
 This repo can load multiple PDF files.
 
@@ -207,17 +208,19 @@ This repo can load multiple PDF files.
 1. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
 You can add arguments like this:
-yarn run ingest --dryrun
+
+```bash
+yarn run ingest --dryrun --site [site]
+```
 
 1. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
-## Transcribe MP3 files and YouTube videos and convert to embeddings
+### Transcribe MP3 files and YouTube videos and convert to embeddings
 
-Put your MP3 files in `data-ingestion/media/`, in subfolders. Create a list of YouTube videos or playlists.
+Put your MP3 files in `data-ingestion/media/`, in subfolders. Create a list of YouTube videos or
+playlists. Then add files to the processing queue and process them.
 
-Add files to the processing queue.
-
-### Audio files
+#### Audio files
 
 Add all audio files in a folder hierarchy like this:
 
@@ -225,7 +228,7 @@ Add all audio files in a folder hierarchy like this:
 python ingest_queue.py  --audio 'media/to-process' --author 'Swami Kriyananda' --library 'Ananda Sangha' --site ananda
 ```
 
-### YouTube playlists
+#### YouTube playlists
 
 You can add a whole playlist at a time. Or you can give it individual videos.
 
@@ -247,9 +250,9 @@ Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the unit tests
 
-```bash
+````bash
 python -m unittest discover -s python/data-ingestion/tests/ -p 'test*.py'
-```
+`3``
 
 ## Running the Development Server
 
@@ -257,7 +260,7 @@ Start the development server for a specific site:
 
 ```bash
 npm run dev [site]
-```
+````
 
 Go to `http://localhost:3000` and type a question in the chat interface!
 
