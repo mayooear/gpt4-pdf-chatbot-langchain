@@ -51,16 +51,29 @@ have added
 
 ## Development
 
+### Prerequisites
+
+1. Node.js (version 18 or greater)
+2. Yarn
+3. Python 3.12.3
+4. Firebase CLI
+
+### Node.js and Yarn Setup
+
+1. Install Node.js from [nodejs.org](https://nodejs.org/) (version 18+)
+2. Install Yarn globally:
+
+   ```bash
+   npm install -g yarn
+   ```
+
+### Clone the repo or download the ZIP
+
 1. Clone the repo or download the ZIP
 
    git clone [github https url]
 
-1. Install packages
-
-First run `npm install yarn -g` to install yarn globally (if you haven't
-already).
-
-Then run:
+1. Install node packages
 
 ```bash
 yarn install
@@ -68,15 +81,23 @@ yarn install
 
 After installation, you should now see a `node_modules` folder.
 
-1. Set up your `.env` file
+### Environment Variables Setup
 
-- Copy `.env.example` into `.env`
-  Your `.env` file should look like this:
+1. Copy the example environment file and create site-specific configs:
 
-  SITE_ID=
-  OPENAI_API_KEY=
-  PINECONE_API_KEY=
-  PINECONE_INDEX_NAME=
+   ```bash
+   cp .env.example .env
+   cp .env.example .env.[site]
+   ```
+
+   Replace [site] with your specific site name (e.g., ananda).
+
+2. Fill in the required values in `.env`:
+   - OPENAI_API_KEY
+   - PINECONE_API_KEY
+   - PINECONE_INDEX_NAME
+   - FIREBASE_ADMINSDK_JSON
+   - Etc.
 
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key)
   to retrieve API keys and insert into your `.env` file.
@@ -85,39 +106,80 @@ After installation, you should now see a `node_modules` folder.
   up your pinecone index.
 - Visit [upstash](https://upstash.com/) to create an upstash function to cache keywords for related questions.
 
-1. In the `config` folder, replace the `PINECONE_NAME_SPACE` with a `namespace` where you'd like to store
-   your embeddings on Pinecone when you run `npm run ingest`. This namespace will later be used for queries and retrieval.
+### Site Configurations
 
-1. In `utils/makechain.ts` chain change the `QA_PROMPT` for your own usecase. Change `modelName` in `new OpenAI`
-   to `gpt-4`, if you have access to `gpt-4` api. Please verify outside this repo that you have access to `gpt-4`
-   api, otherwise the application will not work.
+1. Create a new JSON file for your site in the `site-config` directory. Name it `your-site-name.json`.
 
-### Setup Firebase
+2. Use the following structure as a template, customizing the values for your site:
 
-We use firestore local emulation in dev. Mac users, be sure to install via brew install firebase-cli
+```json
+{
+  "name": "Your Site Name",
+  "tagline": "Your site's tagline",
+  "greeting": "Welcome message for users",
+  etc.
+}
+```
 
-Add to your environment (e.g., .bashrc):
-`export FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"`
+### Firebase Emulator Setup
 
-Command line:
+1. Install Firebase CLI:
 
-1. firebase login
-2. firebase init emulators
-3. npm run emulator
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. Login to Firebase:
+
+   ```bash
+   firebase login
+   ```
+
+3. Initialize Firebase emulators:
+
+   ```bash
+   firebase init emulators
+   ```
+
+4. Add to your environment (e.g., .bashrc):
+
+   ```bash
+   export FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
+   ```
 
 ### Setup python virtual environment
 
-Create a virtual environment with pyenv
+1. Install pyenv (if not already installed):
 
-```bash
-pyenv virtualenv 3.12.3 ananda-library-chatbot
-```
+   For macOS/Linux:
 
-Activate it automatically when you enter the directory:
+   ```bash
+   curl https://pyenv.run | bash
+   ```
 
-```bash
-pyenv local ananda-library-chatbot
-```
+   For Windows, use pyenv-win:
+
+   ```powershell
+   Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+   ```
+
+2. Install Python 3.12.3:
+
+   ```bash
+   pyenv install 3.12.3
+   ```
+
+3. Create a virtual environment with pyenv:
+
+   ```bash
+   pyenv virtualenv 3.12.3 ananda-library-chatbot
+   ```
+
+4. Activate it automatically when you enter the directory:
+
+   ```bash
+   pyenv local ananda-library-chatbot
+   ```
 
 ## Optional: generate PDF files from Wordpress Database
 
@@ -140,7 +202,7 @@ This repo can load multiple PDF files.
 1. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
 You can add arguments like this:
-yarn run ingest -- --dryrun
+yarn run ingest --dryrun
 
 1. Check Pinecone dashboard to verify your namespace and vectors have been added.
 
@@ -148,7 +210,35 @@ yarn run ingest -- --dryrun
 
 Put your MP3 files in `data-ingestion/media/`, in subfolders. Create a list of YouTube videos or playlists.
 
-Run `python data-ingestion/scripts/transcribe_and_ingest_media.py` to transcribe and embed your audio files and YouTube videos!
+Add files to the processing queue.
+
+### Audio files
+
+Add all audio files in a folder hierarchy like this:
+
+```bash
+python ingest_queue.py  --audio 'media/to-process' --author 'Swami Kriyananda' --library 'Ananda Sangha' --site ananda
+```
+
+### YouTube playlists
+
+You can add a whole playlist at a time. Or you can give it individual videos.
+
+```bash
+python ingest_queue.py \
+ --playlist 'https://www.youtube.com/playlist?list=PLr4btvSEPHax_vE48QrYJUYOKpXbeSmfC' \
+ --author 'Swami Kriyananda' --library 'Ananda Sangha' --site ananda
+```
+
+`--playlists-file` is an option to specify an Excel file with a list of YouTube playlists. See sample file `youtube-links-sample.xlsx`.
+
+Then process the queue:
+
+```bash
+python data-ingestion/scripts/transcribe_and_ingest_media.py
+```
+
+Check Pinecone dashboard to verify your namespace and vectors have been added.
 
 ## Run the unit tests
 
@@ -156,10 +246,15 @@ Run `python data-ingestion/scripts/transcribe_and_ingest_media.py` to transcribe
 python -m unittest discover -s data-ingestion/scripts/tests/ -p 'test*.py'
 ```
 
-## Run the app
+## Running the Development Server
 
-Once you've verified that the embeddings and content have been successfully added to your Pinecone, you can
-run the app `npm run dev` to launch the local dev environment, and then type a question in the chat interface.
+Start the development server for a specific site:
+
+```bash
+npm run dev [site]
+```
+
+Go to `http://localhost:3000` and type a question in the chat interface!
 
 ## Troubleshooting
 
@@ -172,8 +267,8 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
   requires OCR to convert to text.
 - `Console.log` the `env` variables and make sure they are exposed.
 - Make sure you're using the same versions of LangChain and Pinecone as this repo.
-- Check that you've created an `.env` file that contains your valid (and working) API keys, environment and
-  index name.
+- Check that you've created an `.env.[site]` file that contains your valid (and working) API keys,
+  environment and index name.
 - If you change `modelName` in `OpenAI`, make sure you have access to the api for the appropriate model.
 - Make sure you have enough OpenAI credits and a valid card on your billings account.
 - Check that you don't have multiple OPENAPI keys in your global environment. If you do, the local `env` file
@@ -184,11 +279,8 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 
 - Make sure your pinecone dashboard `environment` and `index` matches the one in the `pinecone.ts` and `.env` files.
 - Check that you've set the vector dimensions to `1536`.
-- Make sure your pinecone namespace is in lowercase.
-- Pinecone indexes of users on the Starter(free) plan are deleted after 7 days of inactivity. To prevent this,
-  send an API request to Pinecone to reset the counter before 7 days.
 - Retry from scratch with a new Pinecone project, index, and cloned repo.
 
 ## Credit
 
-Frontend of this repo is inspired by [langchain-chat-nextjs](https://github.com/zahidkhawaja/langchain-chat-nextjs)
+The frontend of this repo is inspired by [langchain-chat-nextjs](https://github.com/zahidkhawaja/langchain-chat-nextjs)
