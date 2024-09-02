@@ -75,7 +75,8 @@ export function parseAndRemoveWordsFromSources(sources: any): any[] {
 
 function getCacheKeyForDocumentCount(): string {
   const envName = getEnvName();
-  return `${envName}_answers_count`;
+  const siteId = process.env.SITE_ID || 'default';
+  return `${envName}_${siteId}_answers_count`;
 }
 
 export async function getTotalDocuments(): Promise<number> {
