@@ -121,7 +121,12 @@ After installation, you should now see a `node_modules` folder.
 }
 ```
 
-### Firebase Emulator Setup
+### Optional: Firebase Emulator Setup
+
+The Firebase Emulator is optional for local development. It is used to
+simulate the behavior of Firebase services in a local environment. You don't
+need it to run the chatbot, but it is useful for local development and
+debugging, and to avoid charges for using the Firebase services.
 
 1. Install Firebase CLI:
 
@@ -243,7 +248,7 @@ Check Pinecone dashboard to verify your namespace and vectors have been added.
 ## Run the unit tests
 
 ```bash
-python -m unittest discover -s data-ingestion/scripts/tests/ -p 'test*.py'
+python -m unittest discover -s python/data-ingestion/tests/ -p 'test*.py'
 ```
 
 ## Running the Development Server
