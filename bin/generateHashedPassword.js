@@ -14,7 +14,9 @@ async function generateHashedPassword() {
 
   try {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    console.log(hashedPassword);
+    const currentTimestamp = Math.floor(Date.now() / 1000); // Convert to seconds
+    console.log(`SITE_PASSWORD='${hashedPassword}'`);
+    console.log(`LAST_PASSWORD_CHANGE_TIMESTAMP=${currentTimestamp}`);
   } catch (error) {
     console.error(error);
   }
