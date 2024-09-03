@@ -10,7 +10,6 @@ export const useMultipleCollections = (siteConfig: SiteConfig | undefined) => {
     }
     const collectionsConfig = getCollectionsConfig(siteConfig);
     const collectionCount = Object.keys(collectionsConfig).length;
-    console.log('useMultipleCollections: collectionCount', collectionCount);
     return collectionCount > 1;
   }, [siteConfig]);
 };
