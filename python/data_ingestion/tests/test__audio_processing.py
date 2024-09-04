@@ -62,9 +62,12 @@ class TestAudioProcessing(unittest.TestCase):
         load_env(args.site)
 
     def setUp(self):
-        self.test_audio_path = (
-            "media/media/unit-test-data/how-to-commune-with-god.mp3"
-        )
+        # Update the path to use the correct relative path
+        self.test_audio_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), 
+            "..", 
+            "media", "media", "unit-test-data", "how-to-commune-with-god.mp3"
+        ))
         self.author = "Paramhansa Yogananda"
         self.library = "Ananda Sangha"
         self.client = OpenAI()

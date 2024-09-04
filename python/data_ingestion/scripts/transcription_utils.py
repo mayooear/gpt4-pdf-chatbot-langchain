@@ -21,8 +21,8 @@ from data_ingestion.scripts.youtube_utils import load_youtube_data_map, save_you
 
 logger = logging.getLogger(__name__)
 
-TRANSCRIPTIONS_DB_PATH = "media/transcriptions.db"
-TRANSCRIPTIONS_DIR = "media/transcriptions"
+TRANSCRIPTIONS_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "media", "transcriptions.db"))
+TRANSCRIPTIONS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "media", "transcriptions"))
 
 # Global list to store chunk lengths
 chunk_lengths = []
@@ -115,6 +115,7 @@ def transcribe_chunk(
 
 def init_db():
     """Initialize SQLite database for transcription indexing."""
+    os.makedirs(os.path.dirname(TRANSCRIPTIONS_DB_PATH), exist_ok=True)
     conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
     c = conn.cursor()
 
@@ -123,18 +124,13 @@ def init_db():
         "SELECT name FROM sqlite_master WHERE type='table' AND name='transcriptions'"
     )
     if not c.fetchone():
-        response = input(
-            "Warning: sqlite 'transcriptions' table does not exist. Do you want to create a new table? (yes/no): "
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS transcriptions
+                     (file_hash TEXT PRIMARY KEY, file_path TEXT, timestamp REAL, json_file TEXT)"""
         )
-        if response.lower() == "yes":
-            c.execute(
-                """CREATE TABLE IF NOT EXISTS transcriptions
-                         (file_hash TEXT PRIMARY KEY, file_path TEXT, timestamp REAL, json_file TEXT)"""
-            )
-        else:
-            logger.info("Table creation aborted.")
-            conn.close()
-            return
+        logger.info("Created 'transcriptions' table in the database.")
+    else:
+        logger.info("'transcriptions' table already exists in the database.")
 
     conn.commit()
     conn.close()
@@ -165,11 +161,16 @@ def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
     else:
         file_hash = get_file_hash(file_path)
 
-    conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
-    result = c.fetchone()
-    conn.close()
+    try:
+        conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT json_file FROM transcriptions WHERE file_hash = ?", (file_hash,))
+        result = c.fetchone()
+        conn.close()
+    except sqlite3.OperationalError:
+        logger.warning(f"Database file not found or inaccessible. Initializing new database at {TRANSCRIPTIONS_DB_PATH}")
+        init_db()
+        return None
 
     if result:
         json_file = result[0]
