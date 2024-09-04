@@ -1,5 +1,5 @@
 // run this via: node bin/generateHashedPassword.js your-password
-// and put output in .env SUDO_PASSWORD var
+// and put output in .env SUDO_PASSWORD var or SITE_PASSWORD var
 
 import bcrypt from 'bcrypt';
 
