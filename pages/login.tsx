@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { SiteConfig } from '@/types/siteConfig';
 import { getSiteName, getTagline } from '@/utils/client/siteConfig';
+import Image from 'next/image';
 
 interface LoginProps {
   siteConfig: SiteConfig | null;
@@ -12,9 +13,15 @@ export default function Login({ siteConfig }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { redirect } = router.query;
+  const redirectMemo = useMemo(
+    () => router.query.redirect as string | undefined,
+    [router.query],
+  );
 
   useEffect(() => {
-    console.log('Redirect query parameter:', redirect);
+    if (redirect) {
+      console.log('Redirect query parameter:', redirect);
+    }
   }, [redirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +48,21 @@ export default function Login({ siteConfig }: LoginProps) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="p-6 bg-white rounded shadow-md">
+      {siteConfig?.loginImage && (
+        <div className="flex flex-col items-center mb-6 w-full max-w-md">
+          <Image
+            src={`/${siteConfig.loginImage}`}
+            alt="Login Image"
+            width={250}
+            height={250}
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      )}
+      <form
+        onSubmit={handleSubmit}
+        className="p-6 bg-white rounded shadow-md max-w-md w-full"
+      >
         <h1 className="mb-4 text-2xl">Welcome to {getSiteName(siteConfig)}!</h1>
         <p className="mb-4">{getTagline(siteConfig)}</p>
         <div className="relative mb-4">
@@ -64,7 +85,7 @@ export default function Login({ siteConfig }: LoginProps) {
           Log In
         </button>
       </form>
-      {siteConfig && siteConfig.siteId === 'ananda' && (
+      {siteConfig?.siteId === 'ananda' && (
         <p className="mt-4 text-center">
           You can get the password from&nbsp;
           <a
@@ -73,6 +94,11 @@ export default function Login({ siteConfig }: LoginProps) {
           >
             this page in the Ananda Library
           </a>
+        </p>
+      )}
+      {siteConfig?.siteId === 'jairam' && (
+        <p className="mt-4 text-center">
+          For access, please contact the Free Joe Hunt team.
         </p>
       )}
       <p className="mt-4">

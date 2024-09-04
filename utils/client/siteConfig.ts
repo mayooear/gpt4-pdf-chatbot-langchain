@@ -39,3 +39,6 @@ export const getWelcomePopupHeading = (siteConfig: SiteConfig | null) =>
 
 export const getOtherVisitorsReference = (siteConfig: SiteConfig | null) =>
   siteConfig?.other_visitors_reference ?? 'other visitors';
+
+export const getLoginImage = (siteConfig: SiteConfig | null) =>
+  siteConfig?.loginImage ?? null;

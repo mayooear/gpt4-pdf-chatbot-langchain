@@ -21,4 +21,5 @@ export interface SiteConfig {
   enableAuthorSelection: boolean;
   welcome_popup_heading: string;
   other_visitors_reference: string;
+  loginImage: string | null;
 }

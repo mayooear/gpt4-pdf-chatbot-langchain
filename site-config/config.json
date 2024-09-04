@@ -29,7 +29,8 @@
     },
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": true,
-    "enableAuthorSelection": true
+    "enableAuthorSelection": true,
+    "loginImage": "mascot.png"
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -47,6 +48,7 @@
     "libraryMappings": {},
     "enableSuggestedQueries": false,
     "enableMediaTypeSelection": false,
-    "enableAuthorSelection": false
+    "enableAuthorSelection": false,
+    "loginImage": null
   }
 }
