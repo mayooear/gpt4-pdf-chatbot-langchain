@@ -6,8 +6,6 @@ import Image from 'next/image';
 // Component imports
 import Layout from '@/components/layout';
 import Popup from '@/components/popup';
-import LoadingDots from '@/components/ui/LoadingDots';
-import ShareDialog from '@/components/ShareDialog';
 import CopyButton from '@/components/CopyButton';
 import SourcesList from '@/components/SourcesList';
 import LikeButton from '@/components/LikeButton';
@@ -171,27 +169,6 @@ export default function Home({
       setTimeout(() => setLinkCopied(null), 2000);
       logEvent('copy_link', 'Engagement', `Answer ID: ${answerId}`);
     });
-  };
-
-  // Share dialog
-  // As of 5/30/24 this is disabled. The button has been removed, but all the code is still here in case we want to
-  // revive the share page later
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const [currentMarkdownAnswer, setCurrentMarkdownAnswer] = useState('');
-  const [currentAnswerId, setCurrentAnswerId] = useState('');
-  const handleShareClick = (markdownAnswer: string, answerId: string) => {
-    setCurrentMarkdownAnswer(markdownAnswer);
-    setCurrentAnswerId(answerId);
-    setShowShareDialog(true);
-  };
-
-  const handleShareSuccess = (messageId: string) => {
-    setShareSuccess((prev) => ({ ...prev, [messageId]: true }));
-    setShowShareDialog(false);
-  };
-
-  const handleCloseSuccessMessage = (messageId: string) => {
-    setShareSuccess((prev) => ({ ...prev, [messageId]: false }));
   };
 
   useEffect(() => {
@@ -367,7 +344,9 @@ export default function Home({
                             )}
                             <ReactMarkdown
                               remarkPlugins={[gfm]}
-                              linkTarget="_blank"
+                              components={{
+                                a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                              }}
                               className={`mt-1 ${markdownStyles.markdownanswer}`}
                             >
                               {message.message
@@ -486,17 +465,6 @@ export default function Home({
             </div>
           )}
         </div>
-        {showShareDialog && (
-          <div className={styles.shareDialogBackdrop}>
-            <ShareDialog
-              markdownAnswer={currentMarkdownAnswer}
-              answerId={currentAnswerId}
-              onClose={() => setShowShareDialog(false)}
-              onShareSuccess={() => handleShareSuccess(currentAnswerId)}
-              siteConfig={siteConfig}
-            />
-          </div>
-        )}
       </Layout>
     </>
   );

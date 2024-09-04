@@ -320,7 +320,12 @@ const SourcesList: React.FC<SourcesListProps> = ({
                       renderYouTubePlayer(doc, index)}
                   </>
                 )}
-                <ReactMarkdown remarkPlugins={[gfm]} linkTarget="_blank">
+                <ReactMarkdown
+                  remarkPlugins={[gfm]}
+                  components={{
+                    a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                  }}
+                >
                   {doc.pageContent}
                 </ReactMarkdown>
               </div>
