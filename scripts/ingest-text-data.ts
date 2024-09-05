@@ -136,13 +136,13 @@ async function clearAnandaLibraryTextVectors(
 }
 
 async function processDocument(
-  rawDoc: any,
+  rawDoc: Document,
   vectorStore: PineconeStore,
   index: number,
   libraryName: string,
 ) {
   let sourceURL = rawDoc.metadata?.pdf?.info?.Subject;
-  let title = rawDoc.metadata?.pdf?.info?.Title || 'Untitled';
+  const title = rawDoc.metadata?.pdf?.info?.Title || 'Untitled';
 
   if (!sourceURL) {
     // temporarily set soure url to env var value if set
@@ -188,42 +188,61 @@ async function processDocument(
     return true;
   });
 
-  await pMap(
-    validDocs,
-    async (doc, i) => {
-      let title = doc.metadata.pdf?.info?.Title || 'Untitled';
-      title = title
-        .replace(/\s+/g, '_')
-        .replace(/[^a-zA-Z0-9_]/g, '')
-        .substring(0, 40);
+  // Process in smaller batches
+  // 9/4/24 MO: trying to avoid an error from too large a message length but beware
+  // this increases API costs
+  const batchSize = 10;
+  for (let i = 0; i < validDocs.length; i += batchSize) {
+    const batch = validDocs.slice(i, i + batchSize);
 
-      const contentHash = crypto
-        .createHash('md5')
-        .update(doc.pageContent)
-        .digest('hex')
-        .substring(0, 8);
-      const id = `text||${libraryName}||${title}||${contentHash}||chunk${
-        i + 1
-      }`;
+    await pMap(
+      batch,
+      async (doc, j) => {
+        const title = doc.metadata.pdf?.info?.Title || 'Untitled';
+        const sanitizedTitle = title
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9_]/g, '')
+          .substring(0, 40);
 
-      await vectorStore.addDocuments(
-        [
-          new Document({
-            pageContent: doc.pageContent,
-            metadata: {
-              ...doc.metadata,
-              id: id,
-              library: libraryName,
-              type: 'text',
-              author: doc.metadata.pdf?.info?.Author || 'Unknown',
-            },
-          }),
-        ],
-        [id],
-      );
-    },
-    { concurrency: 5 },
-  );
+        const contentHash = crypto
+          .createHash('md5')
+          .update(doc.pageContent)
+          .digest('hex')
+          .substring(0, 8);
+        const id = `text||${libraryName}||${sanitizedTitle}||${contentHash}||chunk${
+          i + j + 1
+        }`;
+
+        try {
+          // Minimize metadata
+          const minimalMetadata = {
+            id: id,
+            library: libraryName,
+            type: 'text',
+            author: doc.metadata.pdf?.info?.Author || 'Unknown',
+            source: doc.metadata.source,
+            title: doc.metadata.title,
+            text: doc.pageContent,
+          };
+
+          await vectorStore.addDocuments(
+            [
+              new Document({
+                pageContent: doc.pageContent,
+                metadata: minimalMetadata,
+              }),
+            ],
+            [id],
+          );
+        } catch (error) {
+          console.error(`Error processing chunk ${i + j + 1}: ${error}`);
+          console.error(`Chunk size: ${JSON.stringify(doc).length} bytes`);
+          throw error;
+        }
+      },
+      { concurrency: 2 },
+    );
+  }
 }
 
 let isExiting = false;
@@ -247,8 +266,14 @@ async function createPineconeIndexIfNotExists(
   try {
     await pinecone.describeIndex(indexName);
     console.log(`Index ${indexName} already exists.`);
-  } catch (error: any) {
-    if (error.name === 'PineconeNotFoundError' || error.status === 404) {
+  } catch (error: unknown) {
+    if (
+      (error instanceof Error && error.name === 'PineconeNotFoundError') ||
+      (typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        error.status === 404)
+    ) {
       console.log(`Index ${indexName} does not exist. Creating...`);
       try {
         await pinecone.createIndex({
@@ -315,7 +340,7 @@ export const run = async (keepData: boolean, libraryName: string) => {
 
   if (!keepData) {
     const prefix = `text||${libraryName}||`;
-    let vectorIds: string[] = [];
+    const vectorIds: string[] = [];
     let paginationToken: string | undefined;
 
     console.log(`Attempting to list vectors with prefix: "${prefix}"`);
@@ -387,7 +412,7 @@ export const run = async (keepData: boolean, libraryName: string) => {
     console.log('Keeping existing data. Proceeding with adding more vectors.');
   }
 
-  let rawDocs: any;
+  let rawDocs: Document[];
   try {
     console.log(`Searching for PDFs in: ${filePath}`);
     const directoryLoader = new DirectoryLoader(
@@ -448,10 +473,11 @@ export const run = async (keepData: boolean, libraryName: string) => {
             ((i + 1) / rawDocs.length) * 100,
           )}% done)`,
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (
-          error.message.includes('InsufficientQuotaError') ||
-          error.message.includes('429')
+          error instanceof Error &&
+          (error.message.includes('InsufficientQuotaError') ||
+            error.message.includes('429'))
         ) {
           console.error('OpenAI API quota exceeded.');
           process.exit(1);
@@ -462,8 +488,10 @@ export const run = async (keepData: boolean, libraryName: string) => {
     }
 
     console.log(`Ingestion complete. ${rawDocs.length} documents processed.`);
-  } catch (error: any) {
-    console.error('Failed to ingest documents:', error);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to ingest documents';
+    console.error('Failed to ingest documents:', errorMessage);
     process.exit(1);
   }
 };
@@ -483,13 +511,23 @@ const { values } = parseArgs({
   },
 });
 
-const site = values['site'] || 'default';
+const site = values['site'];
+if (!site) {
+  console.error(
+    'Error: No site specified. Please provide a site using the --site option.',
+  );
+  process.exit(1);
+}
 loadEnv(site);
 console.log('PINECONE_API_KEY:', process.env.PINECONE_API_KEY);
 
-const filePath = path.resolve(
-  values['file-path'] || process.env.PDF_DIRECTORY || './pdf-docs/docs',
-);
+if (!values['file-path']) {
+  console.error(
+    'Error: No file path specified. Please provide a file path using the --file-path option.',
+  );
+  process.exit(1);
+}
+const filePath = path.resolve(values['file-path']);
 console.log(`Using file path: ${filePath}`);
 
 const theLibraryName = values['library-name'] || 'Default Library';
