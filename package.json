@@ -98,5 +98,8 @@
     "legal",
     "pdf",
     "openai"
-  ]
+  ],
+  "engines": {
+    "node": "^20.0.0"
+  }
 }

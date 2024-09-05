@@ -153,7 +153,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     templateWithReplacedVars,
   );
 
-  const model: ChatOpenAI = new ChatOpenAI({
+  const model = new ChatOpenAI({
     temperature: 0,
     modelName: 'gpt-4o',
   });
@@ -162,8 +162,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([
     condenseQuestionPrompt,
-    model,
-    new StringOutputParser(),
+    model.pipe(new StringOutputParser()),
   ]);
 
   // Retrieve documents based on a query, then format them.
