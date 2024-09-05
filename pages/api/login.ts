@@ -5,7 +5,6 @@ import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { rateLimiter } from 'utils/server/rateLimiter';
 import { isDevelopment } from '@/utils/env';
-import { getLastPasswordChangeTimestamp } from '@/utils/server/passwordUtils';
 
 export default async function handler(
   req: NextApiRequest,

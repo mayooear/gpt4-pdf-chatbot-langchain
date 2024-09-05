@@ -4,8 +4,8 @@ import { isDevelopment } from '@/utils/env';
 // Add this type declaration at the top of your file
 declare global {
   interface Window {
-    gtag: (...args: any[]) => void;
-    dataLayer: any[];
+    gtag: (...args: unknown[]) => void;
+    dataLayer: unknown[];
   }
 }
 
@@ -35,8 +35,8 @@ export const initGoogleAnalytics = () => {
 
     script.onload = () => {
       window.dataLayer = window.dataLayer || [];
-      window.gtag = function gtag() {
-        window.dataLayer.push(arguments);
+      window.gtag = function gtag(...args: unknown[]) {
+        window.dataLayer.push(args);
       };
       window.gtag('js', new Date());
       window.gtag('config', 'G-9551DZXPEZ');

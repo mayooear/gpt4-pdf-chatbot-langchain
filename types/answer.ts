@@ -10,7 +10,7 @@ export type Answer = {
     _seconds: number;
     _nanoseconds: number;
   };
-  sources?: Document<Record<string, any>>[];
+  sources?: Document<Record<string, unknown>>[];
   vote?: number;
   collection?: string;
   ip?: string;
@@ -22,10 +22,7 @@ export type Answer = {
   }[];
   related_questions?: string[];
   adminAction?: AdminAction;
-  adminActionTimestamp?: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
+  adminActionTimestamp?: Timestamp;
 };
 
 export interface Timestamp {

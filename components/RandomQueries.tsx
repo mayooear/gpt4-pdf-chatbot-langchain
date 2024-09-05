@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { logEvent } from '@/utils/client/analytics';
 
 interface RandomQueriesProps {
@@ -21,6 +21,7 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({
   const handleQueryClick = (query: string) => {
     if (!isLoading) {
       onQueryClick(query);
+      setCurrentQueryIndex((prevIndex) => (prevIndex + 1) % queries.length);
       logEvent('select_suggested_query', 'Engagement', query);
     }
   };

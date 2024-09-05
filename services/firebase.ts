@@ -1,6 +1,5 @@
 import * as fbadmin from 'firebase-admin';
 import { initializeFirestore } from 'firebase-admin/firestore';
-import { isDevelopment } from '@/utils/env';
 
 // Initialize the Firebase admin SDK
 if (!fbadmin.apps.length) {
@@ -24,7 +23,7 @@ if (!fbadmin.apps.length) {
   });
 
   // Initialize Firestore with preferRest to improve cold start times
-  const db = initializeFirestore(app, { preferRest: true });
+  initializeFirestore(app, { preferRest: true });
 
   // Remove the emulator settings
   // if (isDevelopment()) {

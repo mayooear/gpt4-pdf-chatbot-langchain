@@ -28,6 +28,8 @@ import {
   getEnableMediaTypeSelection,
   getEnableAuthorSelection,
 } from '@/utils/client/siteConfig';
+import { DocMetadata } from '@/types/DocMetadata';
+import { Document } from 'langchain/document';
 
 // Third-party library imports
 import ReactMarkdown from 'react-markdown';
@@ -43,7 +45,7 @@ export default function Home({
 }: {
   siteConfig: SiteConfig | null;
 }) {
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
+  const [isMaintenanceMode] = useState<boolean>(false);
   const [collection, setCollection] = useState<string>(() => {
     if (getEnableAuthorSelection(siteConfig)) {
       const collections = getCollectionsConfig(siteConfig);
@@ -52,8 +54,7 @@ export default function Home({
     return '';
   });
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
-  const [query, setQuery] = useState<string>('');
-  const [shareSuccess, setShareSuccess] = useState<Record<string, boolean>>({});
+  const [, setQuery] = useState<string>('');
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [privateSession, setPrivateSession] = useState<boolean>(false);
   const [mediaTypes, setMediaTypes] = useState<{
@@ -66,12 +67,18 @@ export default function Home({
     loading,
     error: chatError,
     handleSubmit,
-  } = useChat(collection, [], privateSession, mediaTypes, siteConfig);
-  const { messages, history } = messageState;
-  const [showLikePrompt, setShowLikePrompt] = useState<boolean>(false);
+  } = useChat(collection, privateSession, mediaTypes, siteConfig);
+  const { messages } = messageState as {
+    messages: {
+      type: 'apiMessage' | 'userMessage';
+      message: string;
+      sourceDocs?: Document<DocMetadata>[];
+      docId?: string;
+      collection?: string;
+    }[];
+  };
+  const [showLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
-  const [answerCount, setAnswerCount] = useState(0);
-  const [isControlsMenuOpen, setIsControlsMenuOpen] = useState<boolean>(false);
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
@@ -131,7 +138,6 @@ export default function Home({
     queriesForCollection,
     3,
   );
-  const queryRef = useRef<string>('');
 
   const handleLikeCountChange = (answerId: string, liked: boolean) => {
     setLikeStatuses((prevStatuses) => ({
@@ -196,10 +202,6 @@ export default function Home({
         handleSubmit(e as unknown as React.FormEvent, query);
       }
     }
-  };
-
-  const clearQuery = () => {
-    setQuery('');
   };
 
   // Add this effect to scroll when messages change
@@ -333,7 +335,9 @@ export default function Home({
                             {message.sourceDocs && (
                               <div className="mb-2">
                                 <SourcesList
-                                  sources={message.sourceDocs}
+                                  sources={
+                                    message.sourceDocs as Document<DocMetadata>[]
+                                  }
                                   collectionName={
                                     collectionChanged && hasMultipleCollections
                                       ? message.collection
@@ -345,7 +349,13 @@ export default function Home({
                             <ReactMarkdown
                               remarkPlugins={[gfm]}
                               components={{
-                                a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                                a: ({ ...props }) => (
+                                  <a
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    {...props}
+                                  />
+                                ),
                               }}
                               className={`mt-1 ${markdownStyles.markdownanswer}`}
                             >
@@ -441,13 +451,9 @@ export default function Home({
               randomQueries={randomQueries}
               shuffleQueries={shuffleQueries}
               privateSession={privateSession}
-              clearQuery={clearQuery}
-              messageListRef={messageListRef}
               textAreaRef={textAreaRef}
               mediaTypes={mediaTypes}
               handleMediaTypeChange={handleMediaTypeChange}
-              isControlsMenuOpen={isControlsMenuOpen}
-              setIsControlsMenuOpen={setIsControlsMenuOpen}
               siteConfig={siteConfig}
             />
           </div>

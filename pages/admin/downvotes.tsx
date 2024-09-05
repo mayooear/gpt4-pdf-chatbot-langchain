@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/layout';
-import { useRouter } from 'next/router';
 import DownvotedAnswerReview from '@/components/DownvotedAnswerReview';
 import { Answer } from '@/types/answer';
 import { SiteConfig } from '@/types/siteConfig';
@@ -12,7 +11,6 @@ interface DownvotesReviewProps {
 const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
   const [downvotedAnswers, setDownvotedAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchDownvotedAnswers = async () => {

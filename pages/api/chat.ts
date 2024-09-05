@@ -2,14 +2,13 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
-import { makeChain, CollectionKey } from '@/utils/server/makechain';
+import { makeChain } from '@/utils/server/makechain';
 import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { getPineconeIndexName } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
-import { getFromCache, setInCache } from '@/utils/server/redisUtils';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 
@@ -142,16 +141,16 @@ export default async function handler(
         sourceDocuments: processedSourceDocuments,
         docId: docId,
       });
-    } catch (error: any) {
-      console.log('error', error);
-      if (error.name === 'PineconeNotFoundError') {
+    } catch (error: unknown) {
+      console.error('Error:', error);
+      if (error instanceof Error && error.name === 'PineconeNotFoundError') {
         console.error('Pinecone index not found:', getPineconeIndexName());
         return res.status(404).json({
           error:
             'The specified Pinecone index does not exist. Please notify your administrator.',
         });
       }
-      if (error.message.includes('429')) {
+      if (error instanceof Error && error.message.includes('429')) {
         console.log(
           'First 10 chars of OPENAI_API_KEY:',
           process.env.OPENAI_API_KEY?.substring(0, 10),
@@ -161,10 +160,15 @@ export default async function handler(
             'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.',
         });
       }
-      res.status(500).json({ error: error.message || 'Something went wrong' });
+      if (error instanceof Error) {
+        res
+          .status(500)
+          .json({ error: error.message || 'Something went wrong' });
+      } else {
+        res.status(500).json({ error: 'An unknown error occurred' });
+      }
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
-    return;
   }
 }

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/services/firebase'; 
+import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
@@ -11,47 +11,49 @@ const envName = getEnvName();
 
 // New handler for GET request to check like statuses
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
-    let answerIds = req.query.answerIds;
-    const { uuid } = req.query;
-  
-    // Ensure answerIds is an array
-    if (typeof answerIds === 'string') {
-        answerIds = [answerIds];
-    } else if (!Array.isArray(answerIds)) {
-        return res.status(400).json({ error: 'Invalid answerIds format' });
-    }
+  let answerIds = req.query.answerIds;
+  const { uuid } = req.query;
 
-    // Validate the input
-    if (!answerIds || !uuid) {
-      return res.status(400).json({ error: 'Missing answer IDs or UUID' });
-    }
-  
-    try {
-      console.log(`Likes GET: UUID: ${uuid}`);
-      console.log(`Likes GET: Answer IDs: ${answerIds}`);
-      const likesCollection = db.collection(`${envName}_likes`);
-      const likesSnapshot = await likesCollection
-        .where('uuid', '==', uuid)
-        .where('answerId', 'in', answerIds)
-        .get();
-  
-      // Create an object to store the like statuses
-      const likeStatuses: Record<string, boolean> = {};
-      likesSnapshot.forEach(doc => {
-        likeStatuses[doc.data().answerId] = true;
-      });
-  
-      // Fill in false for any answerIds not found
-      answerIds.forEach((id: string) => {
-        if (!likeStatuses[id]) {
-          likeStatuses[id] = false;
-        }
-      });
-  
-      res.status(200).json(likeStatuses);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Something went wrong' });
-    }
+  // Ensure answerIds is an array
+  if (typeof answerIds === 'string') {
+    answerIds = [answerIds];
+  } else if (!Array.isArray(answerIds)) {
+    return res.status(400).json({ error: 'Invalid answerIds format' });
+  }
+
+  // Validate the input
+  if (!answerIds || !uuid) {
+    return res.status(400).json({ error: 'Missing answer IDs or UUID' });
+  }
+
+  try {
+    console.log(`Likes GET: UUID: ${uuid}`);
+    console.log(`Likes GET: Answer IDs: ${answerIds}`);
+    const likesCollection = db.collection(`${envName}_likes`);
+    const likesSnapshot = await likesCollection
+      .where('uuid', '==', uuid)
+      .where('answerId', 'in', answerIds)
+      .get();
+
+    // Create an object to store the like statuses
+    const likeStatuses: Record<string, boolean> = {};
+    likesSnapshot.forEach((doc) => {
+      likeStatuses[doc.data().answerId] = true;
+    });
+
+    // Fill in false for any answerIds not found
+    answerIds.forEach((id: string) => {
+      if (!likeStatuses[id]) {
+        likeStatuses[id] = false;
+      }
+    });
+
+    res.status(200).json(likeStatuses);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Something went wrong';
+    res.status(500).json({ error: errorMessage });
+  }
 }
 
 // New handler for POST request to check like statuses
@@ -60,100 +62,104 @@ async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
 
   // Validate the input
   if (!Array.isArray(answerIds) || !uuid) {
-      return res.status(400).json({ error: 'Invalid request body' });
+    return res.status(400).json({ error: 'Invalid request body' });
   }
 
   try {
-      // Create a key for the cache based on the user's UUID
-      const cacheKey = `user_${uuid}`;
+    // Create a key for the cache based on the user's UUID
+    const cacheKey = `user_${uuid}`;
 
-      // Check if the like statuses are already cached for the given user
-      if (likeStatusCache[cacheKey]) {
-          const cachedLikeStatuses = likeStatusCache[cacheKey];
-          const filteredLikeStatuses: Record<string, boolean> = {};
+    // Check if the like statuses are already cached for the given user
+    if (likeStatusCache[cacheKey]) {
+      const cachedLikeStatuses = likeStatusCache[cacheKey];
+      const filteredLikeStatuses: Record<string, boolean> = {};
 
-          // Filter the cached like statuses based on the provided answer IDs
-          answerIds.forEach((answerId) => {
-              if (answerId in cachedLikeStatuses) {
-                  filteredLikeStatuses[answerId] = cachedLikeStatuses[answerId];
-              }
-          });
+      // Filter the cached like statuses based on the provided answer IDs
+      answerIds.forEach((answerId) => {
+        if (answerId in cachedLikeStatuses) {
+          filteredLikeStatuses[answerId] = cachedLikeStatuses[answerId];
+        }
+      });
 
-          // If all the requested answer IDs are found in the cache, return the filtered like statuses
-          if (Object.keys(filteredLikeStatuses).length === answerIds.length) {
-              return res.status(200).json(filteredLikeStatuses);
-          }
+      // If all the requested answer IDs are found in the cache, return the filtered like statuses
+      if (Object.keys(filteredLikeStatuses).length === answerIds.length) {
+        return res.status(200).json(filteredLikeStatuses);
       }
+    }
 
-      const likesCollection = db.collection(`${envName}_likes`);
-      const likesSnapshot = await likesCollection
-          .where('uuid', '==', uuid)
-          .where('answerId', 'in', answerIds)
-          .get();
+    const likesCollection = db.collection(`${envName}_likes`);
+    const likesSnapshot = await likesCollection
+      .where('uuid', '==', uuid)
+      .where('answerId', 'in', answerIds)
+      .get();
 
-      // Create an object to store the like statuses
-      const likeStatuses: Record<string, boolean> = {};
-      likesSnapshot.forEach(doc => {
-          likeStatuses[doc.data().answerId] = true;
-      });
+    // Create an object to store the like statuses
+    const likeStatuses: Record<string, boolean> = {};
+    likesSnapshot.forEach((doc) => {
+      likeStatuses[doc.data().answerId] = true;
+    });
 
-      // Fill in false for any answerIds not found
-      answerIds.forEach((id: string) => {
-          if (!likeStatuses[id]) {
-              likeStatuses[id] = false;
-          }
-      });
+    // Fill in false for any answerIds not found
+    answerIds.forEach((id: string) => {
+      if (!likeStatuses[id]) {
+        likeStatuses[id] = false;
+      }
+    });
 
-      // Update the cache with the fetched like statuses
-      likeStatusCache[cacheKey] = {
-          ...likeStatusCache[cacheKey],
-          ...likeStatuses,
-      };
+    // Update the cache with the fetched like statuses
+    likeStatusCache[cacheKey] = {
+      ...likeStatusCache[cacheKey],
+      ...likeStatuses,
+    };
 
-      res.status(200).json(likeStatuses);
-  } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Something went wrong' });
+    res.status(200).json(likeStatuses);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Something went wrong';
+    res.status(500).json({ error: errorMessage });
   }
 }
 
 // fetch like counts from likes collection
 async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
-    let answerIds = req.body.answerIds;
+  let answerIds = req.body.answerIds;
 
-    // Ensure answerIds is an array
-    if (typeof answerIds === 'string') {
-        answerIds = [answerIds];
-    } else if (!Array.isArray(answerIds)) {
-        return res.status(400).json({ error: 'Invalid answerIds format' });
-    }
+  // Ensure answerIds is an array
+  if (typeof answerIds === 'string') {
+    answerIds = [answerIds];
+  } else if (!Array.isArray(answerIds)) {
+    return res.status(400).json({ error: 'Invalid answerIds format' });
+  }
 
-    try {
-      const likesCollection = db.collection(`${envName}_likes`);
-      const likesSnapshot = await likesCollection
-        .where('answerId', 'in', answerIds)
-        .get();
-  
-      // Initialize an object to store the like counts
-      const likeCounts: Record<string, number> = {};
+  try {
+    const likesCollection = db.collection(`${envName}_likes`);
+    const likesSnapshot = await likesCollection
+      .where('answerId', 'in', answerIds)
+      .get();
 
-      // Aggregate the likes for each answerId
-      likesSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if (!likeCounts[data.answerId]) {
-              likeCounts[data.answerId] = 0;
-          }
-          likeCounts[data.answerId] += 1; 
-      });
+    // Initialize an object to store the like counts
+    const likeCounts: Record<string, number> = {};
 
-      res.status(200).json(likeCounts);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Something went wrong' });
-    }
+    // Aggregate the likes for each answerId
+    likesSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      if (!likeCounts[data.answerId]) {
+        likeCounts[data.answerId] = 0;
+      }
+      likeCounts[data.answerId] += 1;
+    });
+
+    res.status(200).json(likeCounts);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Something went wrong';
+    res.status(500).json({ error: errorMessage });
+  }
 }
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const action = req.query.action;
 
@@ -174,7 +180,9 @@ export default async function handler(
 
   const { answerId, like, uuid } = req.body;
   if (!answerId || typeof like !== 'boolean' || !uuid) {
-    return res.status(400).json({ error: 'Missing answer ID, UUID or invalid like status' });
+    return res
+      .status(400)
+      .json({ error: 'Missing answer ID, UUID or invalid like status' });
   }
 
   try {
@@ -185,20 +193,21 @@ export default async function handler(
       await likesCollection.add({
         uuid: uuid,
         answerId: answerId,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Update the like count in the chat logs
-      const chatLogRef = db.collection(getChatLogsCollectionName()).doc(answerId);
+      const chatLogRef = db
+        .collection(getChatLogsCollectionName())
+        .doc(answerId);
       await chatLogRef.update({
-        likeCount: firebase.firestore.FieldValue.increment(1)
+        likeCount: firebase.firestore.FieldValue.increment(1),
       });
 
       // Invalidate the cache for the user
       delete likeStatusCache[`user_${uuid}`];
 
       res.status(200).json({ message: 'Like added' });
-
     } else {
       // If like is false, find the like document and remove it
       const querySnapshot = await likesCollection
@@ -213,27 +222,29 @@ export default async function handler(
         await docRef.delete();
 
         // Update the like count in the chat logs
-        const chatLogRef = db.collection(getChatLogsCollectionName()).doc(answerId);
+        const chatLogRef = db
+          .collection(getChatLogsCollectionName())
+          .doc(answerId);
         await chatLogRef.update({
-          likeCount: firebase.firestore.FieldValue.increment(-1)
+          likeCount: firebase.firestore.FieldValue.increment(-1),
         });
 
         // Invalidate the cache for the user
         delete likeStatusCache[`user_${uuid}`];
 
         res.status(200).json({ message: 'Like removed' });
-
       } else {
         res.status(404).json({ message: 'Like not found' });
       }
     }
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Something went wrong' });
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Something went wrong';
+    res.status(500).json({ error: errorMessage });
   }
 
   // DEBUG
   // await checkLikeCountIntegrity();
-
 }
 
 // async function checkLikeCountIntegrity() {

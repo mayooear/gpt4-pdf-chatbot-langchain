@@ -39,7 +39,11 @@ export default async function handler(
       });
     }
     res.status(200).json({ message: 'Admin action updated' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Something went wrong' });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
   }
 }

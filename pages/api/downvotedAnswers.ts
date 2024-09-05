@@ -28,10 +28,13 @@ export default async function handler(
       id: doc.id,
       ...doc.data(),
     }));
-
     res.status(200).json(downvotedAnswers);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching downvoted answers:', error);
-    res.status(500).json({ error: error.message || 'Something went wrong' });
+    res
+      .status(500)
+      .json({
+        error: error instanceof Error ? error.message : 'Something went wrong',
+      });
   }
 }

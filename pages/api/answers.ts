@@ -1,12 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
-import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
 import {
   getTotalDocuments,
   getAnswersByIds,
 } from '@/utils/server/answersUtils';
+import { Answer } from '@/types/answer';
+import { Document } from 'langchain/document';
 
 // 6/23/24: likedOnly filtering not being used in UI but leaving here for potential future use
 async function getAnswers(
@@ -14,7 +15,7 @@ async function getAnswers(
   limit: number,
   likedOnly: boolean,
   sortBy: string,
-): Promise<{ answers: any[]; totalPages: number }> {
+): Promise<{ answers: Answer[]; totalPages: number }> {
   let answersQuery = db
     .collection(getChatLogsCollectionName())
     .orderBy(sortBy === 'mostPopular' ? 'likeCount' : 'timestamp', 'desc');
@@ -53,11 +54,19 @@ async function getAnswers(
     // console.log(`${index + 1}. ${data.relatedQuestionsV2}`);
     return {
       id: doc.id,
-      ...data,
-      sources,
+      question: data.question,
+      answer: data.answer,
+      timestamp: data.timestamp,
+      sources: sources as Document<Record<string, unknown>>[],
+      vote: data.vote,
+      collection: data.collection,
+      ip: data.ip,
       likeCount: data.likeCount || 0,
-      relatedQuestions: data.relatedQuestionsV2 || [],
-    };
+      relatedQuestionsV2: data.relatedQuestionsV2 || [],
+      related_questions: data.related_questions,
+      adminAction: data.adminAction,
+      adminActionTimestamp: data.adminActionTimestamp,
+    } as Answer;
   });
 
   return { answers, totalPages };
@@ -108,16 +117,16 @@ export default async function handler(
         );
         res.status(200).json({ answers, totalPages });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching answers: ', error);
-      if (error.code === 8) {
-        res
-          .status(429)
-          .json({ message: 'Error: Quota exceeded. Please try again later.' });
+      if (error instanceof Error) {
+        if ('code' in error && error.code === 8) {
+          res.status(429).json({ message: 'Error: Quota exceeded. Please try again later.' });
+        } else {
+          res.status(500).json({ message: 'Error fetching answers', error: error.message });
+        }
       } else {
-        res
-          .status(500)
-          .json({ message: 'Error fetching answers', error: error.message });
+        res.status(500).json({ message: 'An unknown error occurred' });
       }
     }
   } else if (req.method === 'DELETE') {
@@ -134,11 +143,17 @@ export default async function handler(
       }
       await deleteAnswerById(answerId);
       res.status(200).json({ message: 'Answer deleted successfully.' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Handler: Error deleting answer: ', error);
-      res
-        .status(500)
-        .json({ message: 'Error deleting answer', error: error.message });
+      if (error instanceof Error) {
+        res
+          .status(500)
+          .json({ message: 'Error deleting answer', error: error.message });
+      } else {
+        res
+          .status(500)
+          .json({ message: 'Error deleting answer', error: 'An unknown error occurred' });
+      }
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

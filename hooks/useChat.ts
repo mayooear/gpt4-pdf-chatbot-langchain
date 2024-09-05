@@ -7,7 +7,6 @@ import { SiteConfig } from '@/types/siteConfig';
 
 export function useChat(
   collection: string,
-  history: [string, string][],
   privateSession: boolean,
   mediaTypes: { text: boolean; audio: boolean },
   siteConfig?: SiteConfig | null,
@@ -68,7 +67,7 @@ export function useChat(
         body: JSON.stringify({
           collection,
           question: query,
-          history,
+          history: messageState.history,
           privateSession,
           mediaTypes,
           siteConfig,
@@ -80,13 +79,15 @@ export function useChat(
         setError(data.error);
         console.log('ERROR: data error: ' + data.error);
       } else {
-        const transformedSourceDocs = data.sourceDocuments.map((doc: any) => ({
-          ...doc,
-          metadata: {
-            ...doc.metadata,
-            title: doc.metadata.title || 'Unknown source',
-          },
-        }));
+        const transformedSourceDocs = data.sourceDocuments.map(
+          (doc: Document) => ({
+            ...doc,
+            metadata: {
+              ...doc.metadata,
+              title: doc.metadata.title || 'Unknown source',
+            },
+          }),
+        );
 
         setMessageState((state) => ({
           ...state,

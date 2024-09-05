@@ -13,14 +13,14 @@ import {
   getMappedLibraryName,
   getLibraryUrl,
 } from '@/utils/client/libraryMappings';
+import { DocMetadata } from '@/types/DocMetadata';
 
-// Add this helper function at the top of the file, outside the component
-const extractTitle = (metadata: Record<string, any>): string => {
+const extractTitle = (metadata: DocMetadata): string => {
   return metadata.title || metadata['pdf.info.Title'] || 'Unknown source';
 };
 
 interface SourcesListProps {
-  sources: Document<Record<string, any>>[];
+  sources: Document<DocMetadata>[];
   collectionName?: string | null;
 }
 
@@ -31,16 +31,9 @@ const SourcesList: React.FC<SourcesListProps> = ({
   const [expandedSources, setExpandedSources] = useState<Set<number>>(
     new Set(),
   );
-  const [expandedAccordionSource, setExpandedAccordionSource] = useState<
-    number | null
-  >(null);
 
   const renderAudioPlayer = useCallback(
-    (
-      doc: Document<Record<string, any>>,
-      index: number,
-      isExpanded: boolean,
-    ) => {
+    (doc: Document<DocMetadata>, index: number, isExpanded: boolean) => {
       if (doc.metadata.type === 'audio') {
         const audioId = `audio_${doc.metadata.file_hash}_${index}`;
         return (
@@ -48,7 +41,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
             <AudioPlayer
               key={audioId}
               src={`/api/audio/${doc.metadata.filename}`}
-              startTime={doc.metadata.start_time}
+              startTime={doc.metadata.start_time ?? 0}
               audioId={audioId}
               lazyLoad={true}
               isExpanded={isExpanded}
@@ -61,7 +54,8 @@ const SourcesList: React.FC<SourcesListProps> = ({
     [],
   );
 
-  const transformYouTubeUrl = (url: string, startTime: number) => {
+  // Update the transformYouTubeUrl function
+  const transformYouTubeUrl = (url: string, startTime: number | undefined) => {
     const urlObj = new URL(url);
     let videoId = '';
     if (urlObj.hostname === 'youtu.be') {
@@ -74,35 +68,39 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
     const baseUrl = `https://www.youtube.com/embed/${videoId}`;
     const params = new URLSearchParams(urlObj.search);
-    params.set('start', Math.floor(startTime).toString());
+    params.set('start', Math.floor(startTime || 0).toString());
     params.set('rel', '0');
     return `${baseUrl}?${params.toString()}`;
   };
 
-  const renderYouTubePlayer = useCallback(
-    (doc: Document<Record<string, any>>, index: number) => {
-      if (doc.metadata.type === 'youtube') {
-        const embedUrl = transformYouTubeUrl(
-          doc.metadata.url,
-          doc.metadata.start_time,
-        );
+  const renderYouTubePlayer = useCallback((doc: Document<DocMetadata>) => {
+    if (doc.metadata.type === 'youtube') {
+      if (!doc.metadata.url) {
         return (
-          <div className="aspect-video mb-7">
-            <iframe
-              className="h-full w-full rounded-lg"
-              src={embedUrl}
-              title={doc.metadata.title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
+          <div className="text-red-500 mb-2">
+            Error: YouTube URL is missing for this source.
           </div>
         );
       }
-      return null;
-    },
-    [],
-  );
+      const embedUrl = transformYouTubeUrl(
+        doc.metadata.url,
+        doc.metadata.start_time,
+      );
+      return (
+        <div className="aspect-video mb-7">
+          <iframe
+            className="h-full w-full rounded-lg"
+            src={embedUrl}
+            title={doc.metadata.title}
+            style={{ border: 'none' }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+    return null;
+  }, []);
 
   // double colon separates parent title from the (child) source title,
   // e.g., "2009 Summer Clarity Magazine:: Letters of Encouragement". We here
@@ -161,7 +159,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
   };
 
-  const getSourceIcon = (doc: Document<Record<string, any>>) => {
+  const getSourceIcon = (doc: Document<DocMetadata>) => {
     switch (doc.metadata.type) {
       case 'audio':
         return 'mic';
@@ -172,7 +170,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
   };
 
-  const renderSourceTitle = (doc: Document<Record<string, any>>) => {
+  const renderSourceTitle = (doc: Document<DocMetadata>) => {
     // Extract the title using the helper function
     let sourceTitle = formatTitle(extractTitle(doc.metadata));
 
@@ -191,8 +189,10 @@ const SourcesList: React.FC<SourcesListProps> = ({
       >
         {doc.metadata.source ? (
           <a
-            href={doc.metadata.source}
-            onClick={(e) => handleSourceClick(e, doc.metadata.source)}
+            href={doc.metadata.source || '#'}
+            onClick={(e) =>
+              doc.metadata.source && handleSourceClick(e, doc.metadata.source)
+            }
             className="hover:underline"
           >
             {sourceTitle}
@@ -204,7 +204,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     );
   };
 
-  const renderLibraryName = (doc: Document<Record<string, any>>) => {
+  const renderLibraryName = (doc: Document<DocMetadata>) => {
     const libraryName = getMappedLibraryName(doc.metadata.library);
     const libraryUrl = getLibraryUrl(doc.metadata.library);
 
@@ -226,7 +226,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
   const handleSummaryClick = (
     e: React.MouseEvent,
     index: number,
-    doc: Document<Record<string, any>>,
+    doc: Document<DocMetadata>,
   ) => {
     const target = e.target as HTMLElement;
     const isClickOnLink = target.tagName === 'A' || target.closest('a');
@@ -317,13 +317,15 @@ const SourcesList: React.FC<SourcesListProps> = ({
                       renderAudioPlayer(doc, index, isExpanded)}
                     {doc.metadata &&
                       doc.metadata.type === 'youtube' &&
-                      renderYouTubePlayer(doc, index)}
+                      renderYouTubePlayer(doc)}
                   </>
                 )}
                 <ReactMarkdown
                   remarkPlugins={[gfm]}
                   components={{
-                    a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                    a: ({ ...props }) => (
+                      <a target="_blank" rel="noopener noreferrer" {...props} />
+                    ),
                   }}
                 >
                   {doc.pageContent}

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '@/styles/Home.module.css';
 import LoadingDots from '@/components/ui/LoadingDots';
 import RandomQueries from '@/components/RandomQueries';
@@ -27,13 +27,9 @@ interface ChatInputProps {
   error: string | null;
   randomQueries: string[];
   shuffleQueries: () => void;
-  clearQuery: () => void;
-  messageListRef: React.RefObject<HTMLDivElement>;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   mediaTypes: { text: boolean; audio: boolean; youtube: boolean };
   handleMediaTypeChange: (type: 'text' | 'audio' | 'youtube') => void;
-  isControlsMenuOpen: boolean;
-  setIsControlsMenuOpen: (isOpen: boolean) => void;
   siteConfig: SiteConfig | null;
 }
 
@@ -49,13 +45,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   error,
   randomQueries,
   shuffleQueries,
-  clearQuery,
   textAreaRef,
-  messageListRef,
   mediaTypes,
   handleMediaTypeChange,
-  isControlsMenuOpen,
-  setIsControlsMenuOpen,
   siteConfig,
 }) => {
   const [localQuery, setLocalQuery] = useState<string>('');
@@ -126,8 +118,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 loading
                   ? 'Waiting for response...'
                   : isFirstQuery
-                  ? 'How can I think of God more?'
-                  : ''
+                    ? 'How can I think of God more?'
+                    : ''
               }
               className="flex-grow p-2 border border-gray-300 rounded-md resize-none focus:outline-none"
             />

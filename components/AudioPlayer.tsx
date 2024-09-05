@@ -36,7 +36,6 @@ export function AudioPlayer({
     duration,
     togglePlayPause,
     setAudioTime,
-    isLoaded: isAudioLoaded,
     error: audioError,
     isSeeking,
   } = useAudioPlayer({
@@ -120,7 +119,7 @@ export function AudioPlayer({
         ref={audioRef}
         preload="metadata"
         onLoadedMetadata={() => setAudioTime(startTime)}
-        onError={(e) => setError('Failed to load audio. Please try again.')}
+        onError={() => setError('Failed to load audio. Please try again.')}
       />
       {error && <div className="text-red-500 mb-1 text-sm px-2">{error}</div>}
       {audioError && (

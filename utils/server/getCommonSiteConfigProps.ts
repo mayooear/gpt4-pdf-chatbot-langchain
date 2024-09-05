@@ -1,7 +1,6 @@
-import { NextPageContext } from 'next';
 import { loadSiteConfig } from './loadSiteConfig';
 
-export const getCommonSiteConfigProps = async (context: NextPageContext) => {
+export const getCommonSiteConfigProps = async () => {
   const siteId = process.env.SITE_ID || 'default';
 
   try {

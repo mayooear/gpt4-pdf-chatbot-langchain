@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import TruncatedMarkdown from '@/components/TruncatedMarkdown';
@@ -10,6 +10,8 @@ import { collectionsConfig } from '@/utils/client/collectionsConfig';
 import { useMultipleCollections } from '@/hooks/useMultipleCollections';
 import { SiteConfig } from '@/types/siteConfig';
 import markdownStyles from '@/styles/MarkdownStyles.module.css';
+import { DocMetadata } from '@/types/DocMetadata';
+import { Document } from 'langchain/document';
 
 interface AnswerItemProps {
   answer: Answer;
@@ -47,23 +49,18 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
       return null;
     }
     const truncated = question.slice(0, maxLength);
-    return truncated.split('\n').map((line, i, arr) => (
-      <React.Fragment key={i}>
-        {line}
-        {i < arr.length - 1 && <br />}
-      </React.Fragment>
-    ));
+    return truncated
+      .split('\n')
+      .map((line: string, i: number, arr: string[]) => (
+        <React.Fragment key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </React.Fragment>
+      ));
   };
 
   const truncateTitle = (title: string, maxLength: number) => {
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
-  };
-
-  const handleRelatedQuestionClick = (
-    relatedQuestionId: string,
-    relatedQuestionTitle: string,
-  ) => {
-    // Implement logging logic here if needed
   };
 
   return (
@@ -81,7 +78,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
             {isFullPage ? (
               <b className="block break-words">
                 {expanded ? (
-                  answer.question.split('\n').map((line, i) => (
+                  answer.question.split('\n').map((line: string, i: number) => (
                     <React.Fragment key={i}>
                       {line}
                       {i < answer.question.split('\n').length - 1 && <br />}
@@ -99,12 +96,16 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 <a className="text-black-600 hover:underline cursor-pointer">
                   <b className="block break-words">
                     {expanded ? (
-                      answer.question.split('\n').map((line, i) => (
-                        <React.Fragment key={i}>
-                          {line}
-                          {i < answer.question.split('\n').length - 1 && <br />}
-                        </React.Fragment>
-                      ))
+                      answer.question
+                        .split('\n')
+                        .map((line: string, i: number) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            {i < answer.question.split('\n').length - 1 && (
+                              <br />
+                            )}
+                          </React.Fragment>
+                        ))
                     ) : (
                       <>
                         {renderTruncatedQuestion(answer.question, 200)}
@@ -152,30 +153,28 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
           />
           {answer.sources && (
             <SourcesList
-              sources={answer.sources}
+              sources={answer.sources as Document<DocMetadata>[]}
               collectionName={hasMultipleCollections ? answer.collection : null}
             />
           )}
           {answer.relatedQuestionsV2 &&
             answer.relatedQuestionsV2.filter(
-              (q) => q.similarity >= SIMILARITY_THRESHOLD,
+              (q: { similarity: number }) =>
+                q.similarity >= SIMILARITY_THRESHOLD,
             ).length > 0 && (
               <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
                 <h3 className="text-lg !font-bold mb-2">Related Questions</h3>
                 <ul className="list-disc pl-2">
                   {answer.relatedQuestionsV2
-                    .filter((q) => q.similarity >= SIMILARITY_THRESHOLD)
-                    .map((relatedQuestion) => (
+                    .filter(
+                      (q: { similarity: number }) =>
+                        q.similarity >= SIMILARITY_THRESHOLD,
+                    )
+                    .map((relatedQuestion: { id: string; title: string }) => (
                       <li key={relatedQuestion.id} className="ml-0">
                         <a
                           href={`/answers/${relatedQuestion.id}`}
                           className="text-blue-600 hover:underline"
-                          onClick={() =>
-                            handleRelatedQuestionClick(
-                              relatedQuestion.id,
-                              relatedQuestion.title,
-                            )
-                          }
                         >
                           {truncateTitle(relatedQuestion.title, 150)}
                         </a>
@@ -188,7 +187,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
             <CopyButton
               markdown={answer.answer}
               answerId={answer.id}
-              sources={answer.sources}
+              sources={answer.sources as Document<DocMetadata>[] | undefined}
               question={answer.question}
             />
             <button

@@ -1,7 +1,7 @@
 import '@/styles/base.css';
 import '@/styles/globals.css';
 import 'react-toastify/dist/ReactToastify.css';
-import type { AppProps, AppContext } from 'next/app';
+import type { AppProps, NextWebVitalsMetric } from 'next/app';
 import { Inter } from 'next/font/google';
 import { ToastContainer } from 'react-toastify';
 import { useEffect } from 'react';
@@ -58,14 +58,12 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   );
 }
 
-MyApp.getInitialProps = async (appContext: AppContext) => {
-  const ctx = appContext.ctx;
-  const result = await getCommonSiteConfigProps(ctx);
-
+MyApp.getInitialProps = async () => {
+  const result = await getCommonSiteConfigProps();
   return { pageProps: result.props };
 };
 
-export function reportWebVitals(metric: any) {
+export function reportWebVitals(metric: NextWebVitalsMetric) {
   if (process.env.NODE_ENV === 'production') {
     const { id, name, label, value } = metric;
     logEvent(

@@ -1,9 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import cors, { runMiddleware } from '@/utils/server/corsMiddleware';
-import { setSudoCookie, getSudoCookie, deleteSudoCookie } from '@/utils/server/sudoCookieUtils';
+import {
+  setSudoCookie,
+  getSudoCookie,
+  deleteSudoCookie,
+} from '@/utils/server/sudoCookieUtils';
 import { rateLimiter } from '@/utils/server/rateLimiter';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   await runMiddleware(req, res, cors);
 
   if (req.method === 'OPTIONS') {
@@ -29,8 +36,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       res.status(405).json({ message: 'Method not allowed' });
     }
-  } catch (error: any) {
-    console.error("SudoCookie:", error);
-    res.status(400).json({ message: error.message });
+  } catch (error) {
+    console.error('SudoCookie:', error);
+    res
+      .status(400)
+      .json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
   }
 }

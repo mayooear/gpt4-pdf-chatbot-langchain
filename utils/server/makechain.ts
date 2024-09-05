@@ -1,11 +1,19 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { RunnableSequence } from '@langchain/core/runnables';
+import {
+  RunnableSequence,
+  RunnablePassthrough,
+} from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import type { Document } from 'langchain/document';
 import type { VectorStoreRetriever } from 'langchain/vectorstores/base';
 import fs from 'fs/promises';
 import path from 'path';
+
+type AnswerChainInput = {
+  question: string;
+  chat_history: string;
+};
 
 export type CollectionKey = 'master_swami' | 'whole_library';
 
@@ -116,18 +124,13 @@ const CONDENSE_TEMPLATE = `Given the following conversation and a follow up ques
 Follow Up Input: {question}
 Standalone question:`;
 
-// TODO: make sure date is included in the template
-
-const combineDocumentsFn = (
-  docs: Document[],
-  options: Record<string, any> = {},
-) => {
-  const separator =
-    typeof options.separator === 'string' ? options.separator : '\n\n';
+const combineDocumentsFn = (docs: Document[]) => {
   const serializedDocs = docs.map((doc) => ({
     content: doc.pageContent,
     metadata: doc.metadata,
-    id: (doc as any).id,
+    // 9/4/24 MO: Note this was formerly doc.id before estype checking was added. maybe this is
+    // going to break?
+    id: doc.metadata.id,
   }));
   return JSON.stringify(serializedDocs);
 };
@@ -150,7 +153,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     templateWithReplacedVars,
   );
 
-  const model = new ChatOpenAI({
+  const model: ChatOpenAI = new ChatOpenAI({
     temperature: 0,
     modelName: 'gpt-4o',
   });
@@ -159,12 +162,12 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([
     condenseQuestionPrompt,
-    model as any,
+    model,
     new StringOutputParser(),
   ]);
 
   // Retrieve documents based on a query, then format them.
-  const retrievalChain = retriever.pipe((docs) => ({
+  const retrievalChain = retriever.pipe((docs: Document[]) => ({
     documents: docs,
     combinedContent: combineDocumentsFn(docs),
   }));
@@ -174,20 +177,22 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   const answerChain = RunnableSequence.from([
     {
       context: RunnableSequence.from([
-        (input: any) => input.question,
-        retrievalChain as any,
-        (output: any) => output.combinedContent,
+        new RunnablePassthrough<AnswerChainInput>(),
+        async (input: AnswerChainInput) =>
+          retrievalChain.invoke(input.question),
+        (output: { combinedContent: string }) => output.combinedContent,
       ]),
-      chat_history: (input: any) => input.chat_history,
-      question: (input: any) => input.question,
+      chat_history: (input: AnswerChainInput) => input.chat_history,
+      question: (input: AnswerChainInput) => input.question,
       documents: RunnableSequence.from([
-        (input: any) => input.question,
-        retrievalChain as any,
-        (output: any) => output.documents,
+        new RunnablePassthrough<AnswerChainInput>(),
+        async (input: AnswerChainInput) =>
+          retrievalChain.invoke(input.question),
+        (output: { documents: Document[] }) => output.documents,
       ]),
     },
     answerPrompt,
-    model as any,
+    model,
     new StringOutputParser(),
   ]);
 
@@ -195,8 +200,11 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // chat history and retrieved context documents.
   const conversationalRetrievalQAChain = RunnableSequence.from([
     {
-      question: standaloneQuestionChain,
-      chat_history: (input: any) => input.chat_history,
+      question: RunnableSequence.from([
+        (input: AnswerChainInput) => input,
+        standaloneQuestionChain,
+      ]),
+      chat_history: (input: AnswerChainInput) => input.chat_history,
     },
     answerChain,
   ]);

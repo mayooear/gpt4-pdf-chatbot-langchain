@@ -5,7 +5,7 @@ import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { useRouter } from 'next/router';
-import { initGoogleAnalytics, logEvent } from '@/utils/client/analytics';
+import { logEvent } from '@/utils/client/analytics';
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import AnswerItem from '@/components/AnswerItem';
@@ -27,15 +27,14 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [isSudoUser, setIsSudoUser] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | string | null>(null);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
 
   // State to track if the data has been loaded at least once
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-
   // State to control the delayed spinner visibility
-  const [showDelayedSpinner, setShowDelayedSpinner] = useState(false);
+  const [, setShowDelayedSpinner] = useState(false);
 
   const [isRestoringScroll, setIsRestoringScroll] = useState(false);
 
@@ -101,8 +100,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     setTotalPages(1);
   }, [sortBy]);
 
-  const currentFetchRef = useRef<Promise<void> | null>(null);
-  const debouncedFetchRef = useRef<Function | null>(null);
+  const currentFetchRef = useRef<(() => void) | null>(null);
   const hasInitiallyFetched = useRef(false);
   const hasFetchedLikeStatuses = useRef(false);
 
@@ -138,9 +136,9 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         if (isPageChange) {
           setTimeout(scrollToTop, 100);
         }
-      } catch (error: any) {
+      } catch (error: Error | unknown) {
         console.error('Failed to fetch answers:', error);
-        if (error.message.includes('429')) {
+        if (error instanceof Error && error.message.includes('429')) {
           setError('Quota exceeded. Please try again later.');
         } else {
           setError('Failed to fetch answers. Please try again.');
@@ -163,18 +161,21 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
             return;
           }
 
-          currentFetchRef.current = fetchAnswers(
-            page,
-            sortBy,
-            isPageChange,
-          ).finally(() => {
-            currentFetchRef.current = null;
-            if (!hasInitiallyFetched.current) {
-              hasInitiallyFetched.current = true;
-              setInitialLoadComplete(true);
-              setIsRestoringScroll(true);
-            }
-          });
+          currentFetchRef.current = () => {
+            return fetchAnswers(page, sortBy, isPageChange).finally(() => {
+              currentFetchRef.current = null;
+              if (!hasInitiallyFetched.current) {
+                hasInitiallyFetched.current = true;
+                setInitialLoadComplete(true);
+                setIsRestoringScroll(true);
+              }
+            });
+          };
+
+          // Execute the fetch
+          if (currentFetchRef.current) {
+            currentFetchRef.current();
+          }
         },
         300,
       ),
@@ -405,7 +406,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
       <div className="mx-auto max-w-full sm:max-w-4xl px-2 sm:px-6 lg:px-8">
         {showErrorPopup && error && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
-            <p>{error}</p>
+            <p>{typeof error === 'string' ? error : error.message}</p>
             <button
               onClick={() => setShowErrorPopup(false)}
               className="mt-2 underline"
@@ -467,7 +468,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async () => {
   // You can perform initial data fetching here if needed
   return {
     props: {}, // will be passed to the page component as props

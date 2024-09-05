@@ -3,11 +3,12 @@ import { copyTextToClipboard } from '../utils/client/clipboard';
 import { logEvent } from '@/utils/client/analytics';
 import { Converter } from 'showdown';
 import { Document } from 'langchain/document';
+import { DocMetadata } from '@/types/DocMetadata';
 
 interface CopyButtonProps {
   markdown: string;
   answerId?: string;
-  sources?: Document<Record<string, any>>[];
+  sources?: Document<DocMetadata>[];
   question: string;
 }
 
@@ -24,12 +25,10 @@ const CopyButton: React.FC<CopyButtonProps> = ({
     return converter.makeHtml(markdown);
   };
 
-  const formatSources = (sources: Document<Record<string, any>>[]): string => {
+  const formatSources = (sources: Document<DocMetadata>[]): string => {
     return sources
       .map((doc) => {
-        const title =
-          doc.metadata.title ||
-          'Unknown source';
+        const title = doc.metadata.title || 'Unknown source';
         const collection = doc.metadata.library || '';
         const sourceUrl = doc.metadata.source;
 

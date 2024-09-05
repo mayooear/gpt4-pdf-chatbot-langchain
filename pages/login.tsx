@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { SiteConfig } from '@/types/siteConfig';
 import { getSiteName, getTagline } from '@/utils/client/siteConfig';
@@ -13,10 +13,6 @@ export default function Login({ siteConfig }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { redirect } = router.query;
-  const redirectMemo = useMemo(
-    () => router.query.redirect as string | undefined,
-    [router.query],
-  );
 
   useEffect(() => {
     if (redirect) {
