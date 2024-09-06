@@ -1,12 +1,12 @@
 import { db } from '@/services/firebase';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 async function updateChatLogs() {
-  const chatLogsRef = db.collection(getChatLogsCollectionName());
+  const chatLogsRef = db.collection(getAnswersCollectionName());
   const snapshot = await chatLogsRef.get();
 
   const batch = db.batch();
-  snapshot.forEach(doc => {
+  snapshot.forEach((doc) => {
     const data = doc.data();
     if (data.likeCount === undefined) {
       batch.update(doc.ref, { likeCount: 0 });

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,8 +17,8 @@ export default async function handler(
   }
 
   try {
-    const chatLogsRef = db.collection(getChatLogsCollectionName());
-    const downvotedAnswersSnapshot = await chatLogsRef
+    const answersRef = db.collection(getAnswersCollectionName());
+    const downvotedAnswersSnapshot = await answersRef
       .where('vote', '==', -1)
       .orderBy('timestamp', 'desc')
       .limit(50)
@@ -31,10 +31,8 @@ export default async function handler(
     res.status(200).json(downvotedAnswers);
   } catch (error) {
     console.error('Error fetching downvoted answers:', error);
-    res
-      .status(500)
-      .json({
-        error: error instanceof Error ? error.message : 'Something went wrong',
-      });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Something went wrong',
+    });
   }
 }

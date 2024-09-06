@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import firebase from 'firebase-admin';
 import { db } from '@/services/firebase';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // Make any query to avoid cold start problem
-  db.collection(getChatLogsCollectionName())
+  db.collection(getAnswersCollectionName())
     .where(firebase.firestore.FieldPath.documentId(), 'in', ['000000'])
     .get();
   console.log('Firestore cron done');

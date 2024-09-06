@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -24,7 +24,7 @@ export default async function handler(
   }
 
   try {
-    const docRef = db.collection(getChatLogsCollectionName()).doc(docId);
+    const docRef = db.collection(getAnswersCollectionName()).doc(docId);
     if (action === undefined) {
       // If action is undefined, remove the adminAction and adminActionTimestamp fields
       await docRef.update({

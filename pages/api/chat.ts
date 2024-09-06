@@ -7,7 +7,7 @@ import { getPineconeClient } from '@/utils/server/pinecone-client';
 import { getPineconeIndexName } from '@/config/pinecone';
 import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
@@ -113,8 +113,8 @@ export default async function handler(
 
       if (!privateSession) {
         // Log the question and answer in Firestore only for non-private sessions
-        const chatLogRef = db.collection(getChatLogsCollectionName());
-        const logEntry = {
+        const answerRef = db.collection(getAnswersCollectionName());
+        const answerEntry = {
           question: originalQuestion,
           answer: response,
           collection: collection,
@@ -127,7 +127,7 @@ export default async function handler(
           ip: clientIP,
           timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
         };
-        const docRef = await chatLogRef.add(logEntry);
+        const docRef = await answerRef.add(answerEntry);
         docId = docRef.id;
 
         // Call the updateRelatedQuestions function to update related questions

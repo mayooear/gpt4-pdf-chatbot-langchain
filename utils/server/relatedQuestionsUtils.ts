@@ -3,7 +3,7 @@
 import { TfIdf } from 'natural';
 import rake from 'node-rake';
 import { db } from '@/services/firebase';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
 import { getAnswersByIds } from '@/utils/server/answersUtils';
 import { Answer } from '@/types/answer';
@@ -13,15 +13,24 @@ import {
   CACHE_EXPIRATION,
 } from '@/utils/server/redisUtils';
 
-function getCacheKeyForKeywords(): string {
-  const envName = getEnvName();
-  return `${envName}_keywords_cache_v2`;
+export interface RelatedQuestion {
+  id: string;
+  title: string;
+  similarity?: number;
 }
 
-export async function getRelatedQuestions(questionId: string): Promise<any[]> {
+function getCacheKeyForKeywords(): string {
+  const envName = getEnvName();
+  const siteId = process.env.SITE_ID;
+  return `${envName}_${siteId}_keywords_cache_v2`;
+}
+
+export async function getRelatedQuestions(
+  questionId: string,
+): Promise<Answer[]> {
   console.log('getRelatedQuestions: Question ID:', questionId);
   const doc = await db
-    .collection(getChatLogsCollectionName())
+    .collection(getAnswersCollectionName())
     .doc(questionId)
     .get();
   if (!doc.exists) {
@@ -48,7 +57,7 @@ async function getQuestionsBatch(
   );
 
   let query = db
-    .collection(getChatLogsCollectionName())
+    .collection(getAnswersCollectionName())
     .orderBy('timestamp', 'desc')
     .limit(batchSize);
   if (lastProcessedId) {
@@ -56,7 +65,7 @@ async function getQuestionsBatch(
       `Last processed ID found: ${lastProcessedId}. Fetching last document...`,
     );
     const lastDoc = await db
-      .collection(getChatLogsCollectionName())
+      .collection(getAnswersCollectionName())
       .doc(lastProcessedId)
       .get();
     query = query.startAfter(lastDoc);
@@ -70,7 +79,7 @@ async function getQuestionsBatch(
   }
 
   const questions: Answer[] = snapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() } as Answer),
+    (doc) => ({ id: doc.id, ...doc.data() }) as Answer,
   );
   console.log(`Processed ${questions.length} questions`);
 
@@ -151,7 +160,7 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
       question.question,
     );
     await db
-      .collection(getChatLogsCollectionName())
+      .collection(getAnswersCollectionName())
       .doc(question.id)
       .update({
         relatedQuestionsV2: relatedQuestions.slice(0, 5).map((q) => ({
@@ -248,9 +257,10 @@ export async function fetchKeywords(): Promise<
   { id: string; keywords: string[]; title: string }[]
 > {
   const cacheKey = getCacheKeyForKeywords();
-  const cachedKeywords = await getFromCache<
-    { id: string; keywords: string[]; title: string }[]
-  >(cacheKey);
+  const cachedKeywords =
+    await getFromCache<{ id: string; keywords: string[]; title: string }[]>(
+      cacheKey,
+    );
   if (cachedKeywords) {
     return cachedKeywords;
   }
@@ -278,7 +288,7 @@ function calculateJaccardSimilarity(setA: Set<string>, setB: Set<string>) {
 export async function updateRelatedQuestions(questionId: string) {
   // Fetch the specific question by questionId
   const questionDoc = await db
-    .collection(getChatLogsCollectionName())
+    .collection(getAnswersCollectionName())
     .doc(questionId)
     .get();
   if (!questionDoc.exists) {
@@ -317,7 +327,7 @@ export async function updateRelatedQuestions(questionId: string) {
     newQuestion.question,
   );
   await db
-    .collection(getChatLogsCollectionName())
+    .collection(getAnswersCollectionName())
     .doc(questionId)
     .update({
       relatedQuestionsV2: relatedQuestions.slice(0, 5).map((q) => ({

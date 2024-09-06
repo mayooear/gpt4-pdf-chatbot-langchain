@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -19,7 +19,7 @@ export default async function handler(
   }
 
   try {
-    const docRef = db.collection(getChatLogsCollectionName()).doc(docId);
+    const docRef = db.collection(getAnswersCollectionName()).doc(docId);
     // Set the vote to 1 for upvote or -1 for downvote
     await docRef.update({ vote });
     res.status(200).json({ message: 'Vote recorded' });

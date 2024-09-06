@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import NodeCache from 'node-cache';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 
 const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 
@@ -26,7 +26,7 @@ export default async function handler(
       ninetyDaysAgo.getTime() - ninetyDaysAgo.getTimezoneOffset() * 60000,
     ); // Adjust to Pacific Time
 
-    const chatLogsRef = db.collection(getChatLogsCollectionName());
+    const chatLogsRef = db.collection(getAnswersCollectionName());
     const chatLogsSnapshot = await chatLogsRef
       .where('timestamp', '>=', ninetyDaysAgo)
       .get();
@@ -84,10 +84,8 @@ export default async function handler(
     res.status(200).json(stats);
   } catch (error) {
     console.error('Error in stats handler:', error);
-    res
-      .status(500)
-      .json({
-        error: error instanceof Error ? error.message : 'Something went wrong',
-      });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Something went wrong',
+    });
   }
 }

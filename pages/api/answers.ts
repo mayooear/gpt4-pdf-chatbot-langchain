@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import {
   getTotalDocuments,
   getAnswersByIds,
@@ -17,7 +17,7 @@ async function getAnswers(
   sortBy: string,
 ): Promise<{ answers: Answer[]; totalPages: number }> {
   let answersQuery = db
-    .collection(getChatLogsCollectionName())
+    .collection(getAnswersCollectionName())
     .orderBy(sortBy === 'mostPopular' ? 'likeCount' : 'timestamp', 'desc');
 
   if (sortBy === 'mostPopular') {
@@ -74,7 +74,7 @@ async function getAnswers(
 
 async function deleteAnswerById(id: string): Promise<void> {
   try {
-    await db.collection(getChatLogsCollectionName()).doc(id).delete();
+    await db.collection(getAnswersCollectionName()).doc(id).delete();
   } catch (error) {
     console.error('Error deleting answer: ', error);
     throw error;
@@ -91,11 +91,9 @@ export default async function handler(
 
       if (answerIds) {
         if (typeof answerIds !== 'string') {
-          return res
-            .status(400)
-            .json({
-              message: 'answerIds parameter must be a comma-separated string.',
-            });
+          return res.status(400).json({
+            message: 'answerIds parameter must be a comma-separated string.',
+          });
         }
         const idsArray = answerIds.split(',');
         const answers = await getAnswersByIds(idsArray);
@@ -121,9 +119,15 @@ export default async function handler(
       console.error('Error fetching answers: ', error);
       if (error instanceof Error) {
         if ('code' in error && error.code === 8) {
-          res.status(429).json({ message: 'Error: Quota exceeded. Please try again later.' });
+          res
+            .status(429)
+            .json({
+              message: 'Error: Quota exceeded. Please try again later.',
+            });
         } else {
-          res.status(500).json({ message: 'Error fetching answers', error: error.message });
+          res
+            .status(500)
+            .json({ message: 'Error fetching answers', error: error.message });
         }
       } else {
         res.status(500).json({ message: 'An unknown error occurred' });
@@ -152,7 +156,10 @@ export default async function handler(
       } else {
         res
           .status(500)
-          .json({ message: 'Error deleting answer', error: 'An unknown error occurred' });
+          .json({
+            message: 'Error deleting answer',
+            error: 'An unknown error occurred',
+          });
       }
     }
   } else {

@@ -1,6 +1,6 @@
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
 import {
   getFromCache,
@@ -18,7 +18,7 @@ export async function getAnswersByIds(ids: string[]): Promise<Answer[]> {
     const chunk = ids.slice(i, i + chunkSize);
     try {
       const snapshot = await db
-        .collection(getChatLogsCollectionName())
+        .collection(getAnswersCollectionName())
         .where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
         .get();
       snapshot.forEach((doc) => {
@@ -100,7 +100,7 @@ export async function getTotalDocuments(): Promise<number> {
 
   // If not in cache, count the documents
   let count = 0;
-  const stream = db.collection(getChatLogsCollectionName()).stream();
+  const stream = db.collection(getAnswersCollectionName()).stream();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for await (const _ of stream) {

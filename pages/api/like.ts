@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
-import { getChatLogsCollectionName } from '@/utils/server/firestoreUtils';
+import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
 
 // Create a cache object to store the fetched like statuses
@@ -198,7 +198,7 @@ export default async function handler(
 
       // Update the like count in the chat logs
       const chatLogRef = db
-        .collection(getChatLogsCollectionName())
+        .collection(getAnswersCollectionName())
         .doc(answerId);
       await chatLogRef.update({
         likeCount: firebase.firestore.FieldValue.increment(1),
@@ -223,7 +223,7 @@ export default async function handler(
 
         // Update the like count in the chat logs
         const chatLogRef = db
-          .collection(getChatLogsCollectionName())
+          .collection(getAnswersCollectionName())
           .doc(answerId);
         await chatLogRef.update({
           likeCount: firebase.firestore.FieldValue.increment(-1),
