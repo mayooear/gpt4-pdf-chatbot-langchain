@@ -162,7 +162,8 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([
     condenseQuestionPrompt,
-    model.pipe(new StringOutputParser()),
+    model,
+    new StringOutputParser(),
   ]);
 
   // Retrieve documents based on a query, then format them.

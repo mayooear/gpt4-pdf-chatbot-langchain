@@ -28,7 +28,7 @@
     },
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
@@ -36,7 +36,7 @@
     },
     {
       "name": "Python: update_related_answers.py",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/data_ingestion/scripts/update_related_answers.py",
       "console": "integratedTerminal",
@@ -45,7 +45,7 @@
     },
     {
       "name": "Python: transcribe_and_ingest_media.py",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/data_ingestion/scripts/transcribe_and_ingest_media.py",
       "cwd": "${workspaceFolder}/data_ingestion/scripts",

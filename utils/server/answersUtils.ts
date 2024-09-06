@@ -52,44 +52,15 @@ export async function getAnswersByIds(ids: string[]): Promise<Answer[]> {
 export function parseAndRemoveWordsFromSources(
   sources: string | Document<DocMetadata>[] | undefined,
 ): Document<DocMetadata>[] {
-  console.log(
-    'parseAndRemoveWordsFromSources: Input sources type:',
-    typeof sources,
-  );
-  console.log(
-    'parseAndRemoveWordsFromSources: Input sources:',
-    JSON.stringify(sources, null, 2),
-  );
-
   if (!sources) {
-    console.log('parseAndRemoveWordsFromSources: Sources is undefined or null');
     return [];
   }
 
   let parsedSources: Document<DocMetadata>[] = [];
   if (typeof sources === 'string') {
-    console.log('parseAndRemoveWordsFromSources: Sources is a string');
-    // TODO: Remove this after confirming that sources is always an array
-    if (process.env.NODE_ENV === 'development') {
-      console.assert(
-        typeof sources !== 'string',
-        'Sources should not be a string in development',
-      );
-      if (typeof sources === 'string') {
-        throw new Error('Sources is a string in development');
-      }
-    }
     try {
       const tempSources = JSON.parse(sources);
-      console.log(
-        'parseAndRemoveWordsFromSources: Parsed sources:',
-        JSON.stringify(tempSources, null, 2),
-      );
       parsedSources = Array.isArray(tempSources) ? tempSources : [];
-      console.log(
-        'parseAndRemoveWordsFromSources: Is parsed sources an array:',
-        Array.isArray(parsedSources),
-      );
     } catch (error) {
       console.error(
         'parseAndRemoveWordsFromSources: Error parsing sources:',
@@ -97,7 +68,6 @@ export function parseAndRemoveWordsFromSources(
       );
     }
   } else if (Array.isArray(sources)) {
-    console.log('parseAndRemoveWordsFromSources: Sources is already an array');
     parsedSources = sources;
   }
 

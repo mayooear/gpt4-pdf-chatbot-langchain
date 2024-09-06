@@ -999,7 +999,25 @@
     zod "^3.22.3"
     zod-to-json-schema "^3.22.5"
 
-"@langchain/core@*", "@langchain/core@>=0.2.5 <0.3.0", "@langchain/core@>0.2.0 <0.3.0":
+"@langchain/core@*", "@langchain/core@^0.1.30", "@langchain/core@>0.1.56 <0.3.0", "@langchain/core@~0.1", "@langchain/core@~0.1.60", "@langchain/core@~0.1.9":
+  version "0.1.63"
+  resolved "https://registry.npmjs.org/@langchain/core/-/core-0.1.63.tgz"
+  integrity sha512-+fjyYi8wy6x1P+Ee1RWfIIEyxd9Ee9jksEwvrggPwwI/p45kIDTdYTblXsM13y4mNWTiACyLSdbwnPaxxdoz+w==
+  dependencies:
+    ansi-styles "^5.0.0"
+    camelcase "6"
+    decamelize "1.2.0"
+    js-tiktoken "^1.0.12"
+    langsmith "~0.1.7"
+    ml-distance "^4.0.0"
+    mustache "^4.2.0"
+    p-queue "^6.6.2"
+    p-retry "4"
+    uuid "^9.0.0"
+    zod "^3.22.4"
+    zod-to-json-schema "^3.22.3"
+
+"@langchain/core@>0.2.0 <0.3.0":
   version "0.2.31"
   resolved "https://registry.npmjs.org/@langchain/core/-/core-0.2.31.tgz"
   integrity sha512-qGfeaACST7dvovgHItzuag9fEBGK7IjCE9vRuTu/y8/WYGJi28WPD/AwWxnu7YdW1vZSuIXO6ZA76t2G9B/oKg==
@@ -1016,52 +1034,16 @@
     zod "^3.22.4"
     zod-to-json-schema "^3.22.3"
 
-"@langchain/core@>0.1.56 <0.3.0", "@langchain/core@~0.1.60":
-  version "0.1.63"
-  resolved "https://registry.npmjs.org/@langchain/core/-/core-0.1.63.tgz"
-  integrity sha512-+fjyYi8wy6x1P+Ee1RWfIIEyxd9Ee9jksEwvrggPwwI/p45kIDTdYTblXsM13y4mNWTiACyLSdbwnPaxxdoz+w==
+"@langchain/openai@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.npmjs.org/@langchain/openai/-/openai-0.0.10.tgz"
+  integrity sha512-74BBDsuLHT+jNlDviHPUemqiG2nm1AF8i9ta0zfkwjE9JtNITL5ZVhoCSczklipx5LzO+6etVuhjdhXcwNOfBA==
   dependencies:
-    ansi-styles "^5.0.0"
-    camelcase "6"
-    decamelize "1.2.0"
-    js-tiktoken "^1.0.12"
-    langsmith "~0.1.7"
-    ml-distance "^4.0.0"
-    mustache "^4.2.0"
-    p-queue "^6.6.2"
-    p-retry "4"
-    uuid "^9.0.0"
-    zod "^3.22.4"
-    zod-to-json-schema "^3.22.3"
-
-"@langchain/core@~0.1":
-  version "0.1.63"
-  resolved "https://registry.npmjs.org/@langchain/core/-/core-0.1.63.tgz"
-  integrity sha512-+fjyYi8wy6x1P+Ee1RWfIIEyxd9Ee9jksEwvrggPwwI/p45kIDTdYTblXsM13y4mNWTiACyLSdbwnPaxxdoz+w==
-  dependencies:
-    ansi-styles "^5.0.0"
-    camelcase "6"
-    decamelize "1.2.0"
-    js-tiktoken "^1.0.12"
-    langsmith "~0.1.7"
-    ml-distance "^4.0.0"
-    mustache "^4.2.0"
-    p-queue "^6.6.2"
-    p-retry "4"
-    uuid "^9.0.0"
-    zod "^3.22.4"
-    zod-to-json-schema "^3.22.3"
-
-"@langchain/openai@^0.1.3":
-  version "0.1.3"
-  resolved "https://registry.npmjs.org/@langchain/openai/-/openai-0.1.3.tgz"
-  integrity sha512-riv/JC9x2A8b7GcHu8sx+mlZJ8KAwSSi231IPTlcciYnKozmrQ5H0vrtiD31fxiDbaRsk7tyCpkSBIOQEo7CyQ==
-  dependencies:
-    "@langchain/core" ">=0.2.5 <0.3.0"
-    js-tiktoken "^1.0.12"
-    openai "^4.49.1"
-    zod "^3.22.4"
-    zod-to-json-schema "^3.22.3"
+    "@langchain/core" "~0.1.9"
+    js-tiktoken "^1.0.7"
+    openai "^4.19.0"
+    zod "^3.22.3"
+    zod-to-json-schema "3.20.3"
 
 "@langchain/openai@~0.0.28":
   version "0.0.34"
@@ -2157,7 +2139,7 @@
   resolved "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.12.tgz"
   integrity sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==
 
-"@types/qs@*", "@types/qs@^6.9.7":
+"@types/qs@*", "@types/qs@^6.9.15":
   version "6.9.15"
   resolved "https://registry.npmjs.org/@types/qs/-/qs-6.9.15.tgz"
   integrity sha512-uXHQKES6DQKKCLh441Xv/dwxOq1TVS3JPUMlEqoEglvlhR6Mxnlew/Xq/LRVHpLyk7iK3zODe1qYHIMltO7XGg==
@@ -4050,11 +4032,6 @@ fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
-
-fsevents@~2.3.2, fsevents@~2.3.3:
-  version "2.3.3"
-  resolved "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz"
-  integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
 
 function-bind@^1.1.2:
   version "1.1.2"
@@ -6190,14 +6167,14 @@ once@^1.3.0, once@^1.4.0:
   dependencies:
     wrappy "1"
 
-openai@*, openai@^4.41.1, openai@^4.49.1:
-  version "4.57.2"
-  resolved "https://registry.npmjs.org/openai/-/openai-4.57.2.tgz"
-  integrity sha512-IgIxNjo9tfgnfx6gmwNMg3tdF9giK/2lbwG5DY7zs4TP9Gz+h6h2hBOMoalLPFUVOO5HLOgMI/PFV5VDAUvvMg==
+openai@*, openai@^4.19.0, openai@^4.41.1:
+  version "4.58.0"
+  resolved "https://registry.npmjs.org/openai/-/openai-4.58.0.tgz"
+  integrity sha512-iEjwfZ+3ZOyf/Rjfca0vrDA2y4Lt7W3auf2ZJGt6+puyvzGYwp22da4mrNcYJkcek7SngOqiQI3h/44XCSCO6A==
   dependencies:
     "@types/node" "^18.11.18"
     "@types/node-fetch" "^2.6.4"
-    "@types/qs" "^6.9.7"
+    "@types/qs" "^6.9.15"
     abort-controller "^3.0.0"
     agentkeepalive "^4.2.1"
     form-data-encoder "1.7.2"
@@ -7716,12 +7693,7 @@ uuid@^8.0.0:
   resolved "https://registry.npmjs.org/uuid/-/uuid-8.3.2.tgz"
   integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
 
-uuid@^9.0.0:
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz"
-  integrity sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==
-
-uuid@^9.0.1:
+uuid@^9.0.0, uuid@^9.0.1:
   version "9.0.1"
   resolved "https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz"
   integrity sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==
@@ -7976,7 +7948,12 @@ zod-to-json-schema@^3.22.3, zod-to-json-schema@^3.22.5:
   resolved "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.23.2.tgz"
   integrity sha512-uSt90Gzc/tUfyNqxnjlfBs8W6WSGpNBv0rVsNxP/BVSMHMKGdthPYff4xtCHYloJGM0CFxFsb3NbC0eqPhfImw==
 
-zod@^3.22.3, zod@^3.22.4, zod@^3.23.3, zod@^3.23.8:
+zod-to-json-schema@3.20.3:
+  version "3.20.3"
+  resolved "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.20.3.tgz"
+  integrity sha512-/Q3wnyxAfCt94ZcrGiXXoiAfRqasxl9CX64LZ9fj+4dKH68zulUtU0uk1WMxQPfAxQ0ZI70dKzcoW7hHj+DwSQ==
+
+zod@^3.20.0, zod@^3.22.3, zod@^3.22.4, zod@^3.23.3, zod@^3.23.8:
   version "3.23.8"
   resolved "https://registry.npmjs.org/zod/-/zod-3.23.8.tgz"
   integrity sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==
