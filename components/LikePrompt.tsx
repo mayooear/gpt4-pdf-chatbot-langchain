@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { getOtherVisitorsReference } from '@/utils/client/siteConfig';
 import { SiteConfig } from '@/types/siteConfig';
 
@@ -8,23 +9,15 @@ interface LikePromptProps {
 }
 
 const LikePrompt: React.FC<LikePromptProps> = ({ show, siteConfig }) => {
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [hasSeenPrompt, setHasSeenPrompt] = useLocalStorage('hasSeenLikePrompt', false);
 
-  useEffect(() => {
-    const hasSeenPrompt = localStorage.getItem('hasSeenLikePrompt');
-    if (!hasSeenPrompt && show) {
-      setShowPrompt(true);
-    }
-  }, [show]);
+  if (!show || hasSeenPrompt) return null;
 
   const handleClose = () => {
-    setShowPrompt(false);
-    localStorage.setItem('hasSeenLikePrompt', 'true');
+    setHasSeenPrompt(true);
   };
 
   const otherVisitorsReference = getOtherVisitorsReference(siteConfig);
-
-  if (!showPrompt) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
