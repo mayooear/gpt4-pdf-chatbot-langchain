@@ -289,6 +289,13 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 - Check that you've set the vector dimensions to `1536`.
 - Retry from scratch with a new Pinecone project, index, and cloned repo.
 
-## Credit
+## Adding a new site
 
-The frontend of this repo is inspired by [langchain-chat-nextjs](https://github.com/zahidkhawaja/langchain-chat-nextjs)
+1. Copy `site-config/config.json` to `site-config/config.[site].json`
+2. Edit the new config file with your site's details
+3. Write your system prompt in site-config/prompts/[site]-prompt.txt. Be sure above config file references the correct prompt for your site.
+3. Create .env.[site] and add your site's API keys. Be sure to get a unique FIREBASE_ADMINSDK_JSON for your site.
+
+## Open Source Credits
+
+The frontend of this repo is forked from [langchain-chat-nextjs](https://github.com/zahidkhawaja/langchain-chat-nextjs)
