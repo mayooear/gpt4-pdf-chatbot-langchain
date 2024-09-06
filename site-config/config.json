@@ -50,5 +50,24 @@
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
     "loginImage": null
+  },
+  "crystal": {
+    "name": "The Crystal Clarity Chatbot",
+    "tagline": "Explore the Crystal Clarity Library",
+    "greeting": "What can I answer for you using the Crystal Clarity Library?",
+    "welcome_popup_heading": "Welcome!",
+    "other_visitors_reference": "other visitors",
+    "parent_site_url": "https://crystalclarity.com",
+    "parent_site_name": "Crystal Clarity",
+    "help_url": "",
+    "help_text": "",
+    "collectionConfig": {
+      "collection1": "All Documents"
+    },
+    "libraryMappings": {},
+    "enableSuggestedQueries": false,
+    "enableMediaTypeSelection": false,
+    "enableAuthorSelection": false,
+    "loginImage": null
   }
 }
