@@ -1,4 +1,4 @@
-# Ask Ananda Library - A RAG Chatbot for Your PDF Files, Audio Files, and YouTube Videos
+# The Ananda Chatbot - A RAG Chatbot for Your PDF Files, Audio Files, and YouTube Videos
 
 Build a chatGPT chatbot for multiple Large PDF files, audio files, and YouTube
 videos. Optionally generate the PDF fileset from a Wordpress database.
@@ -165,7 +165,9 @@ debugging, and to avoid charges for using the Firebase services.
    For Windows, use pyenv-win:
 
    ```powershell
-   Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+   Invoke-WebRequest -UseBasicParsing \
+    -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" \
+    -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
    ```
 
 2. Install Python 3.12.3:
@@ -293,8 +295,10 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 
 1. Copy `site-config/config.json` to `site-config/config.[site].json`
 2. Edit the new config file with your site's details
-3. Write your system prompt in site-config/prompts/[site]-prompt.txt. Be sure above config file references the correct prompt for your site.
-3. Create .env.[site] and add your site's API keys. Be sure to get a unique FIREBASE_ADMINSDK_JSON for your site.
+3. Write your system prompt in site-config/prompts/[site]-prompt.txt. Be sure above config file references
+  the correct prompt for your site.
+4. Create .env.[site] and add your site's API keys. Be sure to get a unique FIREBASE_ADMINSDK_JSON for
+  your site.
 
 ## Open Source Credits
 
