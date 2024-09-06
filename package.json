@@ -47,7 +47,6 @@
     "natural": "^8.0.1",
     "next": "^14.2.4",
     "node-cache": "^5.1.2",
-    "node-fetch": "^2.7.0",
     "node-rake": "^1.0.1",
     "nodemailer": "^6.9.14",
     "p-map": "^7.0.2",
@@ -61,7 +60,7 @@
     "rehype-stringify": "^10.0.0",
     "remark-gfm": "^4.0.0",
     "showdown": "^2.1.0",
-    "tailwind-merge": "^1.10.0"
+    "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -84,7 +83,7 @@
     "postcss": "^8.4.21",
     "prettier": "^3.3.3",
     "tailwindcss": "^3.2.7",
-    "tsx": "^3.12.3",
+    "tsx": "^4.19.0",
     "typescript": "^5.5.4"
   },
   "keywords": [
