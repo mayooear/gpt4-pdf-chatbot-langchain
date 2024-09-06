@@ -4,12 +4,15 @@ import { logEvent } from '@/utils/client/analytics';
 import { Converter } from 'showdown';
 import { Document } from 'langchain/document';
 import { DocMetadata } from '@/types/DocMetadata';
+import { getSiteName } from '@/utils/client/siteConfig';
+import { SiteConfig } from '@/types/siteConfig';
 
 interface CopyButtonProps {
   markdown: string;
   answerId?: string;
   sources?: Document<DocMetadata>[];
   question: string;
+  siteConfig: SiteConfig | null;
 }
 
 const CopyButton: React.FC<CopyButtonProps> = ({
@@ -17,6 +20,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({
   answerId,
   sources,
   question,
+  siteConfig,
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -49,8 +53,8 @@ const CopyButton: React.FC<CopyButtonProps> = ({
     }
 
     contentToCopy +=
-      '\n\n### From:\n\n[Ask Ananda Library](' +
-      process.env.NEXT_PUBLIC_BASE_URL +
+      `\n\n### From:\n\n[${getSiteName(siteConfig)}](` +
+      `${process.env.NEXT_PUBLIC_BASE_URL}/answers/${answerId}` +
       ')';
     const htmlContent = convertMarkdownToHtml(contentToCopy);
     await copyTextToClipboard(htmlContent, true);

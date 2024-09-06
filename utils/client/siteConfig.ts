@@ -7,7 +7,10 @@ export const getCollectionsConfig = (siteConfig: SiteConfig | null) =>
 export type CollectionKey = keyof ReturnType<typeof getCollectionsConfig>;
 
 export const getSiteName = (siteConfig: SiteConfig | null) =>
-  siteConfig?.name ?? 'AI Chatbot';
+  siteConfig?.name ?? 'The AI Chatbot';
+
+export const getShortname = (siteConfig: SiteConfig | null) =>
+  siteConfig?.shortname ?? 'AI Chatbot';
 
 export const getTagline = (siteConfig: SiteConfig | null) =>
   siteConfig?.tagline ?? 'Explore, Discover, Learn';

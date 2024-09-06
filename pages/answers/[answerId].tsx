@@ -9,6 +9,7 @@ import { isSudo } from '@/utils/client/cookieUtils';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { logEvent } from '@/utils/client/analytics';
 import Head from 'next/head';
+import { getShortname } from '@/utils/client/siteConfig';
 
 interface SingleAnswerProps {
   siteConfig: SiteConfig | null;
@@ -124,7 +125,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   return (
     <Layout siteConfig={siteConfig}>
       <Head>
-        <title>Ask Ananda Library: {answer.question.substring(0, 150)}</title>
+        <title>{getShortname(siteConfig)}: {answer.question.substring(0, 150)}</title>
       </Head>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <AnswerItem

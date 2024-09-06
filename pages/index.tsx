@@ -373,6 +373,7 @@ export default function Home({
                                   answerId={message.docId ?? ''}
                                   sources={message.sourceDocs}
                                   question={messages[index - 1].message}
+                                  siteConfig={siteConfig}
                                 />
                               </>
                             )}

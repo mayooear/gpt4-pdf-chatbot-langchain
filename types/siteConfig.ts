@@ -1,5 +1,6 @@
 export interface SiteConfig {
   siteId: string;
+  shortname: string;
   name: string;
   tagline: string;
   greeting: string;

@@ -189,6 +189,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
               answerId={answer.id}
               sources={answer.sources as Document<DocMetadata>[] | undefined}
               question={answer.question}
+              siteConfig={siteConfig}
             />
             <button
               onClick={() => handleCopyLink(answer.id)}
