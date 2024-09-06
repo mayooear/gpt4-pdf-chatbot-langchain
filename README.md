@@ -54,18 +54,12 @@ have added
 ### Prerequisites
 
 1. Node.js (version 18+)
-2. Yarn
-3. Python 3.12.3
-4. Firebase CLI
+2. Python 3.12.3
+3. Firebase CLI
 
-### Node.js and Yarn Setup
+### Node.js Setup
 
-1. Install Node.js from [nodejs.org](https://nodejs.org/) (version 18+)
-2. Install Yarn globally:
-
-   ```bash
-   npm install -g yarn
-   ```
+Install Node.js from [nodejs.org](https://nodejs.org/) (version 18+)
 
 ### Clone the repo or download the ZIP
 
@@ -76,7 +70,7 @@ have added
 1. Install node packages
 
 ```bash
-yarn install
+npm install
 ```
 
 After installation, you should now see a `node_modules` folder.
@@ -207,12 +201,12 @@ This repo can load multiple PDF files.
 
 1. Inside `python/data-ingestion/docs` folder, add your pdf files or folders that contain pdf files.
 
-1. Run the script `yarn run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
+1. Run the script `npm run ingest` to 'ingest' and embed your docs. If you run into errors troubleshoot below.
 
 You can add arguments like this:
 
 ```bash
-yarn run ingest --dryrun --site [site]
+npm run ingest --dryrun --site [site]
 ```
 
 1. Check Pinecone dashboard to verify your namespace and vectors have been added.
@@ -296,9 +290,9 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 1. Copy `site-config/config.json` to `site-config/config.[site].json`
 2. Edit the new config file with your site's details
 3. Write your system prompt in site-config/prompts/[site]-prompt.txt. Be sure above config file references
-  the correct prompt for your site.
+   the correct prompt for your site.
 4. Create .env.[site] and add your site's API keys. Be sure to get a unique FIREBASE_ADMINSDK_JSON for
-  your site.
+   your site.
 
 ## Open Source Credits
 

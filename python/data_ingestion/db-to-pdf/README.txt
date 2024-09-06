@@ -22,7 +22,7 @@ The process is:
    Change your .env file to point to its API key. 
    Then run:
 
-      yarn run ingest
+      npm run ingest
 
 6. Confirm that pinecone index was created
 
