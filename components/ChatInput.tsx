@@ -58,10 +58,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [showOptions, setShowOptions] = useState(false);
   const [visitCount, setVisitCount] = useLocalStorage('visitCount', 0);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     setVisitCount((prevCount: number) => prevCount + 1);
     setSuggestionsExpanded(visitCount < 3);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,7 +75,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const newIsMobile = window.innerWidth < 768;
+      setIsMobile(newIsMobile);
+      if (!newIsMobile) {
+        setShowOptions(true);
+      }
     };
 
     handleResize(); // Set initial value
@@ -170,77 +172,79 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </button>
           </div>
 
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setShowOptions(!showOptions)}
-              className="text-blue-500 hover:underline mb-2"
-            >
-              {showOptions ? 'Hide options' : 'Show options'}
-            </button>
+          {isMobile && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowOptions(!showOptions)}
+                className="text-blue-500 hover:underline mb-2"
+              >
+                {showOptions ? 'Hide options' : 'Show options'}
+              </button>
+            </div>
+          )}
 
-            {showOptions && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {showMediaTypeSelection && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleMediaTypeChange('text')}
-                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                        mediaTypes.text
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Writings
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMediaTypeChange('audio')}
-                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                        mediaTypes.audio
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Audio
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMediaTypeChange('youtube')}
-                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                        mediaTypes.youtube
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Video
-                    </button>
-                  </>
-                )}
-                {showAuthorSelection && (
-                  <div className="flex-grow sm:flex-grow-0 sm:min-w-[160px]">
-                    <CollectionSelector
-                      onCollectionChange={handleCollectionChange}
-                      currentCollection={collection}
-                    />
-                  </div>
-                )}
-                {!privateSession && (
+          {(!isMobile || showOptions) && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {showMediaTypeSelection && (
+                <>
                   <button
                     type="button"
-                    onClick={handlePrivateSessionChange}
-                    className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
+                    onClick={() => handleMediaTypeChange('text')}
+                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                      mediaTypes.text
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
                   >
-                    <span className="material-icons text-sm mr-1 align-middle">
-                      lock
-                    </span>
-                    <span className="align-middle">Start Private Session</span>
+                    Writings
                   </button>
-                )}
-              </div>
-            )}
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => handleMediaTypeChange('audio')}
+                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                      mediaTypes.audio
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Audio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMediaTypeChange('youtube')}
+                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                      mediaTypes.youtube
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Video
+                  </button>
+                </>
+              )}
+              {showAuthorSelection && (
+                <div className="flex-grow sm:flex-grow-0 sm:min-w-[160px]">
+                  <CollectionSelector
+                    onCollectionChange={handleCollectionChange}
+                    currentCollection={collection}
+                  />
+                </div>
+              )}
+              {!privateSession && (
+                <button
+                  type="button"
+                  onClick={handlePrivateSessionChange}
+                  className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
+                >
+                  <span className="material-icons text-sm mr-1 align-middle">
+                    lock
+                  </span>
+                  <span className="align-middle">Start Private Session</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
