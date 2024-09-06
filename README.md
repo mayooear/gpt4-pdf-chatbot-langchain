@@ -53,7 +53,7 @@ have added
 
 ### Prerequisites
 
-1. Node.js (version 18 or greater)
+1. Node.js (version 18+)
 2. Yarn
 3. Python 3.12.3
 4. Firebase CLI
