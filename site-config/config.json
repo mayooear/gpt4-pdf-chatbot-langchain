@@ -1,6 +1,7 @@
 {
   "ananda": {
     "name": "The Ananda Chatbot",
+    "shortname": "Ananda Chatbot",
     "tagline": "Explore, Discover, Learn – Uncover the treasures of our path.",
     "greeting": "Hi GuruBuddy! How can I help you on our path today?",
     "welcome_popup_heading": "Welcome, Gurubhai!",
@@ -34,6 +35,7 @@
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
+    "shortname": "Free Joe Hunt Chatbot",
     "tagline": "Uncover the Truth. Explore Joe Hunt's Fight for Justice.",
     "greeting": "What can I answer for you about Joe Hunt's case and story?",
     "welcome_popup_heading": "Welcome!",
@@ -53,6 +55,7 @@
   },
   "crystal": {
     "name": "The Crystal Clarity Chatbot",
+    "shortname": "Crystal Clarity Chatbot",
     "tagline": "Explore the Crystal Clarity Library",
     "greeting": "What can I answer for you using the Crystal Clarity Library?",
     "welcome_popup_heading": "Welcome!",
