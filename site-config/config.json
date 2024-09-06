@@ -1,6 +1,5 @@
 {
   "ananda": {
-    "shortname": "Ananda Chatbot",
     "name": "The Ananda Chatbot",
     "tagline": "Explore, Discover, Learn – Uncover the treasures of our path.",
     "greeting": "Hi GuruBuddy! How can I help you on our path today?",
@@ -34,7 +33,6 @@
     "loginImage": "mascot.png"
   },
   "jairam": {
-    "shortname": "Free Joe Hunt Chatbot",
     "name": "The Free Joe Hunt Chatbot",
     "tagline": "Uncover the Truth. Explore Joe Hunt's Fight for Justice.",
     "greeting": "What can I answer for you about Joe Hunt's case and story?",
@@ -54,7 +52,6 @@
     "loginImage": null
   },
   "crystal": {
-    "shortname": "Crystal Clarity Chatbot",
     "name": "The Crystal Clarity Chatbot",
     "tagline": "Explore the Crystal Clarity Library",
     "greeting": "What can I answer for you using the Crystal Clarity Library?",

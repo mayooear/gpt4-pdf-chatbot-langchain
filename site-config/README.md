@@ -16,6 +16,7 @@ object with various settings.
 ### Configuration Options
 
 - `name`: The name of the chatbot
+- `shortname`: A short name for the chatbot
 - `tagline`: A brief description or slogan for the chatbot
 - `greeting`: The initial greeting message from the chatbot
 - `welcome_popup_heading`: Heading for the welcome popup
