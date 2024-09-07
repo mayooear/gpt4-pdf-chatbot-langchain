@@ -6,10 +6,9 @@ async function initPinecone() {
   if (!process.env.PINECONE_API_KEY) {
     throw new Error('Pinecone API key missing');
   }
-
   try {
     const pinecone = new Pinecone({
-      apiKey: process.env.PINECONE_API_KEY,
+      apiKey: process.env.PINECONE_API_KEY!,
     });
 
     return pinecone;

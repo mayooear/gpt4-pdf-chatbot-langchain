@@ -9,6 +9,7 @@ import * as fbadmin from 'firebase-admin';
 import { db } from '@/services/firebase';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { updateRelatedQuestions } from '@/utils/server/relatedQuestionsUtils';
+import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
 
@@ -45,7 +46,10 @@ export default async function handler(
 
     try {
       const pinecone = await getPineconeClient();
-      const index = pinecone.Index(getPineconeIndexName());
+      // const index = pinecone.Index(getPineconeIndexName());
+      const index = pinecone.Index(
+        getPineconeIndexName() || ('' as string),
+      ) as Index<RecordMetadata>;
 
       const filter: {
         type: { $in: string[] };
