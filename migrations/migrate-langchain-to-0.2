@@ -1,0 +1,8 @@
+import { updateEntrypointsFrom0_x_xTo0_2_x } from "@langchain/scripts/migrations";
+
+const pathToMyProject = "."; // This path is used in the following glob pattern: `${projectPath}/**/*.{ts,tsx,js,jsx}`.
+
+updateEntrypointsFrom0_x_xTo0_2_x({
+  projectPath: pathToMyProject,
+  shouldLog: true,
+});
