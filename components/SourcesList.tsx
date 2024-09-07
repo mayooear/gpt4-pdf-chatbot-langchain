@@ -220,22 +220,6 @@ const SourcesList: React.FC<SourcesListProps> = ({
     );
   };
 
-  const handleSummaryClick = (
-    e: React.MouseEvent,
-    index: number,
-    doc: Document<DocMetadata>,
-  ) => {
-    const target = e.target as HTMLElement;
-    const isClickOnLink = target.tagName === 'A' || target.closest('a');
-    const isClickOnArrow =
-      target.classList.contains('arrow-icon') || target.closest('.arrow-icon');
-
-    if (!isClickOnLink && (isClickOnArrow || !doc.metadata.source)) {
-      e.preventDefault();
-      handleSourceToggle(index);
-    }
-  };
-
   return (
     <div className="bg-white sourcesContainer pb-4">
       {sources.length > 0 && (
