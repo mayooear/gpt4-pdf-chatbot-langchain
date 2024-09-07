@@ -124,18 +124,15 @@ const SourcesList: React.FC<SourcesListProps> = ({
   const handleSourceToggle = (index: number) => {
     setExpandedSources((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
+      const isExpanding = !newSet.has(index);
+      if (isExpanding) {
         newSet.add(index);
+      } else {
+        newSet.delete(index);
       }
+      logEvent('expand_source', 'UI', isExpanding ? 'expanded' : 'collapsed');
       return newSet;
     });
-    logEvent(
-      'expand_source',
-      'UI',
-      expandedSources.has(index) ? 'collapsed' : 'expanded',
-    );
   };
 
   const handleSourceClick = (
@@ -253,7 +250,9 @@ const SourcesList: React.FC<SourcesListProps> = ({
               }}
               className="text-sm text-blue-600 hover:underline"
             >
-              {expandedSources.size === 0 ? '(expand all)' : '(collapse all)'}
+              {expandedSources.size === sources.length
+                ? '(collapse all)'
+                : '(expand all)'}
             </a>
           </div>
           {displayCollectionName && (
@@ -276,7 +275,10 @@ const SourcesList: React.FC<SourcesListProps> = ({
               open={isExpanded}
             >
               <summary
-                onClick={(e) => handleSummaryClick(e, index, doc)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSourceToggle(index);
+                }}
                 className="flex items-center cursor-pointer list-none py-1 px-2 hover:bg-gray-50"
               >
                 <div className="grid grid-cols-[auto_1fr_auto] items-center w-full gap-2">
