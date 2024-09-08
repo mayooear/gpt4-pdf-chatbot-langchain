@@ -41,8 +41,6 @@ export function AudioPlayer({
   } = useAudioPlayer({
     src: audioUrl,
     startTime,
-    audioId,
-    isGloballyPlaying: currentlyPlayingId === audioId,
   });
 
   const fetchAudioUrl = useCallback(async () => {

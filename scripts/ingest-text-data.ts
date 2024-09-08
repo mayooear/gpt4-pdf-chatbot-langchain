@@ -10,7 +10,7 @@
  * @see https://github.com/mozilla/pdf.js/issues/3768#issuecomment-36468349
  */
 
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
 import { getPineconeClient } from '@/utils/server/pinecone-client';

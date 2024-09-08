@@ -2,9 +2,8 @@ export function getLastPasswordChangeTimestamp(): number {
   const timestamp = process.env.LAST_PASSWORD_CHANGE_TIMESTAMP;
   return timestamp ? parseInt(timestamp, 10) : 0;
 }
-
 export function isTokenValid(token: string): boolean {
-  const [_, timestampStr] = token.split(':');
+  const [, timestampStr] = token.split(':');
   const tokenTimestamp = parseInt(timestampStr, 10);
   const lastPasswordChangeTimestamp = getLastPasswordChangeTimestamp();
 

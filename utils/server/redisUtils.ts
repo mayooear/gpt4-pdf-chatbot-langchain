@@ -15,7 +15,7 @@ export function initializeRedis() {
       // Test the connection
       redis.ping();
     } catch (error) {
-      console.error("Redis Cache not available:", error);
+      console.error('Redis Cache not available:', error);
       redis = null; // Ensure redis is set to null if connection fails
     }
   }
@@ -27,20 +27,24 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
   if (!redisClient) return null;
 
   try {
-    const cachedData = await redisClient.get(key);
-    return cachedData as T;
+    const cachedData = await redisClient.get<string | null>(key);
+    return cachedData ? (JSON.parse(cachedData) as T) : null;
   } catch (error) {
     console.error(`Error fetching from cache for key '${key}':`, error);
     return null;
   }
 }
 
-export async function setInCache(key: string, value: any, expiration: number = CACHE_EXPIRATION): Promise<void> {
+export async function setInCache(
+  key: string,
+  value: string | number | boolean | null | object,
+  expiration: number = CACHE_EXPIRATION,
+): Promise<void> {
   const redisClient = initializeRedis();
   if (!redisClient) return;
 
   try {
-    await redisClient.set(key, value, { ex: expiration });
+    await redisClient.set(key, JSON.stringify(value), { ex: expiration });
   } catch (error) {
     console.error(`Error setting in cache for key '${key}':`, error);
   }

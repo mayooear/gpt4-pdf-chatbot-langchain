@@ -6,9 +6,10 @@ import {
 } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import type { Document } from 'langchain/document';
-import type { VectorStoreRetriever } from 'langchain/vectorstores/base';
+import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import fs from 'fs/promises';
 import path from 'path';
+import { BaseLanguageModel } from '@langchain/core/language_models/base';
 
 type AnswerChainInput = {
   question: string;
@@ -156,7 +157,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   const model = new ChatOpenAI({
     temperature: 0,
     modelName: 'gpt-4o',
-  });
+  }) as BaseLanguageModel;
 
   // Rephrase the initial question into a dereferenced standalone question based on
   // the chat history to allow effective vectorstore querying.
