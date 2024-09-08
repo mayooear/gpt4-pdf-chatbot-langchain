@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 export const useRandomQueries = (queries: string[], count: number = 3) => {
   const getRandomQueries = useCallback(() => {

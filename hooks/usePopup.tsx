@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 
 const usePopup = (version: string, message: string) => {
   const [showPopup, setShowPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState(message);
+  const [popupMessage] = useState(message);
 
   useEffect(() => {
     const seenMessageVersion = Cookies.get('seenMessageVersion');
@@ -16,7 +16,7 @@ const usePopup = (version: string, message: string) => {
     Cookies.set('seenMessageVersion', version, {
       expires: 365,
       sameSite: 'Lax',
-      secure: true
+      secure: true,
     });
     setShowPopup(false);
   };

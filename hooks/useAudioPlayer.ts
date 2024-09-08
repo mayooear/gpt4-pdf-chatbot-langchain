@@ -3,12 +3,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface UseAudioPlayerProps {
   src: string | null;
   startTime: number;
-  endTime?: number;
-  audioId: string;
-  isGloballyPlaying: boolean;
 }
 
-export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPlaying }: UseAudioPlayerProps) {
+export function useAudioPlayer({ src, startTime }: UseAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
@@ -71,7 +68,7 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
       setIsPlaying(false);
     } else {
       setError(null);
-      audio.play().catch(error => {
+      audio.play().catch((error) => {
         console.error('Error playing audio:', error);
         setError('Failed to play audio. Please try again.');
         setIsPlaying(false);
@@ -80,22 +77,25 @@ export function useAudioPlayer({ src, startTime, endTime, audioId, isGloballyPla
     }
   }, [isPlaying, src]);
 
-  const setAudioTime = useCallback((time: number) => {
-    const audio = audioRef.current;
-    if (audio) {
-      setIsSeeking(true);
-      audio.currentTime = time;
-      setCurrentTime(time);
-      if (isPlaying) {
-        audio.play().catch(error => {
-          console.error('Error playing audio after seeking:', error);
-          setError('Failed to play audio after seeking. Please try again.');
-          setIsPlaying(false);
-        });
+  const setAudioTime = useCallback(
+    (time: number) => {
+      const audio = audioRef.current;
+      if (audio) {
+        setIsSeeking(true);
+        audio.currentTime = time;
+        setCurrentTime(time);
+        if (isPlaying) {
+          audio.play().catch((error) => {
+            console.error('Error playing audio after seeking:', error);
+            setError('Failed to play audio after seeking. Please try again.');
+            setIsPlaying(false);
+          });
+        }
+        setIsSeeking(false);
       }
-      setIsSeeking(false);
-    }
-  }, [isPlaying]);
+    },
+    [isPlaying],
+  );
 
   return {
     audioRef,

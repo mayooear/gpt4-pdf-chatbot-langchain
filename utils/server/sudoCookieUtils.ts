@@ -4,7 +4,10 @@ import Cookies from 'cookies';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { isDevelopment } from '@/utils/env';
 
-const secretKey = crypto.createHash('sha256').update(process.env.SECRET_KEY || 'fIp0%%wgKqmJ0aqtQo').digest();
+const secretKey = crypto
+  .createHash('sha256')
+  .update(process.env.SECRET_KEY || 'fIp0%%wgKqmJ0aqtQo')
+  .digest();
 
 function encrypt(text: string) {
   const iv = crypto.randomBytes(16);
@@ -38,8 +41,13 @@ function getClientIp(req: NextApiRequest): string {
   return req.socket.remoteAddress || '';
 }
 
-async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password: string) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
+async function setSudoCookie(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  password: string,
+) {
+  const isSecure =
+    req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = getClientIp(req);
@@ -56,12 +64,12 @@ async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password
     const encryptedToken = encrypt(`${token}:${userIp}`);
     const expiryDate = new Date();
     expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Set expiry to 1 year from now
-    cookies.set(sudoCookieName, encryptedToken, { 
-      httpOnly: true, 
-      secure: isSecure, 
-      sameSite: 'strict', 
+    cookies.set(sudoCookieName, encryptedToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'strict',
       expires: expiryDate,
-      maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year in milliseconds
     });
     return { message: 'You have been blessed' };
   } else {
@@ -70,7 +78,8 @@ async function setSudoCookie(req: NextApiRequest, res: NextApiResponse, password
 }
 
 function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
+  const isSecure =
+    req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   const userIp = getClientIp(req);
@@ -85,13 +94,17 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
       }
       const decryptedToken = decrypt(encryptedToken);
       const tokenIndex = decryptedToken.indexOf(':');
-      const token = decryptedToken.slice(0, tokenIndex);
       const ip = decryptedToken.slice(tokenIndex + 1);
       if (ip === userIp) {
         return { sudoCookieValue: true };
       } else {
-        console.error('GetSudoCookie: IP mismatch: Extracted IP does not match User IP');
-        return { sudoCookieValue: false, message: 'IP mismatch: Extracted IP does not match User IP' };
+        console.error(
+          'GetSudoCookie: IP mismatch: Extracted IP does not match User IP',
+        );
+        return {
+          sudoCookieValue: false,
+          message: 'IP mismatch: Extracted IP does not match User IP',
+        };
       }
     } catch (error) {
       console.error('Token validation error:', error);
@@ -103,7 +116,8 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
 }
 
 function deleteSudoCookie(req: NextApiRequest, res: NextApiResponse) {
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
+  const isSecure =
+    req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
   const cookies = new Cookies(req, res, { secure: isSecure });
   const sudoCookieName = 'blessed';
   cookies.set(sudoCookieName, '', { expires: new Date(0) });
