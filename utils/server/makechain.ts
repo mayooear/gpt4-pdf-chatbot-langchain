@@ -157,6 +157,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   const model = new ChatOpenAI({
     temperature: 0,
     modelName: 'gpt-4o',
+    streaming: true,
   }) as BaseLanguageModel;
 
   // Rephrase the initial question into a dereferenced standalone question based on

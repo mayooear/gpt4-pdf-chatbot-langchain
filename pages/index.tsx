@@ -40,6 +40,14 @@ import Cookies from 'js-cookie';
 import styles from '@/styles/Home.module.css';
 import markdownStyles from '@/styles/MarkdownStyles.module.css';
 
+interface ExtendedAIMessage {
+  type: 'apiMessage' | 'userMessage';
+  message: string;
+  sourceDocs?: Document<DocMetadata>[];
+  docId?: string;
+  collection?: string;
+}
+
 export default function Home({
   siteConfig,
 }: {
@@ -54,7 +62,7 @@ export default function Home({
     return '';
   });
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
-  const [, setQuery] = useState<string>('');
+  const [query, setQuery] = useState<string>('');
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
   const [privateSession, setPrivateSession] = useState<boolean>(false);
   const [mediaTypes, setMediaTypes] = useState<{
@@ -64,9 +72,11 @@ export default function Home({
   }>({ text: true, audio: true, youtube: true });
   const {
     messageState,
+    setMessageState,
     loading,
+    setLoading,
     error: chatError,
-    handleSubmit,
+    setError,
   } = useChat(collection, privateSession, mediaTypes, siteConfig);
   const { messages } = messageState as {
     messages: {
@@ -83,6 +93,42 @@ export default function Home({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const bottomOfListRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  const scrollToBottom = () => {
+    if (bottomOfListRef.current && shouldAutoScroll) {
+      bottomOfListRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (loading) {
+      scrollToBottom();
+    }
+  }, [loading, messageState.messages]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (messageListRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } =
+          messageListRef.current;
+        const isScrolledToBottom = scrollHeight - scrollTop === clientHeight;
+        setShouldAutoScroll(isScrolledToBottom);
+      }
+    };
+
+    const messageList = messageListRef.current;
+    if (messageList) {
+      messageList.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (messageList) {
+        messageList.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
     if (getEnableMediaTypeSelection(siteConfig)) {
@@ -108,15 +154,134 @@ export default function Home({
 
   const [collectionQueries, setCollectionQueries] = useState({});
 
-  const handleClick = (query: string) => {
-    setQuery(query);
-    // This change creates a minimal fake event object that satisfies the
-    // React.FormEvent<HTMLFormElement> type, which is likely what handleSubmit expects.
-    // It includes a preventDefault method to mimic a real form event.
-    const fakeEvent = {
-      preventDefault: () => {},
-    } as React.FormEvent<HTMLFormElement>;
-    handleSubmit(fakeEvent, query);
+  const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
+    e.preventDefault();
+    if (submittedQuery.trim() === '') return;
+
+    setShouldAutoScroll(true);
+    setLoading(true);
+    setError(null);
+
+    // Add user message to the state
+    setMessageState((prevState) => ({
+      ...prevState,
+      messages: [
+        ...prevState.messages,
+        { type: 'userMessage', message: submittedQuery } as ExtendedAIMessage,
+      ],
+      history: [...prevState.history, [submittedQuery, '']],
+    }));
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question: submittedQuery,
+        history: messageState.history,
+        collection,
+        privateSession,
+        mediaTypes,
+      }),
+    });
+
+    if (!response.ok) {
+      setLoading(false);
+      setError(response.statusText);
+      return;
+    }
+
+    const data = response.body;
+    if (!data) {
+      setLoading(false);
+      setError('No data returned from the server');
+      return;
+    }
+
+    const reader = data.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+    let accumulatedResponse = '';
+    let sourceDocs: Document[] | null = null;
+
+    while (!done) {
+      const { value, done: doneReading } = await reader.read();
+      done = doneReading;
+      const chunkValue = decoder.decode(value);
+      const lines = chunkValue.split('\n\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const jsonString = line.slice(6);
+          const {
+            token,
+            sourceDocs: docs,
+            done: streamDone,
+          } = JSON.parse(jsonString);
+          if (streamDone) {
+            setLoading(false);
+            break;
+          }
+          if (docs) {
+            sourceDocs = docs;
+          }
+          if (token) {
+            accumulatedResponse += token;
+            setMessageState((prevState) => {
+              const updatedMessages = [...prevState.messages];
+              const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+              if (lastMessage.type === 'apiMessage') {
+                // Update the existing API message
+                updatedMessages[updatedMessages.length - 1] = {
+                  ...lastMessage,
+                  message: accumulatedResponse,
+                  sourceDocs: sourceDocs,
+                };
+              } else {
+                // Append a new API message
+                updatedMessages.push({
+                  type: 'apiMessage',
+                  message: accumulatedResponse,
+                  sourceDocs: sourceDocs,
+                } as ExtendedAIMessage);
+              }
+
+              return {
+                ...prevState,
+                messages: updatedMessages,
+                history: [
+                  ...prevState.history.slice(0, -1),
+                  [
+                    prevState.history[prevState.history.length - 1][0],
+                    accumulatedResponse,
+                  ],
+                ],
+              };
+            });
+            // Scroll after each token update
+            setTimeout(scrollToBottom, 0);
+          }
+        }
+      }
+    }
+  };
+
+  const handleEnter = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    submittedQuery: string,
+  ) => {
+    if (e.key === 'Enter' && !e.shiftKey && submittedQuery.trim() !== '') {
+      e.preventDefault();
+      handleSubmit(
+        new Event('submit') as unknown as React.FormEvent,
+        submittedQuery,
+      );
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setQuery(e.target.value);
   };
 
   useEffect(() => {
@@ -199,51 +364,17 @@ export default function Home({
     }
   }, []);
 
-  const handleEnter = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    query: string,
-  ) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (query.trim()) {
-        handleSubmit(e as unknown as React.FormEvent, query);
-      }
-    }
-  };
-
-  // Add this effect to scroll when messages change
-  useEffect(() => {
-    if (lastMessageRef.current && messageListRef.current) {
-      const lastMessage = lastMessageRef.current;
-      const messageList = messageListRef.current;
-      const rect = lastMessage.getBoundingClientRect();
-
-      const scrollTop = messageList.scrollTop;
-      const clientHeight = messageList.clientHeight;
-
-      if (rect.top > clientHeight - 100) {
-        messageList.scrollTo({
-          top: scrollTop + rect.top - clientHeight + 100,
-          behavior: 'smooth',
-        });
-      } else {
-        // For mobile, scroll a bit more smoothly
-        const isMobile = window.innerWidth <= 768;
-        if (isMobile) {
-          messageList.scrollTo({
-            top: scrollTop + rect.top - clientHeight + 50,
-            behavior: 'smooth',
-          });
-        } else {
-          lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-      }
-    }
-  }, [messages]);
-
   const hasMultipleCollections = useMultipleCollections(
     siteConfig || undefined,
   );
+
+  const handleClick = (clickedQuery: string) => {
+    setQuery(clickedQuery);
+    handleSubmit(
+      new Event('submit') as unknown as React.FormEvent,
+      clickedQuery,
+    );
+  };
 
   if (isMaintenanceMode) {
     return (
@@ -292,9 +423,10 @@ export default function Home({
           <div className="flex-grow overflow-hidden">
             <div ref={messageListRef} className="h-full overflow-y-auto">
               {messages.map((message, index) => {
+                const extendedMessage = message as ExtendedAIMessage;
                 let icon;
                 let className;
-                if (message.type === 'apiMessage') {
+                if (extendedMessage.type === 'apiMessage') {
                   icon = (
                     <Image
                       src="/bot-image.png"
@@ -317,19 +449,17 @@ export default function Home({
                       priority
                     />
                   );
-                  // The latest message sent by the user will be animated while waiting for a response
                   className =
                     loading && index === messages.length - 1
                       ? styles.usermessagewaiting
                       : styles.usermessage;
                 }
                 return (
-                  <Fragment key={`message-${index}`}>
-                    {message.type === 'apiMessage' && index > 0 && (
+                  <Fragment key={`chatMessage-${index}`}>
+                    {extendedMessage.type === 'apiMessage' && index > 0 && (
                       <hr className="border-t border-gray-200 mb-0" />
                     )}
                     <div
-                      key={`chatMessage-${index}`}
                       className={`${className} p-2 px-3`}
                       ref={
                         index === messages.length - 1 ? lastMessageRef : null
@@ -339,15 +469,13 @@ export default function Home({
                         <div className="flex-shrink-0 mr-2">{icon}</div>
                         <div className="flex-grow">
                           <div className="max-w-none">
-                            {message.sourceDocs && (
+                            {extendedMessage.sourceDocs && (
                               <div className="mb-2">
                                 <SourcesList
-                                  sources={
-                                    message.sourceDocs as Document<DocMetadata>[]
-                                  }
+                                  sources={extendedMessage.sourceDocs}
                                   collectionName={
                                     collectionChanged && hasMultipleCollections
-                                      ? message.collection
+                                      ? extendedMessage.collection
                                       : null
                                   }
                                 />
@@ -366,45 +494,50 @@ export default function Home({
                               }}
                               className={`mt-1 ${markdownStyles.markdownanswer}`}
                             >
-                              {message.message
+                              {extendedMessage.message
                                 .replace(/\n/g, '  \n')
                                 .replace(/\n\n/g, '\n\n')}
                             </ReactMarkdown>
                           </div>
                           {/* Action icons container */}
                           <div className="mt-2 flex items-center space-x-2">
-                            {message.type === 'apiMessage' && index !== 0 && (
-                              <>
-                                <CopyButton
-                                  markdown={message.message}
-                                  answerId={message.docId ?? ''}
-                                  sources={message.sourceDocs}
-                                  question={messages[index - 1].message}
-                                  siteConfig={siteConfig}
-                                />
-                              </>
-                            )}
+                            {extendedMessage.type === 'apiMessage' &&
+                              index !== 0 && (
+                                <>
+                                  <CopyButton
+                                    markdown={extendedMessage.message}
+                                    answerId={extendedMessage.docId ?? ''}
+                                    sources={extendedMessage.sourceDocs}
+                                    question={messages[index - 1].message}
+                                    siteConfig={siteConfig}
+                                  />
+                                </>
+                              )}
                             {!privateSession &&
-                              message.type === 'apiMessage' &&
-                              message.docId && (
+                              extendedMessage.type === 'apiMessage' &&
+                              extendedMessage.docId && (
                                 <>
                                   <button
                                     onClick={() =>
-                                      handleCopyLink(message.docId ?? '')
+                                      handleCopyLink(
+                                        extendedMessage.docId ?? '',
+                                      )
                                     }
                                     className="text-black-600 hover:underline flex items-center"
                                     title="Copy link to clipboard"
                                   >
                                     <span className="material-icons">
-                                      {linkCopied === message.docId
+                                      {linkCopied === extendedMessage.docId
                                         ? 'check'
                                         : 'link'}
                                     </span>
                                   </button>
                                   <LikeButton
-                                    answerId={message.docId ?? ''}
+                                    answerId={extendedMessage.docId ?? ''}
                                     initialLiked={
-                                      likeStatuses[message.docId ?? ''] || false
+                                      likeStatuses[
+                                        extendedMessage.docId ?? ''
+                                      ] || false
                                     }
                                     likeCount={0}
                                     onLikeCountChange={(
@@ -420,17 +553,20 @@ export default function Home({
                                   />
                                   <button
                                     onClick={() =>
-                                      handleVote(message.docId ?? '', false)
+                                      handleVote(
+                                        extendedMessage.docId ?? '',
+                                        false,
+                                      )
                                     }
                                     className={`${styles.voteButton} ${
-                                      votes[message.docId ?? ''] === -1
+                                      votes[extendedMessage.docId ?? ''] === -1
                                         ? styles.voteButtonDownActive
                                         : ''
                                     } hover:bg-gray-200 flex items-center`}
                                     title="Downvote (private) for system training"
                                   >
                                     <span className="material-icons text-black">
-                                      {votes[message.docId ?? ''] === -1
+                                      {votes[extendedMessage.docId ?? ''] === -1
                                         ? 'thumb_down'
                                         : 'thumb_down_off_alt'}
                                     </span>
@@ -444,6 +580,7 @@ export default function Home({
                   </Fragment>
                 );
               })}
+              <div ref={bottomOfListRef} style={{ height: '1px' }} />
             </div>
           </div>
           <div className="mt-4 px-2 md:px-0">
@@ -463,6 +600,9 @@ export default function Home({
               mediaTypes={mediaTypes}
               handleMediaTypeChange={handleMediaTypeChange}
               siteConfig={siteConfig}
+              input={query}
+              handleInputChange={handleInputChange}
+              setShouldAutoScroll={setShouldAutoScroll}
             />
           </div>
           {privateSession && (

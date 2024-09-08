@@ -118,8 +118,11 @@ export function useChat(
 
   return {
     loading,
+    setLoading,
     error,
+    setError,
     messageState,
+    setMessageState,
     handleSubmit,
   };
 }

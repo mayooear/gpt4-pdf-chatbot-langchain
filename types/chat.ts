@@ -1,10 +1,10 @@
 import { Document } from 'langchain/document';
 
-export type Message = {
+export interface Message {
   type: 'apiMessage' | 'userMessage';
   message: string;
+  sourceDocs?: Document[] | null;
   isStreaming?: boolean;
-  sourceDocs?: Document[];
   docId?: string;
   collection?: string;
-};
+}

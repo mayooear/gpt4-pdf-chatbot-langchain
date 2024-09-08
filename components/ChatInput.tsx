@@ -32,6 +32,9 @@ interface ChatInputProps {
   mediaTypes: { text: boolean; audio: boolean; youtube: boolean };
   handleMediaTypeChange: (type: 'text' | 'audio' | 'youtube') => void;
   siteConfig: SiteConfig | null;
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  setShouldAutoScroll: (should: boolean) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -50,6 +53,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   mediaTypes,
   handleMediaTypeChange,
   siteConfig,
+  input,
+  handleInputChange,
+  setShouldAutoScroll,
 }) => {
   const [localQuery, setLocalQuery] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
@@ -107,8 +113,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setHasInteracted(true);
-    handleSubmit(e, localQuery);
+    setShouldAutoScroll(true); // Reset auto-scroll when submitting a new query
+    handleSubmit(e, input);
   };
 
   const onEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -127,6 +133,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const onQueryClick = (q: string) => {
     setLocalQuery(q);
+    setShouldAutoScroll(true); // Reset auto-scroll when clicking a suggested query
     handleClick(q);
   };
 
@@ -137,16 +144,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center space-x-2 mb-4">
             <textarea
               disabled={loading}
-              onKeyDown={onEnter}
-              onChange={(e) => {
-                setLocalQuery(e.target.value);
-                setHasInteracted(true);
-                if (textAreaRef.current) {
-                  textAreaRef.current.style.height = 'auto';
-                  textAreaRef.current.style.height = `${e.target.scrollHeight}px`;
-                }
-              }}
-              value={localQuery}
+              onKeyDown={(e) => handleEnter(e, input)}
+              onChange={handleInputChange}
+              value={input}
               ref={textAreaRef}
               autoFocus={false}
               rows={1}
