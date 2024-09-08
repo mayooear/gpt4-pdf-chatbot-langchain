@@ -125,6 +125,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     setSuggestionsExpanded(!suggestionsExpanded);
   };
 
+  const onQueryClick = (q: string) => {
+    setLocalQuery(q);
+    handleClick(q);
+  };
+
   return (
     <div className={`${styles.center} w-full mt-4 px-2 md:px-0`}>
       <div className="w-full">
@@ -259,10 +264,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {suggestionsExpanded && (
               <RandomQueries
                 queries={randomQueries}
-                onQueryClick={(q) => {
-                  setLocalQuery(q);
-                  handleClick(q);
-                }}
+                onQueryClick={onQueryClick}
                 isLoading={loading}
                 shuffleQueries={shuffleQueries}
                 isMobile={isMobile}

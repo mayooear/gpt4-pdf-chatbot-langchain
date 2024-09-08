@@ -110,6 +110,13 @@ export default function Home({
 
   const handleClick = (query: string) => {
     setQuery(query);
+    // This change creates a minimal fake event object that satisfies the
+    // React.FormEvent<HTMLFormElement> type, which is likely what handleSubmit expects.
+    // It includes a preventDefault method to mimic a real form event.
+    const fakeEvent = {
+      preventDefault: () => {},
+    } as React.FormEvent<HTMLFormElement>;
+    handleSubmit(fakeEvent, query);
   };
 
   useEffect(() => {
