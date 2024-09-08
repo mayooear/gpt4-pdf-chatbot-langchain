@@ -6,7 +6,7 @@ import {
 } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import type { Document } from 'langchain/document';
-import type { VectorStoreRetriever } from 'langchain/vectorstores/base';
+import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import fs from 'fs/promises';
 import path from 'path';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
