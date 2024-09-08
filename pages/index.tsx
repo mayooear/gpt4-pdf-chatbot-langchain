@@ -1,5 +1,12 @@
 // React and Next.js imports
-import { useRef, useState, useEffect, useMemo, Fragment } from 'react';
+import {
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+  Fragment,
+  useCallback,
+} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -95,26 +102,29 @@ export default function Home({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const bottomOfListRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isScrolling, setIsScrolling] = useState(false);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (bottomOfListRef.current && shouldAutoScroll) {
-      bottomOfListRef.current.scrollIntoView({ behavior: 'smooth' });
+      bottomOfListRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+      });
     }
-  };
+  }, [shouldAutoScroll]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || (!loading && messages.length > 0)) {
       scrollToBottom();
     }
-  }, [loading, messageState.messages]);
+  }, [loading, messages, scrollToBottom]);
 
   useEffect(() => {
     const handleScroll = () => {
       if (messageListRef.current) {
         const { scrollTop, scrollHeight, clientHeight } =
           messageListRef.current;
-        const isScrolledToBottom = scrollHeight - scrollTop === clientHeight;
-        setShouldAutoScroll(isScrolledToBottom);
+        setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 100);
       }
     };
 
@@ -171,6 +181,12 @@ export default function Home({
       ],
       history: [...prevState.history, [submittedQuery, '']],
     }));
+
+    // Clear the input
+    setQuery('');
+
+    // Scroll to bottom after adding user message
+    setTimeout(scrollToBottom, 0);
 
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -260,7 +276,7 @@ export default function Home({
               };
             });
             // Scroll after each token update
-            setTimeout(scrollToBottom, 0);
+            scrollToBottom();
           }
         }
       }
@@ -421,7 +437,19 @@ export default function Home({
             </div>
           )}
           <div className="flex-grow overflow-hidden">
-            <div ref={messageListRef} className="h-full overflow-y-auto">
+            <div
+              ref={messageListRef}
+              className="h-full overflow-y-auto"
+              onScroll={() => {
+                if (!isScrolling && messageListRef.current) {
+                  const { scrollTop, scrollHeight, clientHeight } =
+                    messageListRef.current;
+                  setShouldAutoScroll(
+                    scrollHeight - scrollTop - clientHeight < 100,
+                  );
+                }
+              }}
+            >
               {messages.map((message, index) => {
                 const extendedMessage = message as ExtendedAIMessage;
                 let icon;
@@ -602,6 +630,7 @@ export default function Home({
               siteConfig={siteConfig}
               input={query}
               handleInputChange={handleInputChange}
+              setQuery={setQuery}
               setShouldAutoScroll={setShouldAutoScroll}
             />
           </div>

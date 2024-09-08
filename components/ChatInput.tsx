@@ -35,6 +35,7 @@ interface ChatInputProps {
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   setShouldAutoScroll: (should: boolean) => void;
+  setQuery: (query: string) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -56,8 +57,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   input,
   handleInputChange,
   setShouldAutoScroll,
+  setQuery,
 }) => {
-  const [localQuery, setLocalQuery] = useState<string>('');
+  const [, setLocalQuery] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -113,13 +115,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setShouldAutoScroll(true); // Reset auto-scroll when submitting a new query
+    setShouldAutoScroll(true);
     handleSubmit(e, input);
+    setQuery('');
+    // Refocus the input after submission
+    setTimeout(() => {
+      textAreaRef.current?.focus();
+    }, 0);
   };
 
   const onEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    setHasInteracted(true);
-    handleEnter(e, localQuery);
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      setHasInteracted(true);
+      setShouldAutoScroll(true);
+      handleEnter(e, input);
+      setQuery('');
+      // Refocus the input after submission
+      setTimeout(() => {
+        textAreaRef.current?.focus();
+      }, 0);
+    }
   };
 
   const showSuggestedQueries = getEnableSuggestedQueries(siteConfig);
@@ -144,7 +160,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center space-x-2 mb-4">
             <textarea
               disabled={loading}
-              onKeyDown={(e) => handleEnter(e, input)}
+              onKeyDown={onEnter}
               onChange={handleInputChange}
               value={input}
               ref={textAreaRef}
@@ -153,13 +169,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               maxLength={3000}
               id="userInput"
               name="userInput"
-              placeholder={
-                loading
-                  ? 'Waiting for response...'
-                  : hasInteracted
-                    ? ''
-                    : 'How can I think of God more?'
-              }
+              placeholder={hasInteracted ? '' : 'How can I think of God more?'}
               className="flex-grow p-2 border border-gray-300 rounded-md resize-none focus:outline-none"
             />
             <button

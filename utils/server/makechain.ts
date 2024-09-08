@@ -202,10 +202,12 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // chat history and retrieved context documents.
   const conversationalRetrievalQAChain = RunnableSequence.from([
     {
-      question: RunnableSequence.from([
-        (input: AnswerChainInput) => input,
-        standaloneQuestionChain,
-      ]),
+      question: (input: AnswerChainInput) => {
+        if (input.chat_history.trim() === '') {
+          return input.question; // Use original question if no chat history
+        }
+        return standaloneQuestionChain.invoke(input);
+      },
       chat_history: (input: AnswerChainInput) => input.chat_history,
     },
     answerChain,
