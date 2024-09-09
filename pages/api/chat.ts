@@ -13,10 +13,6 @@ import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 
 export const maxDuration = 240; // This function can run for a maximum of 240 seconds
 
-export const config = {
-  runtime: 'edge',
-};
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
