@@ -116,6 +116,7 @@ export default async function handler(
     const sendData = (data: string) => {
       console.log('Sending chunk:', data); // New log
       res.write(`data: ${data}\n\n`);
+      res.flushHeaders();
     };
 
     // Start the chain invocation
