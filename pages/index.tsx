@@ -266,6 +266,9 @@ export default function Home({
         signal: newAbortController.signal,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
         setLoading(false);
         setError(response.statusText);
@@ -349,8 +352,9 @@ export default function Home({
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request aborted');
       } else {
-        setError('An error occurred while fetching the data.');
-        console.error('handleSubmit Error details:', error);
+        console.error('Streaming error:', error);
+        setError('An error occurred while streaming the response.');
+        setLoading(false);
       }
     } finally {
       setLoading(false);

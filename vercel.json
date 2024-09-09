@@ -1,7 +1,7 @@
 {
   "functions": {
     "pages/api/chat.ts": {
-      "maxDuration": 60
+      "maxDuration": 240
     }
   },
   "crons": [
