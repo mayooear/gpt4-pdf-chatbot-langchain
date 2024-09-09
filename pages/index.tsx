@@ -101,31 +101,64 @@ export default function Home({
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const bottomOfListRef = useRef<HTMLDivElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [isScrolling, setIsScrolling] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
+  const userHasScrolledUpRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = useCallback(() => {
-    if (bottomOfListRef.current && shouldAutoScroll) {
+    if (
+      bottomOfListRef.current &&
+      isNearBottom &&
+      !userHasScrolledUpRef.current
+    ) {
+      setIsAutoScrolling(true);
       bottomOfListRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'end',
       });
+      // Reset isAutoScrolling after animation completes
+      setTimeout(() => setIsAutoScrolling(false), 1000);
     }
-  }, [shouldAutoScroll]);
-
-  useEffect(() => {
-    if (loading || (!loading && messages.length > 0)) {
-      scrollToBottom();
-    }
-  }, [loading, messages, scrollToBottom]);
+  }, [isNearBottom]);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (messageListRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } =
-          messageListRef.current;
-        setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 100);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
+
+      if (isAutoScrolling) {
+        setIsAutoScrolling(false);
+      }
+
+      const messageList = messageListRef.current;
+      if (messageList) {
+        const { scrollTop, scrollHeight, clientHeight } = messageList;
+
+        // Detect if user has scrolled up
+        if (scrollTop < lastScrollTopRef.current) {
+          userHasScrolledUpRef.current = true;
+        }
+
+        // Update last scroll position
+        lastScrollTopRef.current = scrollTop;
+
+        // Check if near bottom
+        const scrollPosition = scrollHeight - scrollTop - clientHeight;
+        const newIsNearBottom = scrollPosition < scrollHeight * 0.1; // 10% from bottom
+        setIsNearBottom(newIsNearBottom);
+
+        // Reset userHasScrolledUp if we're at the very bottom
+        if (scrollPosition === 0) {
+          userHasScrolledUpRef.current = false;
+        }
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        // This timeout is just to debounce rapid scroll events
+      }, 100);
     };
 
     const messageList = messageListRef.current;
@@ -137,8 +170,18 @@ export default function Home({
       if (messageList) {
         messageList.removeEventListener('scroll', handleScroll);
       }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [isAutoScrolling]);
+
+  // Use this effect to handle auto-scrolling when new messages are added
+  useEffect(() => {
+    if (loading && isNearBottom && !userHasScrolledUpRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, loading, isNearBottom, scrollToBottom]);
 
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
     if (getEnableMediaTypeSelection(siteConfig)) {
@@ -164,11 +207,27 @@ export default function Home({
 
   const [collectionQueries, setCollectionQueries] = useState({});
 
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
+  const handleStop = useCallback(() => {
+    if (abortController) {
+      abortController.abort();
+      setLoading(false);
+      setAbortController(null);
+    }
+  }, [abortController]);
+
   const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
     e.preventDefault();
     if (submittedQuery.trim() === '') return;
 
-    setShouldAutoScroll(true);
+    if (loading) {
+      handleStop();
+      return;
+    }
+
+    setIsNearBottom(true);
     setLoading(true);
     setError(null);
 
@@ -188,98 +247,114 @@ export default function Home({
     // Scroll to bottom after adding user message
     setTimeout(scrollToBottom, 0);
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        question: submittedQuery,
-        history: messageState.history,
-        collection,
-        privateSession,
-        mediaTypes,
-      }),
-    });
+    const newAbortController = new AbortController();
+    setAbortController(newAbortController);
 
-    if (!response.ok) {
-      setLoading(false);
-      setError(response.statusText);
-      return;
-    }
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: submittedQuery,
+          history: messageState.history,
+          collection,
+          privateSession,
+          mediaTypes,
+        }),
+        signal: newAbortController.signal,
+      });
 
-    const data = response.body;
-    if (!data) {
-      setLoading(false);
-      setError('No data returned from the server');
-      return;
-    }
+      if (!response.ok) {
+        setLoading(false);
+        setError(response.statusText);
+        return;
+      }
 
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    let accumulatedResponse = '';
-    let sourceDocs: Document[] | null = null;
+      const data = response.body;
+      if (!data) {
+        setLoading(false);
+        setError('No data returned from the server');
+        return;
+      }
 
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      const lines = chunkValue.split('\n\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonString = line.slice(6);
-          const {
-            token,
-            sourceDocs: docs,
-            done: streamDone,
-          } = JSON.parse(jsonString);
-          if (streamDone) {
-            setLoading(false);
-            break;
-          }
-          if (docs) {
-            sourceDocs = docs;
-          }
-          if (token) {
-            accumulatedResponse += token;
-            setMessageState((prevState) => {
-              const updatedMessages = [...prevState.messages];
-              const lastMessage = updatedMessages[updatedMessages.length - 1];
+      const reader = data.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let accumulatedResponse = '';
+      let sourceDocs: Document[] | null = null;
 
-              if (lastMessage.type === 'apiMessage') {
-                // Update the existing API message
-                updatedMessages[updatedMessages.length - 1] = {
-                  ...lastMessage,
-                  message: accumulatedResponse,
-                  sourceDocs: sourceDocs,
-                };
-              } else {
-                // Append a new API message
-                updatedMessages.push({
-                  type: 'apiMessage',
-                  message: accumulatedResponse,
-                  sourceDocs: sourceDocs,
-                } as ExtendedAIMessage);
-              }
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value);
+        const lines = chunkValue.split('\n\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonString = line.slice(6);
+            const {
+              token,
+              sourceDocs: docs,
+              done: streamDone,
+            } = JSON.parse(jsonString);
+            if (streamDone) {
+              setLoading(false);
+              break;
+            }
+            if (docs) {
+              sourceDocs = docs;
+            }
+            if (token) {
+              accumulatedResponse += token;
+              setMessageState((prevState) => {
+                const updatedMessages = [...prevState.messages];
+                const lastMessage = updatedMessages[updatedMessages.length - 1];
 
-              return {
-                ...prevState,
-                messages: updatedMessages,
-                history: [
-                  ...prevState.history.slice(0, -1),
-                  [
-                    prevState.history[prevState.history.length - 1][0],
-                    accumulatedResponse,
+                if (lastMessage.type === 'apiMessage') {
+                  // Update the existing API message
+                  updatedMessages[updatedMessages.length - 1] = {
+                    ...lastMessage,
+                    message: accumulatedResponse,
+                    sourceDocs: sourceDocs,
+                  };
+                } else {
+                  // Append a new API message
+                  updatedMessages.push({
+                    type: 'apiMessage',
+                    message: accumulatedResponse,
+                    sourceDocs: sourceDocs,
+                  } as ExtendedAIMessage);
+                }
+
+                return {
+                  ...prevState,
+                  messages: updatedMessages,
+                  history: [
+                    ...prevState.history.slice(0, -1),
+                    [
+                      prevState.history[prevState.history.length - 1][0],
+                      accumulatedResponse,
+                    ],
                   ],
-                ],
-              };
-            });
-            // Scroll after each token update
-            scrollToBottom();
+                };
+              });
+              // Scroll after each token update
+              scrollToBottom();
+            }
           }
         }
       }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        setError('An error occurred while fetching the data.');
+        console.error('handleSubmit Error details:', error);
+      }
+    } finally {
+      setLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -287,12 +362,15 @@ export default function Home({
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     submittedQuery: string,
   ) => {
-    if (e.key === 'Enter' && !e.shiftKey && submittedQuery.trim() !== '') {
-      e.preventDefault();
-      handleSubmit(
-        new Event('submit') as unknown as React.FormEvent,
-        submittedQuery,
-      );
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (!loading) {
+        e.preventDefault();
+        setIsNearBottom(true);
+        handleSubmit(
+          new Event('submit') as unknown as React.FormEvent,
+          submittedQuery,
+        );
+      }
     }
   };
 
@@ -386,6 +464,7 @@ export default function Home({
 
   const handleClick = (clickedQuery: string) => {
     setQuery(clickedQuery);
+    setIsNearBottom(true);
     handleSubmit(
       new Event('submit') as unknown as React.FormEvent,
       clickedQuery,
@@ -437,19 +516,7 @@ export default function Home({
             </div>
           )}
           <div className="flex-grow overflow-hidden">
-            <div
-              ref={messageListRef}
-              className="h-full overflow-y-auto"
-              onScroll={() => {
-                if (!isScrolling && messageListRef.current) {
-                  const { scrollTop, scrollHeight, clientHeight } =
-                    messageListRef.current;
-                  setShouldAutoScroll(
-                    scrollHeight - scrollTop - clientHeight < 100,
-                  );
-                }
-              }}
-            >
+            <div ref={messageListRef} className="h-full overflow-y-auto">
               {messages.map((message, index) => {
                 const extendedMessage = message as ExtendedAIMessage;
                 let icon;
@@ -631,7 +698,10 @@ export default function Home({
               input={query}
               handleInputChange={handleInputChange}
               setQuery={setQuery}
-              setShouldAutoScroll={setShouldAutoScroll}
+              setShouldAutoScroll={setIsNearBottom}
+              handleStop={handleStop}
+              isNearBottom={isNearBottom}
+              setIsNearBottom={setIsNearBottom}
             />
           </div>
           {privateSession && (

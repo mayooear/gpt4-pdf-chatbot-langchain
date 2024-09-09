@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '@/styles/Home.module.css';
 import LoadingDots from '@/components/ui/LoadingDots';
 import RandomQueries from '@/components/RandomQueries';
@@ -14,6 +14,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 interface ChatInputProps {
   loading: boolean;
   handleSubmit: (e: React.FormEvent, query: string) => void;
+  handleStop: () => void;
   handleEnter: (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     query: string,
@@ -36,11 +37,14 @@ interface ChatInputProps {
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   setShouldAutoScroll: (should: boolean) => void;
   setQuery: (query: string) => void;
+  isNearBottom: boolean;
+  setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   loading,
   handleSubmit,
+  handleStop,
   handleEnter,
   handleClick,
   handleCollectionChange,
@@ -58,6 +62,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   handleInputChange,
   setShouldAutoScroll,
   setQuery,
+  isNearBottom,
+  setIsNearBottom,
 }) => {
   const [, setLocalQuery] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
@@ -66,6 +72,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [showOptions, setShowOptions] = useState(false);
   const [visitCount, setVisitCount] = useLocalStorage('visitCount', 0);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setVisitCount((prevCount: number) => prevCount + 1);
@@ -113,28 +120,36 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     setVisitCount((prevCount: number) => prevCount + 1);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const focusInput = () => {
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 0);
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setShouldAutoScroll(true);
-    handleSubmit(e, input);
-    setQuery('');
-    // Refocus the input after submission
-    setTimeout(() => {
-      textAreaRef.current?.focus();
-    }, 0);
+    if (loading) {
+      handleStop();
+    } else {
+      setIsNearBottom(true); // Set to true when submitting a new message
+      handleSubmit(e, input);
+      setQuery('');
+      focusInput();
+    }
   };
 
   const onEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      setHasInteracted(true);
-      setShouldAutoScroll(true);
-      handleEnter(e, input);
-      setQuery('');
-      // Refocus the input after submission
-      setTimeout(() => {
-        textAreaRef.current?.focus();
-      }, 0);
+      if (!loading) {
+        e.preventDefault();
+        setHasInteracted(true);
+        setIsNearBottom(true); // Set to true when submitting a new message
+        handleEnter(e, input);
+        setQuery('');
+        focusInput();
+      }
     }
   };
 
@@ -149,7 +164,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const onQueryClick = (q: string) => {
     setLocalQuery(q);
-    setShouldAutoScroll(true); // Reset auto-scroll when clicking a suggested query
+    setIsNearBottom(true); // Set to true when clicking a suggested query
     handleClick(q);
   };
 
@@ -159,11 +174,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <form onSubmit={onSubmit}>
           <div className="flex items-center space-x-2 mb-4">
             <textarea
-              disabled={loading}
               onKeyDown={onEnter}
               onChange={handleInputChange}
               value={input}
-              ref={textAreaRef}
+              ref={inputRef}
               autoFocus={false}
               rows={1}
               maxLength={3000}
@@ -174,11 +188,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             />
             <button
               type="submit"
-              disabled={loading}
               className="bg-blue-500 text-white p-2 rounded-full flex-shrink-0 w-10 h-10 flex items-center justify-center"
             >
               {loading ? (
-                <LoadingDots color="#fff" style="small" />
+                <span className="material-icons text-2xl leading-none">
+                  stop
+                </span>
               ) : (
                 <span className="material-icons text-xl leading-none">
                   send
