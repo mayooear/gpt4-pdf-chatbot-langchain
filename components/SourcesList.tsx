@@ -24,6 +24,24 @@ interface SourcesListProps {
   collectionName?: string | null;
 }
 
+const transformYouTubeUrl = (url: string, startTime: number | undefined) => {
+  const urlObj = new URL(url);
+  let videoId = '';
+  if (urlObj.hostname === 'youtu.be') {
+    videoId = urlObj.pathname.slice(1);
+  } else if (
+    urlObj.hostname === 'www.youtube.com' &&
+    urlObj.pathname.includes('watch')
+  ) {
+    videoId = urlObj.searchParams.get('v') || '';
+  }
+  const baseUrl = `https://www.youtube.com/embed/${videoId}`;
+  const params = new URLSearchParams(urlObj.search);
+  params.set('start', Math.floor(startTime || 0).toString());
+  params.set('rel', '0');
+  return `${baseUrl}?${params.toString()}`;
+};
+
 const SourcesList: React.FC<SourcesListProps> = ({
   sources,
   collectionName = null,
@@ -53,25 +71,6 @@ const SourcesList: React.FC<SourcesListProps> = ({
     },
     [],
   );
-
-  // Update the transformYouTubeUrl function
-  const transformYouTubeUrl = (url: string, startTime: number | undefined) => {
-    const urlObj = new URL(url);
-    let videoId = '';
-    if (urlObj.hostname === 'youtu.be') {
-      videoId = urlObj.pathname.slice(1);
-    } else if (
-      urlObj.hostname === 'www.youtube.com' &&
-      urlObj.pathname.includes('watch')
-    ) {
-      videoId = urlObj.searchParams.get('v') || '';
-    }
-    const baseUrl = `https://www.youtube.com/embed/${videoId}`;
-    const params = new URLSearchParams(urlObj.search);
-    params.set('start', Math.floor(startTime || 0).toString());
-    params.set('rel', '0');
-    return `${baseUrl}?${params.toString()}`;
-  };
 
   const renderYouTubePlayer = useCallback((doc: Document<DocMetadata>) => {
     if (doc.metadata.type === 'youtube') {

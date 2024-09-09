@@ -67,14 +67,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState(false);
-  const [visitCount, setVisitCount] = useLocalStorage('visitCount', 0);
+  const [, setVisitCount] = useLocalStorage('visitCount', 0);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setVisitCount((prevCount: number) => prevCount + 1);
-    setSuggestionsExpanded(visitCount < 3);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    setVisitCount((prevCount: number) => {
+      const newCount = prevCount + 1;
+      setSuggestionsExpanded(newCount < 3);
+      return newCount;
+    });
+  }, [setVisitCount, setSuggestionsExpanded]);
 
   useEffect(() => {
     if (!loading && hasInteracted) {
@@ -113,9 +116,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
     }
   }, [loading, isFirstQuery, textAreaRef]);
-  useEffect(() => {
-    setVisitCount((prevCount: number) => prevCount + 1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const focusInput = () => {
     setTimeout(() => {
