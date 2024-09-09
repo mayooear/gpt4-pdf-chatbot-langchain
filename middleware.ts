@@ -49,13 +49,22 @@ export function middleware(req: NextRequest) {
 
       // For API routes, return a 401 Unauthorized response
       if (url.pathname.startsWith('/api')) {
-        return new NextResponse(
+        const response = new NextResponse(
           JSON.stringify({
             success: false,
             message: 'Authentication required',
           }),
-          { status: 401, headers: { 'content-type': 'application/json' } },
+          {
+            status: 401,
+            headers: {
+              'content-type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type',
+            },
+          },
         );
+        return response;
       }
 
       // For other routes, redirect to login
@@ -66,5 +75,28 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const allowedOrigins = [process.env.NEXT_PUBLIC_BASE_URL];
+  const origin = req.headers.get('origin');
+
+  // Explicitly type the corsHeaders object
+  const corsHeaders: {
+    'Access-Control-Allow-Methods': string;
+    'Access-Control-Allow-Headers': string;
+    'Access-Control-Allow-Origin'?: string;
+  } = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (origin && allowedOrigins.includes(origin)) {
+    corsHeaders['Access-Control-Allow-Origin'] = origin;
+  }
+
+  if (url.pathname === '/api/chat') {
+    return NextResponse.next();
+  }
+
+  return NextResponse.next({
+    headers: corsHeaders,
+  });
 }

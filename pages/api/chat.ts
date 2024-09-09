@@ -107,6 +107,9 @@ export default async function handler(
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
       'Transfer-Encoding': 'chunked',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     });
 
     let fullResponse = '';
