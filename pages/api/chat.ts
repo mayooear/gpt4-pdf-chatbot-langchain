@@ -106,10 +106,12 @@ export default async function handler(
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      'Transfer-Encoding': 'chunked',
     });
 
     let fullResponse = '';
     const sendData = (data: string) => {
+      console.log('Sending chunk:', data); // New log
       res.write(`data: ${data}\n\n`);
     };
 
@@ -124,6 +126,7 @@ export default async function handler(
           {
             handleLLMNewToken(token: string) {
               fullResponse += token;
+              console.log('New token:', token); // New log
               sendData(JSON.stringify({ token }));
             },
           },
@@ -133,6 +136,7 @@ export default async function handler(
 
     // Wait for the documents to be retrieved
     const documents = await documentPromise;
+    console.log('Retrieved documents:', documents); // New log
 
     // Send the source documents
     sendData(JSON.stringify({ sourceDocs: documents }));
@@ -142,6 +146,7 @@ export default async function handler(
 
     // Send the [DONE] message to indicate the end of the stream
     sendData(JSON.stringify({ done: true }));
+    console.log('Stream completed'); // New log
 
     // Close the response
     res.end();

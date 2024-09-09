@@ -292,10 +292,12 @@ export default function Home({
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
         const chunkValue = decoder.decode(value);
+        console.log('Received chunk:', chunkValue);
         const lines = chunkValue.split('\n\n');
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const jsonString = line.slice(6);
+            console.log('Parsed JSON:', jsonString);
             const {
               token,
               sourceDocs: docs,
@@ -303,13 +305,16 @@ export default function Home({
             } = JSON.parse(jsonString);
             if (streamDone) {
               setLoading(false);
+              console.log('Stream completed');
               break;
             }
             if (docs) {
               sourceDocs = docs;
+              console.log('Received source docs:', docs);
             }
             if (token) {
               accumulatedResponse += token;
+              console.log('Accumulated response:', accumulatedResponse);
               setMessageState((prevState) => {
                 const updatedMessages = [...prevState.messages];
                 const lastMessage = updatedMessages[updatedMessages.length - 1];
