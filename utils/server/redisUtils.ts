@@ -28,7 +28,17 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
 
   try {
     const cachedData = await redisClient.get<string | null>(key);
-    return cachedData ? (JSON.parse(cachedData) as T) : null;
+    if (cachedData === null) return [] as T;
+
+    try {
+      return JSON.parse(cachedData) as T;
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        // If parsing fails due to SyntaxError, assume it's already the correct type
+        return cachedData as unknown as T;
+      }
+      throw e; // Re-throw if it's not a SyntaxError
+    }
   } catch (error) {
     console.error(`Error fetching from cache for key '${key}':`, error);
     return null;
