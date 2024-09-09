@@ -216,7 +216,7 @@ export default function Home({
       setLoading(false);
       setAbortController(null);
     }
-  }, [abortController]);
+  }, [abortController, setLoading, setAbortController]);
 
   const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
     e.preventDefault();

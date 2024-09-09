@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '@/styles/Home.module.css';
-import LoadingDots from '@/components/ui/LoadingDots';
 import RandomQueries from '@/components/RandomQueries';
 import CollectionSelector from '@/components/CollectionSelector';
 import { SiteConfig } from '@/types/siteConfig';
@@ -60,9 +59,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   siteConfig,
   input,
   handleInputChange,
-  setShouldAutoScroll,
   setQuery,
-  isNearBottom,
   setIsNearBottom,
 }) => {
   const [, setLocalQuery] = useState<string>('');
