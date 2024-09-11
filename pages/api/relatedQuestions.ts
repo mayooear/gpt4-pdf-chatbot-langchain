@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { updateRelatedQuestionsBatch } from '@/utils/server/relatedQuestionsUtils';
+import {
+  updateRelatedQuestionsBatch,
+  updateRelatedQuestions,
+} from '@/utils/server/relatedQuestionsUtils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,6 +28,33 @@ export default async function handler(
 
     try {
       await updateRelatedQuestionsBatch(batchSize);
+      return res
+        .status(200)
+        .json({ message: 'Related questions updated successfully' });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error updating related questions';
+      console.error('Error updating related questions: ', errorMessage);
+      return res.status(500).json({
+        message: 'Error updating related questions',
+        error: errorMessage,
+      });
+    }
+  } else if (req.method === 'POST') {
+    const { docId } = req.body;
+
+    if (!docId || typeof docId !== 'string') {
+      return res.status(400).json({
+        message: 'docId is required and must be a string.',
+      });
+    }
+
+    console.log('Updating related questions for document:', docId);
+
+    try {
+      await updateRelatedQuestions(docId);
       return res
         .status(200)
         .json({ message: 'Related questions updated successfully' });

@@ -284,87 +284,86 @@ export default function Home({
 
       const reader = data.getReader();
       const decoder = new TextDecoder();
-      let done = false;
       let accumulatedResponse = '';
       let sourceDocs: Document[] | null = null;
+      let isDone = false;
 
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        const chunkValue = decoder.decode(value);
-        console.log('Received chunk:', chunkValue);
-        const lines = chunkValue.split('\n\n');
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const jsonString = line.slice(6);
-            console.log('Parsed JSON:', jsonString);
-            const {
-              token,
-              sourceDocs: docs,
-              done: streamDone,
-            } = JSON.parse(jsonString);
-            if (streamDone) {
-              setLoading(false);
-              console.log('Stream completed');
-              break;
-            }
-            if (docs) {
-              sourceDocs = docs;
-              console.log('Received source docs:', docs);
-            }
-            if (token) {
-              accumulatedResponse += token;
-              console.log('Accumulated response:', accumulatedResponse);
-              setMessageState((prevState) => {
-                const updatedMessages = [...prevState.messages];
-                const lastMessage = updatedMessages[updatedMessages.length - 1];
+            try {
+              const jsonData = JSON.parse(line.slice(5));
 
-                if (lastMessage.type === 'apiMessage') {
-                  // Update the existing API message
-                  updatedMessages[updatedMessages.length - 1] = {
-                    ...lastMessage,
-                    message: accumulatedResponse,
-                    sourceDocs: sourceDocs,
-                  };
-                } else {
-                  // Append a new API message
-                  updatedMessages.push({
-                    type: 'apiMessage',
-                    message: accumulatedResponse,
-                    sourceDocs: sourceDocs,
-                  } as ExtendedAIMessage);
-                }
-
-                return {
-                  ...prevState,
-                  messages: updatedMessages,
-                  history: [
-                    ...prevState.history.slice(0, -1),
-                    [
-                      prevState.history[prevState.history.length - 1][0],
-                      accumulatedResponse,
-                    ],
-                  ],
-                };
-              });
-              // Scroll after each token update
-              scrollToBottom();
+              if (jsonData.token) {
+                accumulatedResponse += jsonData.token;
+                updateMessageState(accumulatedResponse, sourceDocs);
+              } else if (jsonData.sourceDocs) {
+                sourceDocs = jsonData.sourceDocs;
+              } else if (jsonData.done) {
+                isDone = true;
+              } else if (jsonData.error) {
+                throw new Error(jsonData.error);
+              }
+            } catch (parseError) {
+              console.error('Error parsing JSON:', parseError);
             }
           }
         }
+
+        if (isDone) {
+          setLoading(false);
+        }
       }
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Request aborted');
-      } else {
-        console.error('Streaming error:', error);
-        setError('An error occurred while streaming the response.');
-        setLoading(false);
-      }
-    } finally {
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      setError('An error occurred while streaming the response.');
       setLoading(false);
-      setAbortController(null);
     }
+  };
+
+  const updateMessageState = (
+    accumulatedResponse: string,
+    sourceDocs: Document[] | null,
+  ) => {
+    setMessageState((prevState) => {
+      const updatedMessages = [...prevState.messages];
+      const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+      if (lastMessage.type === 'apiMessage') {
+        updatedMessages[updatedMessages.length - 1] = {
+          ...lastMessage,
+          message: accumulatedResponse,
+          sourceDocs: sourceDocs,
+        };
+      } else {
+        updatedMessages.push({
+          type: 'apiMessage',
+          message: accumulatedResponse,
+          sourceDocs: sourceDocs,
+        } as ExtendedAIMessage);
+      }
+
+      return {
+        ...prevState,
+        messages: updatedMessages,
+        history: [
+          ...prevState.history.slice(0, -1),
+          [
+            prevState.history[prevState.history.length - 1][0],
+            accumulatedResponse,
+          ],
+        ],
+      };
+    });
+    scrollToBottom();
   };
 
   const handleEnter = (

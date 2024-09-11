@@ -13,6 +13,10 @@ import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 
 export const maxDuration = 240; // This function can run for a maximum of 240 seconds
 
+export const config = {
+  runtime: 'nodejs',
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -83,6 +87,7 @@ export default async function handler(
     const documentPromise = new Promise<Document[]>((resolve) => {
       resolveWithDocuments = resolve;
     });
+
     const retriever = vectorStore.asRetriever({
       callbacks: [
         {
@@ -106,62 +111,90 @@ export default async function handler(
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
-      'Transfer-Encoding': 'chunked',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
     });
-
-    let fullResponse = '';
-    const sendData = (data: string) => {
+    const sendData = (data: {
+      token?: string;
+      sourceDocs?: Document[];
+      done?: boolean;
+    }) => {
       console.log('Sending chunk:', data); // New log
-      res.write(`data: ${data}\n\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
       res.flushHeaders();
     };
 
-    // Start the chain invocation
-    const chainPromise = chain.invoke(
-      {
-        question: sanitizedQuestion,
-        chat_history: pastMessages,
-      },
-      {
-        callbacks: [
-          {
-            handleLLMNewToken(token: string) {
-              fullResponse += token;
-              console.log('New token:', token); // New log
-              sendData(JSON.stringify({ token }));
+    let fullResponse = '';
+    let retrievedDocuments: Document[] = [];
+    let isStreamEnded = false;
+
+    try {
+      console.log('Starting chain invocation');
+      const chainPromise = chain.invoke(
+        {
+          question: sanitizedQuestion,
+          chat_history: pastMessages,
+        },
+        {
+          callbacks: [
+            {
+              handleLLMNewToken(token: string) {
+                if (!isStreamEnded) {
+                  fullResponse += token;
+                  sendData({ token });
+                }
+              },
+              handleRetrieverStart() {
+                console.log('Retriever started');
+              },
+              handleRetrieverEnd(docs: Document[]) {
+                if (!isStreamEnded) {
+                  console.log('Retriever ended, documents:', docs);
+                  retrievedDocuments = docs;
+                  sendData({ sourceDocs: retrievedDocuments });
+                }
+              },
+              handleChainError(error: Error) {
+                console.error('Chain error:', error);
+                if (!isStreamEnded) {
+                  sendData({ token: `Error: ${error.message}` });
+                  isStreamEnded = true;
+                  res.end();
+                }
+              },
+              handleChainEnd() {
+                console.log('Chain ended');
+                if (!isStreamEnded) {
+                  sendData({ done: true });
+                  isStreamEnded = true;
+                  res.end();
+                }
+              },
             },
-          },
-        ],
-      },
-    );
+          ],
+        },
+      );
 
-    // Wait for the documents to be retrieved
-    const documents = await documentPromise;
-    console.log('Retrieved documents:', documents); // New log
+      // Wait for the documents to be retrieved
+      const promiseDocuments = await documentPromise;
+      console.log('Retrieved documents:', promiseDocuments);
 
-    // Send the source documents
-    sendData(JSON.stringify({ sourceDocs: documents }));
+      // Wait for the chain to complete
+      await chainPromise;
+    } catch (chainError) {
+      console.error('Error in chain invocation:', chainError);
+      if (!isStreamEnded) {
+        sendData({ token: 'An error occurred during processing' });
+        isStreamEnded = true;
+        res.end();
+      }
+    }
 
-    // Wait for the chain to complete
-    await chainPromise;
-
-    // Send the [DONE] message to indicate the end of the stream
-    sendData(JSON.stringify({ done: true }));
-    console.log('Stream completed'); // New log
-
-    // Close the response
-    res.end();
-
-    if (!privateSession) {
+    if (!privateSession && !isStreamEnded) {
       const answerRef = db.collection(getAnswersCollectionName());
       const answerEntry = {
         question: originalQuestion,
         answer: fullResponse,
         collection: collection,
-        sources: JSON.stringify(documents),
+        sources: JSON.stringify(retrievedDocuments),
         likeCount: 0,
         history: history.map((messagePair: [string, string]) => ({
           question: messagePair[0],
