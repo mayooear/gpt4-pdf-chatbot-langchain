@@ -1,3 +1,6 @@
+// We have to use a custom chat route because that's how we can get streaming on Vercel production,
+// per https://vercel.com/docs/functions/streaming/quickstart
+
 import { NextRequest, NextResponse } from 'next/server';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from '@langchain/openai';
