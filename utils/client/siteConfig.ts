@@ -45,3 +45,7 @@ export const getOtherVisitorsReference = (siteConfig: SiteConfig | null) =>
 
 export const getLoginImage = (siteConfig: SiteConfig | null) =>
   siteConfig?.loginImage ?? null;
+
+export function getChatPlaceholder(siteConfig: SiteConfig | null): string {
+  return siteConfig?.chatPlaceholder || '';
+}

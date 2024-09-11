@@ -11,7 +11,11 @@ export async function loadSiteConfig(
       throw new Error(`Configuration not found for site ID: ${siteId}`);
     }
 
-    return { ...siteConfig, siteId } as SiteConfig;
+    return {
+      ...siteConfig,
+      siteId,
+      chatPlaceholder: siteConfig.chatPlaceholder || 'Ask a question...', // Add this line
+    } as SiteConfig;
   } catch (error) {
     console.error('Error loading site config:', error);
     return null;

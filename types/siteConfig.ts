@@ -23,4 +23,5 @@ export interface SiteConfig {
   welcome_popup_heading: string;
   other_visitors_reference: string;
   loginImage: string | null;
+  chatPlaceholder?: string; // Add this line
 }

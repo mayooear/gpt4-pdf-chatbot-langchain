@@ -7,6 +7,7 @@ import {
   getEnableSuggestedQueries,
   getEnableMediaTypeSelection,
   getEnableAuthorSelection,
+  getChatPlaceholder,
 } from '@/utils/client/siteConfig';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
@@ -165,6 +166,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     handleClick(q);
   };
 
+  const placeholderText = getChatPlaceholder(siteConfig) || 'Ask a question...';
+
   return (
     <div className={`${styles.center} w-full mt-4 px-2 md:px-0`}>
       <div className="w-full">
@@ -180,7 +183,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               maxLength={3000}
               id="userInput"
               name="userInput"
-              placeholder={hasInteracted ? '' : 'How can I think of God more?'}
+              placeholder={hasInteracted ? '' : placeholderText}
               className="flex-grow p-2 border border-gray-300 rounded-md resize-none focus:outline-none"
             />
             <button
