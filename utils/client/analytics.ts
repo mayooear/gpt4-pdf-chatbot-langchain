@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-const GOOGLE_ANALYTICS_ID = process.env.GOOGLE_ANALYTICS_ID;
+const getGoogleAnalyticsId = () => process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
@@ -39,7 +39,8 @@ export const initGoogleAnalytics = () => {
 
     console.log('Creating Google Analytics script');
     const script = document.createElement('script');
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
+    const gaId = getGoogleAnalyticsId();
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
     script.async = true;
 
     script.onload = () => {
@@ -50,7 +51,7 @@ export const initGoogleAnalytics = () => {
       }
       window.gtag = gtag;
       window.gtag('js', new Date());
-      window.gtag('config', GOOGLE_ANALYTICS_ID);
+      window.gtag('config', gaId);
       isInitialized = true;
       console.log('Google Analytics initialized');
       resolve();
@@ -87,7 +88,7 @@ export const logPageView = async (url: string) => {
   await initGoogleAnalytics();
 
   if (typeof window.gtag === 'function') {
-    window.gtag('config', GOOGLE_ANALYTICS_ID, {
+    window.gtag('config', getGoogleAnalyticsId(), {
       page_path: url,
     });
     console.log(`Page view logged for URL: ${url}`);
