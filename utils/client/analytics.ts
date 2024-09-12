@@ -9,6 +9,7 @@ declare global {
   }
 }
 
+const GOOGLE_ANALYTICS_ID = 'G-0DGBYKZ9LS';
 let isInitialized = false;
 
 const isAnalyticsDisabled = () => {
@@ -33,7 +34,7 @@ export const initGoogleAnalytics = () => {
 
     console.log('Creating Google Analytics script');
     const script = document.createElement('script');
-    script.src = `https://www.googletagmanager.com/gtag/js?id=G-9551DZXPEZ`;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
     script.async = true;
 
     script.onload = () => {
@@ -43,7 +44,7 @@ export const initGoogleAnalytics = () => {
         window.dataLayer.push(args);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'G-9551DZXPEZ');
+      window.gtag('config', GOOGLE_ANALYTICS_ID);
       isInitialized = true;
       console.log('Google Analytics initialized');
       resolve();
@@ -76,7 +77,7 @@ export const logPageView = (url: string) => {
 
   console.log(`Attempting to log page view for URL: ${url}`);
   if (typeof window.gtag === 'function') {
-    window.gtag('config', 'G-9551DZXPEZ', {
+    window.gtag('config', GOOGLE_ANALYTICS_ID, {
       page_path: url,
     });
     console.log(`Page view logged for URL: ${url}`);
@@ -98,7 +99,9 @@ export const logEvent = async (
     return;
   }
 
-  console.log(`Attempting to log event: ${action}, ${category}, ${label}, ${value}`);
+  console.log(
+    `Attempting to log event: ${action}, ${category}, ${label}, ${value}`,
+  );
   if (!isInitialized) {
     await initGoogleAnalytics();
   }
