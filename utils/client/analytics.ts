@@ -17,6 +17,10 @@ const isAnalyticsDisabled = () => {
   return isDevelopment();
 };
 
+const isGABlocked = () => {
+  return !window.gtag || !window.dataLayer;
+};
+
 export const initGoogleAnalytics = () => {
   console.log('Attempting to initialize Google Analytics');
   console.log('Environment:', process.env.NODE_ENV);
@@ -75,6 +79,11 @@ export const initGoogleAnalytics = () => {
     }
   });
 
+  if (isGABlocked()) {
+    console.warn('Google Analytics appears to be blocked.');
+    return Promise.resolve();
+  }
+
   return initializationPromise;
 };
 
@@ -124,6 +133,6 @@ export const logEvent = async (
     });
     console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
   } else {
-    console.error('window.gtag is not a function');
+    console.warn('Google Analytics not available. Event not logged.');
   }
 };
