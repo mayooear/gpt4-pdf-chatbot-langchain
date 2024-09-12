@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-const GOOGLE_ANALYTICS_ID = 'G-0DGBYKZ9LS';
+const GOOGLE_ANALYTICS_ID = process.env.GOOGLE_ANALYTICS_ID;
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
