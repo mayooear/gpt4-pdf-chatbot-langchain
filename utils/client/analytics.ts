@@ -11,6 +11,7 @@ declare global {
 
 const GOOGLE_ANALYTICS_ID = 'G-0DGBYKZ9LS';
 let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
 
 const isAnalyticsDisabled = () => {
   return isDevelopment();
@@ -25,7 +26,11 @@ export const initGoogleAnalytics = () => {
     return Promise.resolve();
   }
 
-  return new Promise<void>((resolve) => {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = new Promise<void>((resolve) => {
     if (isInitialized) {
       console.log('Google Analytics already initialized');
       resolve();
@@ -40,9 +45,10 @@ export const initGoogleAnalytics = () => {
     script.onload = () => {
       console.log('Google Analytics script loaded successfully');
       window.dataLayer = window.dataLayer || [];
-      window.gtag = function gtag(...args: unknown[]) {
+      function gtag(...args: unknown[]) {
         window.dataLayer.push(args);
-      };
+      }
+      window.gtag = gtag;
       window.gtag('js', new Date());
       window.gtag('config', GOOGLE_ANALYTICS_ID);
       isInitialized = true;
@@ -67,15 +73,19 @@ export const initGoogleAnalytics = () => {
       resolve(); // Resolve the promise to prevent hanging
     }
   });
+
+  return initializationPromise;
 };
 
-export const logPageView = (url: string) => {
+export const logPageView = async (url: string) => {
   if (isAnalyticsDisabled()) {
     console.log(`Analytics disabled: Skipping logPageView for URL: ${url}`);
     return;
   }
 
   console.log(`Attempting to log page view for URL: ${url}`);
+  await initGoogleAnalytics();
+
   if (typeof window.gtag === 'function') {
     window.gtag('config', GOOGLE_ANALYTICS_ID, {
       page_path: url,
@@ -102,9 +112,8 @@ export const logEvent = async (
   console.log(
     `Attempting to log event: ${action}, ${category}, ${label}, ${value}`,
   );
-  if (!isInitialized) {
-    await initGoogleAnalytics();
-  }
+
+  await initGoogleAnalytics();
 
   if (typeof window.gtag === 'function') {
     window.gtag('event', action, {
