@@ -74,10 +74,14 @@ export const logPageView = (url: string) => {
     return;
   }
 
+  console.log(`Attempting to log page view for URL: ${url}`);
   if (typeof window.gtag === 'function') {
     window.gtag('config', 'G-9551DZXPEZ', {
       page_path: url,
     });
+    console.log(`Page view logged for URL: ${url}`);
+  } else {
+    console.error('window.gtag is not a function');
   }
 };
 
@@ -94,6 +98,7 @@ export const logEvent = async (
     return;
   }
 
+  console.log(`Attempting to log event: ${action}, ${category}, ${label}, ${value}`);
   if (!isInitialized) {
     await initGoogleAnalytics();
   }
@@ -104,5 +109,8 @@ export const logEvent = async (
       event_label: label,
       value: value,
     });
+    console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
+  } else {
+    console.error('window.gtag is not a function');
   }
 };
