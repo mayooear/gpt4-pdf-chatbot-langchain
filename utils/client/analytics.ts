@@ -37,9 +37,9 @@ export const initGoogleAnalytics = () => {
       return;
     }
 
-    console.log('Creating Google Analytics script');
-    const script = document.createElement('script');
     const gaId = getGoogleAnalyticsId();
+    console.log(`Creating Google Analytics script for ID: ${gaId}`);
+    const script = document.createElement('script');
     script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
     script.async = true;
 
