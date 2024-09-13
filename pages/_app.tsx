@@ -30,15 +30,11 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
-      initGoogleAnalytics();
-      logPageView(router.pathname);
-    }
+    initGoogleAnalytics();
+    logPageView(router.pathname);
 
     const handleRouteChange = (url: string) => {
-      if (process.env.NODE_ENV === 'production') {
-        logPageView(url);
-      }
+      logPageView(url);
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);
@@ -64,15 +60,13 @@ MyApp.getInitialProps = async () => {
 };
 
 export function reportWebVitals(metric: NextWebVitalsMetric) {
-  if (process.env.NODE_ENV === 'production') {
-    const { id, name, label, value } = metric;
-    logEvent(
-      name,
-      label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
-      id,
-      Math.round(name === 'CLS' ? value * 1000 : value),
-    );
-  }
+  const { id, name, label, value } = metric;
+  logEvent(
+    name,
+    label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
+    id,
+    Math.round(name === 'CLS' ? value * 1000 : value),
+  );
 }
 
 export default MyApp;

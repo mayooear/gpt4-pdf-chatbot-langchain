@@ -11,6 +11,12 @@ declare global {
 
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+const eventQueue: Array<{
+  action: string;
+  category: string;
+  label: string;
+  value?: number;
+}> = [];
 
 const getGoogleAnalyticsId = () => {
   const id = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
@@ -19,7 +25,9 @@ const getGoogleAnalyticsId = () => {
 };
 
 const isAnalyticsDisabled = () => {
-  const disabled = isDevelopment();
+  // TODO TMP: Analytics disabled
+  const disabled = false;
+  // const disabled = isDevelopment();
   console.log('Analytics disabled:', disabled);
   return disabled;
 };
@@ -65,6 +73,7 @@ export const initGoogleAnalytics = () => {
       window.gtag('config', gaId);
       isInitialized = true;
       console.log('Google Analytics initialized');
+      processEventQueue();
       resolve();
     };
 
@@ -92,6 +101,18 @@ export const initGoogleAnalytics = () => {
   }
 
   return initializationPromise;
+};
+
+const processEventQueue = () => {
+  while (eventQueue.length > 0) {
+    const event = eventQueue.shift();
+    if (event) {
+      console.log(
+        `Processing queued event: ${event.action}, ${event.category}, ${event.label}, ${event.value}`,
+      );
+      logEvent(event.action, event.category, event.label, event.value);
+    }
+  }
 };
 
 export const logPageView = async (url: string) => {
@@ -126,11 +147,12 @@ export const logEvent = async (
     return;
   }
 
-  console.log(
-    `Attempting to log event: ${action}, ${category}, ${label}, ${value}`,
-  );
-
-  await initGoogleAnalytics();
+  if (!isInitialized) {
+    console.log(`Queueing event: ${action}, ${category}, ${label}, ${value}`);
+    eventQueue.push({ action, category, label, value });
+    initGoogleAnalytics();
+    return;
+  }
 
   if (typeof window.gtag === 'function') {
     try {
