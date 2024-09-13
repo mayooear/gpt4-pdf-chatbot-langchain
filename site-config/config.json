@@ -47,10 +47,10 @@
     "help_url": "",
     "help_text": "",
     "collectionConfig": {
-      "collection1": "All Documents"
+      "whole_library": "All Documents"
     },
     "libraryMappings": {},
-    "enableSuggestedQueries": false,
+    "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
     "loginImage": null
@@ -68,10 +68,10 @@
     "help_url": "",
     "help_text": "",
     "collectionConfig": {
-      "collection1": "All Documents"
+      "whole_library": "All Documents"
     },
     "libraryMappings": {},
-    "enableSuggestedQueries": false,
+    "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
     "loginImage": null

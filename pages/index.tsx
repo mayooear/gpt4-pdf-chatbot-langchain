@@ -389,16 +389,21 @@ export default function Home({
   useEffect(() => {
     let isMounted = true;
     async function fetchQueries() {
-      const queries = await getCollectionQueries();
-      if (isMounted) {
-        setCollectionQueries(queries);
+      if (siteConfig) {
+        const queries = await getCollectionQueries(
+          siteConfig.siteId,
+          siteConfig.collectionConfig,
+        );
+        if (isMounted) {
+          setCollectionQueries(queries);
+        }
       }
     }
     fetchQueries();
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array
+  }, [siteConfig]);
 
   // Determine the queries for the current collection or use an empty array as a fallback
   const queriesForCollection = useMemo(() => {
