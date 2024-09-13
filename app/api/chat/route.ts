@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+            await response.json();
           } catch (error) {
             console.error('Error updating related questions:', error);
           }
