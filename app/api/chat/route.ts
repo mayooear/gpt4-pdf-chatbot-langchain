@@ -120,7 +120,6 @@ export async function POST(req: NextRequest) {
           callbacks: [
             {
               handleRetrieverEnd(docs: Document[]) {
-                console.log('Retriever ended, documents:', docs);
                 resolveWithDocuments(docs);
                 sendData({ sourceDocs: docs });
               },
@@ -146,12 +145,10 @@ export async function POST(req: NextRequest) {
             callbacks: [
               {
                 handleLLMNewToken(token: string) {
-                  console.log('New token generated:', token);
                   fullResponse += token;
                   sendData({ token });
                 },
                 handleChainEnd() {
-                  console.log('Chain ended');
                   sendData({ done: true });
                 },
               } as Partial<BaseCallbackHandler>,
@@ -164,8 +161,6 @@ export async function POST(req: NextRequest) {
 
         // Wait for the chain to complete
         await chainPromise;
-        console.log('Chain completed');
-        console.log('Full response:', fullResponse);
 
         if (!privateSession) {
           const answerRef = db.collection(getAnswersCollectionName());
@@ -203,7 +198,6 @@ export async function POST(req: NextRequest) {
             }
 
             const result = await response.json();
-            console.log('Related questions update result:', result);
           } catch (error) {
             console.error('Error updating related questions:', error);
           }
