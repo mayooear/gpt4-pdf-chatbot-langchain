@@ -37,9 +37,6 @@ const isGABlocked = () => {
 };
 
 export const initGoogleAnalytics = () => {
-  console.log('Attempting to initialize Google Analytics');
-  console.log('Environment:', process.env.NODE_ENV);
-
   if (isAnalyticsDisabled()) {
     console.log('Analytics disabled: Skipping GA initialization');
     return Promise.resolve();
@@ -55,6 +52,10 @@ export const initGoogleAnalytics = () => {
       resolve();
       return;
     }
+
+    console.log('Attempting to initialize Google Analytics');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Is GA Blocked:', isGABlocked());
 
     const gaId = getGoogleAnalyticsId();
     console.log(`Creating Google Analytics script for ID: ${gaId}`);
