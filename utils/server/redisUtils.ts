@@ -28,7 +28,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
 
   try {
     const cachedData = await redisClient.get<string | null>(key);
-    if (cachedData === null) return [] as T;
+    if (cachedData === null) return null;
 
     try {
       return JSON.parse(cachedData) as T;

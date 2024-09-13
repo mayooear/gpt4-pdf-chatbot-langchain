@@ -26,7 +26,7 @@ async function getAnswers(
 
   // Get the total number of documents
   const totalDocs = await getTotalDocuments();
-  const totalPages = Math.ceil(totalDocs / limit);
+  const totalPages = Math.max(1, Math.ceil(totalDocs / limit)); // Ensure at least 1 page
   const offset = (page - 1) * limit;
 
   answersQuery = answersQuery.offset(offset).limit(limit);
@@ -119,11 +119,9 @@ export default async function handler(
       console.error('Error fetching answers: ', error);
       if (error instanceof Error) {
         if ('code' in error && error.code === 8) {
-          res
-            .status(429)
-            .json({
-              message: 'Error: Quota exceeded. Please try again later.',
-            });
+          res.status(429).json({
+            message: 'Error: Quota exceeded. Please try again later.',
+          });
         } else {
           res
             .status(500)
@@ -154,12 +152,10 @@ export default async function handler(
           .status(500)
           .json({ message: 'Error deleting answer', error: error.message });
       } else {
-        res
-          .status(500)
-          .json({
-            message: 'Error deleting answer',
-            error: 'An unknown error occurred',
-          });
+        res.status(500).json({
+          message: 'Error deleting answer',
+          error: 'An unknown error occurred',
+        });
       }
     }
   } else {
