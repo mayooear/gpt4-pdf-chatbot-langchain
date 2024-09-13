@@ -11,12 +11,17 @@ declare global {
 
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
-const eventQueue: Array<{
-  action: string;
-  category: string;
-  label: string;
-  value?: number;
-}> = [];
+const MAX_QUEUE_SIZE = 40;
+let eventQueue: Array<{ type: 'pageView' | 'event'; data: any }> = [];
+
+const queueEvent = (type: 'pageView' | 'event', data: any) => {
+  if (eventQueue.length < MAX_QUEUE_SIZE) {
+    eventQueue.push({ type, data });
+    console.log(`Event queued: ${type}`, data);
+  } else {
+    console.warn('Event queue full, discarding event');
+  }
+};
 
 const getGoogleAnalyticsId = () => {
   const id = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
@@ -33,7 +38,20 @@ const isAnalyticsDisabled = () => {
 };
 
 const isGABlocked = () => {
-  return typeof window === 'undefined' || (!window.gtag && !window.dataLayer);
+  if (typeof window === 'undefined') return true; // Server-side rendering check
+
+  // Check for Do Not Track setting
+  if (navigator.doNotTrack === '1') return true;
+
+  // Check if GA script has loaded
+  if (!window.gtag || !window.dataLayer) {
+    console.log(
+      'GA script not loaded: window.gtag and window.dataLayer are undefined',
+    );
+    return true;
+  }
+
+  return false;
 };
 
 export const initGoogleAnalytics = () => {
@@ -96,11 +114,6 @@ export const initGoogleAnalytics = () => {
     }
   });
 
-  if (isGABlocked()) {
-    console.warn('Google Analytics appears to be blocked.');
-    return Promise.resolve();
-  }
-
   return initializationPromise;
 };
 
@@ -109,9 +122,18 @@ const processEventQueue = () => {
     const event = eventQueue.shift();
     if (event) {
       console.log(
-        `Processing queued event: ${event.action}, ${event.category}, ${event.label}, ${event.value}`,
+        `Processing queued event: ${event.data.action}, ${event.data.category}, ${event.data.label}, ${event.data.value}`,
       );
-      logEvent(event.action, event.category, event.label, event.value);
+      if (event.type === 'pageView') {
+        logPageViewImmediate(event.data);
+      } else {
+        logEventImmediate(
+          event.data.action,
+          event.data.category,
+          event.data.label,
+          event.data.value,
+        );
+      }
     }
   }
 };
@@ -125,14 +147,20 @@ export const logPageView = async (url: string) => {
   console.log(`Attempting to log page view for URL: ${url}`);
   await initGoogleAnalytics();
 
-  if (typeof window.gtag === 'function') {
-    window.gtag('config', getGoogleAnalyticsId(), {
-      page_path: url,
-    });
-    console.log(`Page view logged for URL: ${url}`);
-  } else {
-    console.error('window.gtag is not a function');
+  if (isGABlocked()) {
+    console.warn('Google Analytics is blocked or not initialized');
+    queueEvent('pageView', url);
+    return;
   }
+
+  logPageViewImmediate(url);
+};
+
+const logPageViewImmediate = (url: string) => {
+  window.gtag('config', getGoogleAnalyticsId(), {
+    page_path: url,
+  });
+  console.log(`Page view logged for URL: ${url}`);
 };
 
 export const logEvent = async (
@@ -148,27 +176,27 @@ export const logEvent = async (
     return;
   }
 
-  if (!isInitialized) {
-    console.log(`Queueing event: ${action}, ${category}, ${label}, ${value}`);
-    eventQueue.push({ action, category, label, value });
-    initGoogleAnalytics();
+  await initGoogleAnalytics();
+
+  if (isGABlocked()) {
+    console.warn('Google Analytics is blocked or not initialized');
+    queueEvent('event', { action, category, label, value });
     return;
   }
 
-  if (typeof window.gtag === 'function') {
-    try {
-      window.gtag('event', action, {
-        event_category: category,
-        event_label: label,
-        value: value,
-      });
-      console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
-    } catch (error) {
-      console.error('Error logging event:', error);
-    }
-  } else {
-    console.warn('Google Analytics not available. Event not logged.');
-    console.log('window.gtag:', window.gtag);
-    console.log('window.dataLayer:', window.dataLayer);
-  }
+  logEventImmediate(action, category, label, value);
+};
+
+const logEventImmediate = (
+  action: string,
+  category: string,
+  label: string,
+  value?: number,
+) => {
+  window.gtag('event', action, {
+    event_category: category,
+    event_label: label,
+    value: value,
+  });
+  console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
 };
