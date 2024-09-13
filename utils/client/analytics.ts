@@ -9,16 +9,23 @@ declare global {
   }
 }
 
-const getGoogleAnalyticsId = () => process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
+const getGoogleAnalyticsId = () => {
+  const id = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
+  console.log('Google Analytics ID:', id);
+  return id;
+};
+
 const isAnalyticsDisabled = () => {
-  return isDevelopment();
+  const disabled = isDevelopment();
+  console.log('Analytics disabled:', disabled);
+  return disabled;
 };
 
 const isGABlocked = () => {
-  return !window.gtag || !window.dataLayer;
+  return typeof window === 'undefined' || (!window.gtag && !window.dataLayer);
 };
 
 export const initGoogleAnalytics = () => {
@@ -126,13 +133,19 @@ export const logEvent = async (
   await initGoogleAnalytics();
 
   if (typeof window.gtag === 'function') {
-    window.gtag('event', action, {
-      event_category: category,
-      event_label: label,
-      value: value,
-    });
-    console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
+    try {
+      window.gtag('event', action, {
+        event_category: category,
+        event_label: label,
+        value: value,
+      });
+      console.log(`Event logged: ${action}, ${category}, ${label}, ${value}`);
+    } catch (error) {
+      console.error('Error logging event:', error);
+    }
   } else {
     console.warn('Google Analytics not available. Event not logged.');
+    console.log('window.gtag:', window.gtag);
+    console.log('window.dataLayer:', window.dataLayer);
   }
 };
