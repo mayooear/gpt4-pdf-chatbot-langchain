@@ -1,4 +1,5 @@
 import { Html, Head, Main, NextScript } from 'next/document';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export default function Document() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
@@ -26,6 +27,10 @@ export default function Document() {
       <body>
         <Main />
         <NextScript />
+        <GoogleAnalytics
+          gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''}
+          dataLayerName="dataLayer"
+        />
       </body>
     </Html>
   );

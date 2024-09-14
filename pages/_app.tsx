@@ -4,16 +4,12 @@ import 'react-toastify/dist/ReactToastify.css';
 import type { AppProps, NextWebVitalsMetric } from 'next/app';
 import { Inter } from 'next/font/google';
 import { ToastContainer } from 'react-toastify';
-import { useEffect } from 'react';
-import {
-  initGoogleAnalytics,
-  logPageView,
-  logEvent,
-} from '@/utils/client/analytics';
-import { useRouter } from 'next/router';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
+import { logEvent, pageview } from '@/utils/client/analytics';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -30,11 +26,8 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   const router = useRouter();
 
   useEffect(() => {
-    initGoogleAnalytics();
-    logPageView(router.pathname);
-
     const handleRouteChange = (url: string) => {
-      logPageView(url);
+      pageview(process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || '', url);
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);
@@ -42,7 +35,7 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [router]);
+  }, [router.events]);
 
   return (
     <AudioProvider>
