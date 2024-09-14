@@ -8,7 +8,6 @@ export const logEvent = (
   label: string,
   value?: number,
 ) => {
-  console.log('logging event', action, category, label, value);
   event(action, {
     category: category,
     label: label,
