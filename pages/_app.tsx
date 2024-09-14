@@ -10,6 +10,7 @@ import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProp
 import { logEvent, pageview } from '@/utils/client/analytics';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -41,6 +42,10 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
     <AudioProvider>
       <main className={inter.variable}>
         <Component {...pageProps} />
+        <GoogleAnalytics
+          gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''}
+          dataLayerName="dataLayer"
+        />
       </main>
       <ToastContainer />
     </AudioProvider>
