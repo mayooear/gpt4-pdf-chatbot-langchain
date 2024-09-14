@@ -2,15 +2,12 @@ import '@/styles/base.css';
 import '@/styles/globals.css';
 import 'react-toastify/dist/ReactToastify.css';
 import type { AppProps, NextWebVitalsMetric } from 'next/app';
+import { GoogleAnalytics, event } from 'nextjs-google-analytics';
 import { Inter } from 'next/font/google';
 import { ToastContainer } from 'react-toastify';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
-import { logEvent, pageview } from '@/utils/client/analytics';
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -24,28 +21,11 @@ interface CustomAppProps extends AppProps {
 }
 
 function MyApp({ Component, pageProps }: CustomAppProps) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      pageview(process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || '', url);
-    };
-
-    router.events.on('routeChangeComplete', handleRouteChange);
-
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChange);
-    };
-  }, [router.events]);
-
   return (
     <AudioProvider>
       <main className={inter.variable}>
+        <GoogleAnalytics trackPageViews />
         <Component {...pageProps} />
-        <GoogleAnalytics
-          gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''}
-          dataLayerName="dataLayer"
-        />
       </main>
       <ToastContainer />
     </AudioProvider>
@@ -59,12 +39,12 @@ MyApp.getInitialProps = async () => {
 
 export function reportWebVitals(metric: NextWebVitalsMetric) {
   const { id, name, label, value } = metric;
-  logEvent(
-    name,
-    label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
-    id,
-    Math.round(name === 'CLS' ? value * 1000 : value),
-  );
+  event(name, {
+    category: label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
+    value: Math.round(name === 'CLS' ? value * 1000 : value), // values must be integers
+    label: id, // id unique to current page load
+    nonInteraction: true, // avoids affecting bounce rate.
+  });
 }
 
 export default MyApp;
