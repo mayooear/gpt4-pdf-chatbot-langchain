@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { logEvent } from '@/utils/client/analytics';
 
 interface RandomQueriesProps {
@@ -16,8 +16,13 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({
   shuffleQueries,
   isMobile,
 }) => {
-  console.log('RandomQueries component rendered');
+  console.log('RandomQueries: Component rendered');
   console.log('RandomQueries: Received queries:', queries);
+  console.log('RandomQueries: isMobile:', isMobile);
+
+  useEffect(() => {
+    console.log('RandomQueries: queries changed', queries);
+  }, [queries]);
 
   const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
 

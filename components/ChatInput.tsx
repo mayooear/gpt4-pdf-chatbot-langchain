@@ -128,6 +128,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [loading, isFirstQuery, textAreaRef]);
 
+  useEffect(() => {
+    console.log('ChatInput: randomQueries prop:', randomQueries);
+  }, [randomQueries]);
+
   const focusInput = () => {
     setTimeout(() => {
       if (inputRef.current) {

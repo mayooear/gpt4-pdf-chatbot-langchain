@@ -382,10 +382,12 @@ export default function Home({
     let isMounted = true;
     async function fetchQueries() {
       if (siteConfig) {
+        console.log('Fetching queries for siteId:', siteConfig.siteId);
         const queries = await getCollectionQueries(
           siteConfig.siteId,
           siteConfig.collectionConfig,
         );
+        console.log('Fetched queries:', queries);
         if (isMounted) {
           setCollectionQueries(queries);
         }
@@ -409,6 +411,14 @@ export default function Home({
     queriesForCollection,
     3,
   );
+
+  useEffect(() => {
+    console.log('useEffect queriesForCollection:', queriesForCollection);
+    console.log(
+      'useEffect randomQueries after useRandomQueries:',
+      randomQueries,
+    );
+  }, [queriesForCollection, randomQueries]);
 
   const handleLikeCountChange = (answerId: string, liked: boolean) => {
     setLikeStatuses((prevStatuses) => ({

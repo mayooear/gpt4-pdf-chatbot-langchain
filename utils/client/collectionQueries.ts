@@ -4,6 +4,7 @@ export async function loadQueries(
   siteId: string,
   collection: string,
 ): Promise<string[]> {
+  console.log(`Loading queries for ${siteId}: ${collection}`);
   if (
     cachedQueries &&
     cachedQueries[siteId] &&
@@ -35,6 +36,7 @@ export async function getCollectionQueries(
   siteId: string,
   collectionConfig: Record<string, string>,
 ) {
+  console.log('getCollectionQueries called with:', siteId, collectionConfig);
   if (cachedQueries && cachedQueries[siteId]) {
     return cachedQueries[siteId];
   }
