@@ -114,10 +114,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
   const handleExpandAll = () => {
     if (expandedSources.size === sources.length) {
       setExpandedSources(new Set());
+      logEvent('collapse_all_sources', 'UI', 'accordion');
     } else {
       setExpandedSources(new Set(sources.map((_, index) => index)));
+      logEvent('expand_all_sources', 'UI', 'accordion');
     }
-    logEvent('expand_all_sources', 'UI', 'accordion');
   };
 
   const handleSourceToggle = (index: number) => {
@@ -126,10 +127,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
       const isExpanding = !newSet.has(index);
       if (isExpanding) {
         newSet.add(index);
+        logEvent('expand_source', 'UI', `expanded:${index}`);
       } else {
         newSet.delete(index);
+        logEvent('collapse_source', 'UI', `collapsed:${index}`);
       }
-      logEvent('expand_source', 'UI', isExpanding ? 'expanded' : 'collapsed');
       return newSet;
     });
   };

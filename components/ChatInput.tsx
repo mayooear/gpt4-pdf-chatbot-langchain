@@ -10,6 +10,7 @@ import {
   getChatPlaceholder,
 } from '@/utils/client/siteConfig';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { logEvent } from '@/utils/client/analytics';
 
 interface ChatInputProps {
   loading: boolean;
@@ -130,11 +131,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     e.preventDefault();
     if (loading) {
       handleStop();
+      logEvent('stop_query', 'Engagement', '');
     } else {
       setIsNearBottom(true); // Set to true when submitting a new message
       handleSubmit(e, input);
       setQuery('');
       focusInput();
+      logEvent('submit_query', 'Engagement', input);
     }
   };
 
@@ -142,6 +145,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       if (!loading) {
         e.preventDefault();
+        logEvent('submit_query_enter', 'Engagement', input);
         setHasInteracted(true);
         setIsNearBottom(true); // Set to true when submitting a new message
         handleEnter(e, input);

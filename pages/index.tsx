@@ -433,6 +433,7 @@ export default function Home({
     event.preventDefault();
     if (privateSession) {
       // If already in a private session, reload the page
+      logEvent('end_private_session', 'UI', '');
       window.location.reload();
     } else {
       // Start a private session

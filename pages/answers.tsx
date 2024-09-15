@@ -355,6 +355,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     setCurrentPage(newPage);
     sessionStorage.removeItem('answersScrollPosition');
     updateUrl(newPage, sortBy);
+    logEvent('change_answers_page', 'UI', `page:${newPage}`);
 
     setTimeout(() => {
       if (debouncedFetch) {

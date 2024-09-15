@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAudioContext } from '@/contexts/AudioContext';
+import { logEvent } from '@/utils/client/analytics';
 
 interface AudioPlayerProps {
   src: string;
@@ -99,8 +100,10 @@ export function AudioPlayer({
     } else {
       if (!isPlaying) {
         setCurrentlyPlayingId(audioId);
+        logEvent('play_audio', 'Engagement', audioId);
       } else {
         setCurrentlyPlayingId(null);
+        logEvent('pause_audio', 'Engagement', audioId);
       }
       togglePlayPause();
     }
@@ -109,6 +112,7 @@ export function AudioPlayer({
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     setAudioTime(newTime);
+    logEvent('seek_audio', 'Engagement', `${audioId}:${newTime}`);
   };
 
   return (
