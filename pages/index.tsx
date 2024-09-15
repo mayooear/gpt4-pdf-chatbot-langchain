@@ -1,23 +1,13 @@
 // React and Next.js imports
-import {
-  useRef,
-  useState,
-  useEffect,
-  useMemo,
-  Fragment,
-  useCallback,
-} from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 // Component imports
 import Layout from '@/components/layout';
 import Popup from '@/components/popup';
-import CopyButton from '@/components/CopyButton';
-import SourcesList from '@/components/SourcesList';
-import LikeButton from '@/components/LikeButton';
 import LikePrompt from '@/components/LikePrompt';
 import { ChatInput } from '@/components/ChatInput';
+import MessageItem from '@/components/MessageItem';
 
 // Hook imports
 import usePopup from '@/hooks/usePopup';
@@ -39,13 +29,7 @@ import { DocMetadata } from '@/types/DocMetadata';
 import { Document } from 'langchain/document';
 
 // Third-party library imports
-import ReactMarkdown from 'react-markdown';
-import gfm from 'remark-gfm';
 import Cookies from 'js-cookie';
-
-// Styles
-import styles from '@/styles/Home.module.css';
-import markdownStyles from '@/styles/MarkdownStyles.module.css';
 
 interface ExtendedAIMessage {
   type: 'apiMessage' | 'userMessage';
@@ -531,164 +515,27 @@ export default function Home({
           )}
           <div className="flex-grow overflow-hidden">
             <div ref={messageListRef} className="h-full overflow-y-auto">
-              {messages.map((message, index) => {
-                const extendedMessage = message as ExtendedAIMessage;
-                let icon;
-                let className;
-                if (extendedMessage.type === 'apiMessage') {
-                  icon = (
-                    <Image
-                      src="/bot-image.png"
-                      alt="AI"
-                      width={40}
-                      height={40}
-                      className="rounded-sm"
-                      priority
-                    />
-                  );
-                  className = 'bg-gray-50';
-                } else {
-                  icon = (
-                    <Image
-                      src="/usericon.png"
-                      alt="Me"
-                      width={30}
-                      height={30}
-                      className="rounded-sm"
-                      priority
-                    />
-                  );
-                  className =
-                    loading && index === messages.length - 1
-                      ? styles.usermessagewaiting
-                      : styles.usermessage;
-                }
-                return (
-                  <Fragment key={`chatMessage-${index}`}>
-                    {extendedMessage.type === 'apiMessage' && index > 0 && (
-                      <hr className="border-t border-gray-200 mb-0" />
-                    )}
-                    <div
-                      className={`${className} p-2 px-3`}
-                      ref={
-                        index === messages.length - 1 ? lastMessageRef : null
-                      }
-                    >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 mr-2">{icon}</div>
-                        <div className="flex-grow">
-                          <div className="max-w-none">
-                            {extendedMessage.sourceDocs && (
-                              <div className="mb-2">
-                                <SourcesList
-                                  sources={extendedMessage.sourceDocs}
-                                  collectionName={
-                                    collectionChanged && hasMultipleCollections
-                                      ? extendedMessage.collection
-                                      : null
-                                  }
-                                />
-                              </div>
-                            )}
-                            <ReactMarkdown
-                              remarkPlugins={[gfm]}
-                              components={{
-                                a: ({ ...props }) => (
-                                  <a
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    {...props}
-                                  />
-                                ),
-                              }}
-                              className={`mt-1 ${markdownStyles.markdownanswer}`}
-                            >
-                              {extendedMessage.message
-                                .replace(/\n/g, '  \n')
-                                .replace(/\n\n/g, '\n\n')}
-                            </ReactMarkdown>
-                          </div>
-                          {/* Action icons container */}
-                          <div className="mt-2 flex items-center space-x-2">
-                            {extendedMessage.type === 'apiMessage' &&
-                              index !== 0 && (
-                                <>
-                                  <CopyButton
-                                    markdown={extendedMessage.message}
-                                    answerId={extendedMessage.docId ?? ''}
-                                    sources={extendedMessage.sourceDocs}
-                                    question={messages[index - 1].message}
-                                    siteConfig={siteConfig}
-                                  />
-                                </>
-                              )}
-                            {!privateSession &&
-                              extendedMessage.type === 'apiMessage' &&
-                              extendedMessage.docId && (
-                                <>
-                                  <button
-                                    onClick={() =>
-                                      handleCopyLink(
-                                        extendedMessage.docId ?? '',
-                                      )
-                                    }
-                                    className="text-black-600 hover:underline flex items-center"
-                                    title="Copy link to clipboard"
-                                  >
-                                    <span className="material-icons">
-                                      {linkCopied === extendedMessage.docId
-                                        ? 'check'
-                                        : 'link'}
-                                    </span>
-                                  </button>
-                                  <LikeButton
-                                    answerId={extendedMessage.docId ?? ''}
-                                    initialLiked={
-                                      likeStatuses[
-                                        extendedMessage.docId ?? ''
-                                      ] || false
-                                    }
-                                    likeCount={0}
-                                    onLikeCountChange={(
-                                      answerId,
-                                      newLikeCount,
-                                    ) =>
-                                      handleLikeCountChange(
-                                        answerId,
-                                        newLikeCount > 0,
-                                      )
-                                    }
-                                    showLikeCount={false}
-                                  />
-                                  <button
-                                    onClick={() =>
-                                      handleVote(
-                                        extendedMessage.docId ?? '',
-                                        false,
-                                      )
-                                    }
-                                    className={`${styles.voteButton} ${
-                                      votes[extendedMessage.docId ?? ''] === -1
-                                        ? styles.voteButtonDownActive
-                                        : ''
-                                    } hover:bg-gray-200 flex items-center`}
-                                    title="Downvote (private) for system training"
-                                  >
-                                    <span className="material-icons text-black">
-                                      {votes[extendedMessage.docId ?? ''] === -1
-                                        ? 'thumb_down'
-                                        : 'thumb_down_off_alt'}
-                                    </span>
-                                  </button>
-                                </>
-                              )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Fragment>
-                );
-              })}
+              {messages.map((message, index) => (
+                <MessageItem
+                  key={`chatMessage-${index}`}
+                  messageKey={`chatMessage-${index}`}
+                  message={message}
+                  index={index}
+                  isLastMessage={index === messages.length - 1}
+                  loading={loading}
+                  privateSession={privateSession}
+                  collectionChanged={collectionChanged}
+                  hasMultipleCollections={hasMultipleCollections}
+                  likeStatuses={likeStatuses}
+                  linkCopied={linkCopied}
+                  votes={votes}
+                  siteConfig={siteConfig}
+                  handleLikeCountChange={handleLikeCountChange}
+                  handleCopyLink={handleCopyLink}
+                  handleVote={handleVote}
+                  lastMessageRef={lastMessageRef}
+                />
+              ))}
               <div ref={bottomOfListRef} style={{ height: '1px' }} />
             </div>
           </div>

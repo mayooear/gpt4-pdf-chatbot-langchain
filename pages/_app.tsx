@@ -21,10 +21,12 @@ interface CustomAppProps extends AppProps {
 }
 
 function MyApp({ Component, pageProps }: CustomAppProps) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   return (
     <AudioProvider>
       <main className={inter.variable}>
-        <GoogleAnalytics trackPageViews />
+        {!isDevelopment && <GoogleAnalytics trackPageViews />}
         <Component {...pageProps} />
       </main>
       <ToastContainer />
@@ -39,12 +41,22 @@ MyApp.getInitialProps = async () => {
 
 export function reportWebVitals(metric: NextWebVitalsMetric) {
   const { id, name, label, value } = metric;
-  event(name, {
-    category: label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
-    value: Math.round(name === 'CLS' ? value * 1000 : value), // values must be integers
-    label: id, // id unique to current page load
-    nonInteraction: true, // avoids affecting bounce rate.
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      'Not logging web vitals event in dev mode:',
+      name,
+      label,
+      id,
+      value,
+    );
+  } else {
+    event(name, {
+      category: label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
+      value: Math.round(name === 'CLS' ? value * 1000 : value), // values must be integers
+      label: id, // id unique to current page load
+      nonInteraction: true, // avoids affecting bounce rate.
+    });
+  }
 }
 
 export default MyApp;
