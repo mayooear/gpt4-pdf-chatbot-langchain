@@ -15,6 +15,7 @@ export async function loadQueries(
   const response = await fetch(`/data/${siteId}/${collection}_queries.txt`);
   const text = await response.text();
   const queries = text.split('\n').filter((query) => query.trim() !== '');
+  console.log(`Loaded ${queries.length} queries for ${siteId}: ${collection}`);
 
   if (!cachedQueries) {
     cachedQueries = {};
