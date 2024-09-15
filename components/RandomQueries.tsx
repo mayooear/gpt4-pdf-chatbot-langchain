@@ -18,6 +18,8 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({
 }) => {
   const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
 
+  console.log('RandomQueries: Received queries:', queries);
+
   const handleQueryClick = (query: string) => {
     if (!isLoading) {
       onQueryClick(query);
