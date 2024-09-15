@@ -74,9 +74,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    console.log('ChatInput: Initial render');
+    console.log('siteConfig:', siteConfig);
+    console.log('randomQueries:', randomQueries);
+  }, []);
+
+  useEffect(() => {
     setVisitCount((prevCount: number) => {
       const newCount = prevCount + 1;
-      setSuggestionsExpanded(newCount < 3);
+      console.log('Visit count:', newCount);
+      const newSuggestionsExpanded = newCount < 3;
+      console.log('Setting suggestionsExpanded to:', newSuggestionsExpanded);
+      setSuggestionsExpanded(newSuggestionsExpanded);
       return newCount;
     });
   }, [setVisitCount, setSuggestionsExpanded]);
@@ -159,9 +168,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showMediaTypeSelection = getEnableMediaTypeSelection(siteConfig);
   const showAuthorSelection = getEnableAuthorSelection(siteConfig);
 
+  console.log('showSuggestedQueries:', showSuggestedQueries);
+
+  useEffect(() => {
+    console.log('suggestionsExpanded changed:', suggestionsExpanded);
+  }, [suggestionsExpanded]);
+
   const toggleSuggestions = (e: React.MouseEvent) => {
     e.preventDefault();
-    setSuggestionsExpanded(!suggestionsExpanded);
+    const newSuggestionsExpanded = !suggestionsExpanded;
+    console.log('Toggling suggestions to:', newSuggestionsExpanded);
+    setSuggestionsExpanded(newSuggestionsExpanded);
   };
 
   const onQueryClick = (q: string) => {
@@ -291,13 +308,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {showSuggestedQueries && (
           <div className="w-full mb-4">
             {suggestionsExpanded && (
-              <RandomQueries
-                queries={randomQueries}
-                onQueryClick={onQueryClick}
-                isLoading={loading}
-                shuffleQueries={shuffleQueries}
-                isMobile={isMobile}
-              />
+              <>
+                <p>Debug: About to render RandomQueries</p>
+                <RandomQueries
+                  queries={randomQueries}
+                  onQueryClick={onQueryClick}
+                  isLoading={loading}
+                  shuffleQueries={shuffleQueries}
+                  isMobile={isMobile}
+                />
+              </>
             )}
             <button
               type="button"
