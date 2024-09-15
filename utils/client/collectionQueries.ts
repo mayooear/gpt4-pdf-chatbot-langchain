@@ -9,6 +9,9 @@ export async function loadQueries(
     cachedQueries[siteId] &&
     cachedQueries[siteId][collection]
   ) {
+    console.log(
+      `Loaded ${cachedQueries[siteId][collection].length} cached queries for ${siteId}: ${collection}`,
+    );
     return cachedQueries[siteId][collection];
   }
 
