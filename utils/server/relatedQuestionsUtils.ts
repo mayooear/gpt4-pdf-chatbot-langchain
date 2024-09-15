@@ -13,6 +13,38 @@ import {
   CACHE_EXPIRATION,
 } from '@/utils/server/redisUtils';
 
+// Add this function at the top of the file
+function safeRakeGenerate(text: string, questionId: string): string[] {
+  try {
+    // Remove all punctuation and non-alphanumeric characters except spaces
+    const cleanedText = text
+      .replace(/[^\w\s]|_/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanedText) {
+      console.warn(
+        `Empty text after cleaning for question ID ${questionId}. Original text: "${text}"`,
+      );
+      return [];
+    }
+    const keywords = rake.generate(cleanedText);
+    if (!keywords || !Array.isArray(keywords)) {
+      console.warn(
+        `Invalid keywords generated for question ID ${questionId}. Text: "${text}"`,
+      );
+      return [];
+    }
+    return keywords;
+  } catch (error) {
+    console.error(
+      `Error generating keywords for question ID ${questionId}. Text: "${text}"`,
+      error,
+    );
+    return [];
+  }
+}
+
 export interface RelatedQuestion {
   id: string;
   title: string;
@@ -133,24 +165,7 @@ export async function updateRelatedQuestionsBatch(batchSize: number) {
     }
 
     const text = question.question;
-    if (!text) {
-      console.error('Text for RAKE is null or undefined -- ignoring question');
-      continue;
-    }
-
-    let rakeKeywords;
-    try {
-      rakeKeywords = rake.generate(text);
-      if (!rakeKeywords || !Array.isArray(rakeKeywords)) {
-        throw new Error('Invalid keywords generated');
-      }
-    } catch (error) {
-      console.warn(
-        `Skipping question ID ${question.id} due to error generating keywords:`,
-        error,
-      );
-      continue;
-    }
+    const rakeKeywords = safeRakeGenerate(text, question.id);
 
     const relatedQuestions = await findRelatedQuestionsUsingKeywords(
       rakeKeywords,
@@ -208,7 +223,10 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   for (const q of questions) {
     try {
       if (!q.question || typeof q.question !== 'string') {
-        throw new Error('Invalid question format');
+        console.warn(
+          `Skipping question ID ${q.id} due to invalid question format`,
+        );
+        continue;
       }
       const cleanedQuestion = removeNonAscii(q.question);
       if (!cleanedQuestion || cleanedQuestion.trim() === '') {
@@ -217,16 +235,7 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
         );
         continue;
       }
-      let rakeKeywords = [];
-      try {
-        rakeKeywords = rake.generate(cleanedQuestion);
-      } catch (error) {
-        console.error(
-          `Error in rake, generating keywords for question ID ${q.id}:`,
-          error,
-        );
-        continue;
-      }
+      const rakeKeywords = safeRakeGenerate(cleanedQuestion, q.id);
       tfidf.addDocument(cleanedQuestion);
       const tfidfKeywords = tfidf
         .listTerms(tfidf.documents.length - 1)
