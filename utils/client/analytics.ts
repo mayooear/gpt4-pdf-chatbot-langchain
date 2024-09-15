@@ -8,9 +8,19 @@ export const logEvent = (
   label: string,
   value?: number,
 ) => {
-  event(action, {
-    category: category,
-    label: label,
-    value: value,
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      'skipping logEvent in dev mode',
+      action,
+      category,
+      label,
+      value,
+    );
+  } else {
+    event(action, {
+      category: category,
+      label: label,
+      value: value,
+    });
+  }
 };
