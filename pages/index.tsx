@@ -45,12 +45,9 @@ export default function Home({
   siteConfig: SiteConfig | null;
 }) {
   const [isMaintenanceMode] = useState<boolean>(false);
-  const [collection, setCollection] = useState<string>(() => {
-    if (getEnableAuthorSelection(siteConfig)) {
-      const collections = getCollectionsConfig(siteConfig);
-      return Object.keys(collections)[0] || '';
-    }
-    return '';
+  const [collection, setCollection] = useState(() => {
+    const collections = getCollectionsConfig(siteConfig);
+    return Object.keys(collections)[0] || '';
   });
   const [collectionChanged, setCollectionChanged] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
@@ -198,6 +195,7 @@ export default function Home({
   };
 
   const [collectionQueries, setCollectionQueries] = useState({});
+  const [isLoadingQueries, setIsLoadingQueries] = useState(true);
 
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
@@ -257,9 +255,6 @@ export default function Home({
         }),
         signal: newAbortController.signal,
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
 
       if (!response.ok) {
         setLoading(false);
@@ -382,14 +377,14 @@ export default function Home({
     let isMounted = true;
     async function fetchQueries() {
       if (siteConfig) {
-        console.log('Fetching queries for siteId:', siteConfig.siteId);
+        setIsLoadingQueries(true);
         const queries = await getCollectionQueries(
           siteConfig.siteId,
           siteConfig.collectionConfig,
         );
-        console.log('Fetched queries:', queries);
         if (isMounted) {
           setCollectionQueries(queries);
+          setIsLoadingQueries(false);
         }
       }
     }
@@ -399,11 +394,21 @@ export default function Home({
     };
   }, [siteConfig]);
 
-  // Determine the queries for the current collection or use an empty array as a fallback
   const queriesForCollection = useMemo(() => {
-    return collection
-      ? collectionQueries[collection as keyof typeof collectionQueries] || []
-      : [];
+    if (!collectionQueries[collection as keyof typeof collectionQueries]) {
+      // If the current collection is not found, use the first available collection
+      const firstAvailableCollection = Object.keys(collectionQueries)[0];
+      if (firstAvailableCollection) {
+        return collectionQueries[
+          firstAvailableCollection as keyof typeof collectionQueries
+        ];
+      }
+      return [];
+    }
+
+    const queries =
+      collectionQueries[collection as keyof typeof collectionQueries];
+    return queries;
   }, [collection, collectionQueries]);
 
   // Use the memoized queries
@@ -411,14 +416,6 @@ export default function Home({
     queriesForCollection,
     3,
   );
-
-  useEffect(() => {
-    console.log('useEffect queriesForCollection:', queriesForCollection);
-    console.log(
-      'useEffect randomQueries after useRandomQueries:',
-      randomQueries,
-    );
-  }, [queriesForCollection, randomQueries]);
 
   const handleLikeCountChange = (answerId: string, liked: boolean) => {
     setLikeStatuses((prevStatuses) => ({
@@ -558,30 +555,33 @@ export default function Home({
             </div>
           </div>
           <div className="mt-4 px-2 md:px-0">
-            <ChatInput
-              loading={loading}
-              handleSubmit={handleSubmit}
-              handleEnter={handleEnter}
-              handleClick={handleClick}
-              handleCollectionChange={handleCollectionChange}
-              handlePrivateSessionChange={handlePrivateSessionChange}
-              collection={collection}
-              error={chatError}
-              randomQueries={randomQueries}
-              shuffleQueries={shuffleQueries}
-              privateSession={privateSession}
-              textAreaRef={textAreaRef}
-              mediaTypes={mediaTypes}
-              handleMediaTypeChange={handleMediaTypeChange}
-              siteConfig={siteConfig}
-              input={query}
-              handleInputChange={handleInputChange}
-              setQuery={setQuery}
-              setShouldAutoScroll={setIsNearBottom}
-              handleStop={handleStop}
-              isNearBottom={isNearBottom}
-              setIsNearBottom={setIsNearBottom}
-            />
+            {isLoadingQueries ? null : (
+              <ChatInput
+                loading={loading}
+                handleSubmit={handleSubmit}
+                handleEnter={handleEnter}
+                handleClick={handleClick}
+                handleCollectionChange={handleCollectionChange}
+                handlePrivateSessionChange={handlePrivateSessionChange}
+                collection={collection}
+                error={chatError}
+                randomQueries={randomQueries}
+                shuffleQueries={shuffleQueries}
+                isLoadingQueries={isLoadingQueries}
+                privateSession={privateSession}
+                textAreaRef={textAreaRef}
+                mediaTypes={mediaTypes}
+                handleMediaTypeChange={handleMediaTypeChange}
+                siteConfig={siteConfig}
+                input={query}
+                handleInputChange={handleInputChange}
+                setQuery={setQuery}
+                setShouldAutoScroll={setIsNearBottom}
+                handleStop={handleStop}
+                isNearBottom={isNearBottom}
+                setIsNearBottom={setIsNearBottom}
+              />
+            )}
           </div>
           {privateSession && (
             <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">

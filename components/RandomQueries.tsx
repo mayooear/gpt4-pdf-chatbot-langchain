@@ -16,14 +16,6 @@ const RandomQueries: React.FC<RandomQueriesProps> = ({
   shuffleQueries,
   isMobile,
 }) => {
-  console.log('RandomQueries: Component rendered');
-  console.log('RandomQueries: Received queries:', queries);
-  console.log('RandomQueries: isMobile:', isMobile);
-
-  useEffect(() => {
-    console.log('RandomQueries: queries changed', queries);
-  }, [queries]);
-
   const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
 
   const handleQueryClick = (query: string) => {

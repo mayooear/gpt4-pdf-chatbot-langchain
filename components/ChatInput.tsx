@@ -40,6 +40,7 @@ interface ChatInputProps {
   setQuery: (query: string) => void;
   isNearBottom: boolean;
   setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
+  isLoadingQueries: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -63,6 +64,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   handleInputChange,
   setQuery,
   setIsNearBottom,
+  isLoadingQueries,
 }) => {
   const [, setLocalQuery] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
@@ -74,17 +76,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    console.log('ChatInput: Initial render');
-    console.log('siteConfig:', siteConfig);
-    console.log('randomQueries:', randomQueries);
-  }, []);
-
-  useEffect(() => {
     setVisitCount((prevCount: number) => {
       const newCount = prevCount + 1;
-      console.log('Visit count:', newCount);
-      const newSuggestionsExpanded = newCount < 3;
-      console.log('Setting suggestionsExpanded to:', newSuggestionsExpanded);
+      const newSuggestionsExpanded = newCount < 5;
       setSuggestionsExpanded(newSuggestionsExpanded);
       return newCount;
     });
@@ -128,10 +122,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [loading, isFirstQuery, textAreaRef]);
 
-  useEffect(() => {
-    console.log('ChatInput: randomQueries prop:', randomQueries);
-  }, [randomQueries]);
-
   const focusInput = () => {
     setTimeout(() => {
       if (inputRef.current) {
@@ -172,22 +162,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showMediaTypeSelection = getEnableMediaTypeSelection(siteConfig);
   const showAuthorSelection = getEnableAuthorSelection(siteConfig);
 
-  console.log('showSuggestedQueries:', showSuggestedQueries);
-
-  useEffect(() => {
-    console.log('suggestionsExpanded changed:', suggestionsExpanded);
-  }, [suggestionsExpanded]);
-
   const toggleSuggestions = (e: React.MouseEvent) => {
     e.preventDefault();
-    const newSuggestionsExpanded = !suggestionsExpanded;
-    console.log('Toggling suggestions to:', newSuggestionsExpanded);
-    setSuggestionsExpanded(newSuggestionsExpanded);
+    setSuggestionsExpanded(!suggestionsExpanded);
   };
 
   const onQueryClick = (q: string) => {
     setLocalQuery(q);
-    setIsNearBottom(true); // Set to true when clicking a suggested query
+    setIsNearBottom(true);
     handleClick(q);
   };
 
@@ -309,29 +291,30 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
         </form>
 
-        {showSuggestedQueries && (
-          <div className="w-full mb-4">
-            {suggestionsExpanded && (
-              <>
-                <p>Debug: About to render RandomQueries</p>
-                <RandomQueries
-                  queries={randomQueries}
-                  onQueryClick={onQueryClick}
-                  isLoading={loading}
-                  shuffleQueries={shuffleQueries}
-                  isMobile={isMobile}
-                />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={toggleSuggestions}
-              className="text-blue-500 hover:underline mb-2"
-            >
-              {suggestionsExpanded ? 'Hide suggestions' : 'Show suggestions'}
-            </button>
-          </div>
-        )}
+        {!isLoadingQueries &&
+          showSuggestedQueries &&
+          randomQueries.length > 0 && (
+            <div className="w-full mb-4">
+              {suggestionsExpanded && (
+                <>
+                  <RandomQueries
+                    queries={randomQueries}
+                    onQueryClick={onQueryClick}
+                    isLoading={loading}
+                    shuffleQueries={shuffleQueries}
+                    isMobile={isMobile}
+                  />
+                </>
+              )}
+              <button
+                type="button"
+                onClick={toggleSuggestions}
+                className="text-blue-500 hover:underline mb-2"
+              >
+                {suggestionsExpanded ? 'Hide suggestions' : 'Show suggestions'}
+              </button>
+            </div>
+          )}
       </div>
     </div>
   );

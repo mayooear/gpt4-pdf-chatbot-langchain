@@ -1,20 +1,22 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export const useRandomQueries = (queries: string[], count: number = 3) => {
-  const getRandomQueries = useCallback(() => {
-    const shuffled = queries.sort(() => 0.5 - Math.random());
+export const useRandomQueries = (queries: string[], count: number) => {
+  const [randomQueries, setRandomQueries] = useState<string[]>([]);
+
+  const shuffleQueries = useCallback(() => {
+    if (!queries || queries.length === 0) {
+      return [];
+    }
+    const shuffled = [...queries].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
   }, [queries, count]);
 
-  const [randomQueries, setRandomQueries] = useState<string[]>([]);
-
   useEffect(() => {
-    setRandomQueries(getRandomQueries());
-  }, [getRandomQueries]);
+    setRandomQueries(shuffleQueries());
+  }, [shuffleQueries]);
 
-  const shuffleQueries = useCallback(() => {
-    setRandomQueries(getRandomQueries());
-  }, [getRandomQueries]);
-
-  return { randomQueries, shuffleQueries };
+  return {
+    randomQueries,
+    shuffleQueries: () => setRandomQueries(shuffleQueries()),
+  };
 };
