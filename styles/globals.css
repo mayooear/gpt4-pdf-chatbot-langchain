@@ -12,3 +12,8 @@
 .heart-button:hover {
   color: #ff8585;
 }
+
+/* Set a minimum height for very zoomed-in screens */
+.answers-container {
+  min-height: 300px; 
+}
