@@ -40,8 +40,15 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
 
   // Scroll position management functions
   const saveScrollPosition = () => {
-    const scrollY = window.scrollY;
-    sessionStorage.setItem('answersScrollPosition', scrollY.toString());
+    const answersContainer = document.querySelector('.main-content-wrap');
+
+    if ( answersContainer ) {
+      const scrollY = answersContainer.scrollTop;
+
+      if (scrollY > 0) {
+        sessionStorage.setItem('answersScrollPosition', scrollY.toString()); 
+      }
+    }
   };
 
   const getSavedScrollPosition = () => {
@@ -85,12 +92,16 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
 
   useEffect(() => {
     if (isRestoringScroll && !isLoading && initialLoadComplete) {
-      const savedPosition = getSavedScrollPosition();
-      setTimeout(() => {
-        window.scrollTo(0, savedPosition);
-        setIsRestoringScroll(false);
-        sessionStorage.removeItem('answersScrollPosition');
-      }, 100);
+      const answersContainer = document.querySelector('.main-content-wrap');
+
+      if ( answersContainer ) {
+        const savedPosition = getSavedScrollPosition();
+        setTimeout(() => {
+          answersContainer.scrollTop = savedPosition;
+          setIsRestoringScroll(false);
+          sessionStorage.removeItem('answersScrollPosition');
+        }, 100);
+      }  
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
