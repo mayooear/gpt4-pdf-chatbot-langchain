@@ -108,7 +108,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
           </nav>
         </div>
       </header>
-      <div className="flex-grow overflow-auto">
+      <div className="flex-grow overflow-auto main-content-wrap">
         <main className="flex flex-col h-full">{children}</main>
       </div>
       <Footer siteConfig={siteConfig} />
