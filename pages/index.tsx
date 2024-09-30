@@ -528,7 +528,7 @@ export default function Home({
               )
             </div>
           )}
-          <div className="flex-grow overflow-hidden">
+          <div className="flex-grow overflow-hidden answers-container">
             <div ref={messageListRef} className="h-full overflow-y-auto">
               {messages.map((message, index) => (
                 <MessageItem
