@@ -16,4 +16,13 @@
 /* Set a minimum height for very zoomed-in screens */
 .answers-container {
   min-height: 300px; 
+  border-left: 1px solid lightgray;
+  border-right: 1px solid lightgray;
+  border-bottom: 1px solid lightgray;
+  border-radius: 0 0 5px 5px;
+}
+
+.app-container-wrap {
+  width: 95%;
+  margin: 0 auto;
 }

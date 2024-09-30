@@ -43,73 +43,75 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
   const parentSiteName = getParentSiteName(siteConfig);
 
   return (
-    <div className="mx-auto flex flex-col h-screen max-w-[800px]">
-      <header className="sticky top-0 z-40 bg-white w-full">
-        {isDev && (
-          <div className="bg-blue-500 text-white text-center py-1 w-full">
-            Dev server (site: {process.env.SITE_ID})
-          </div>
-        )}
-        <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">
-          <nav className="ml-2 pl-1">
-            <div className="space-x-10">
-              {parentSiteUrl && (
+    <div className="h-screen app-container-wrap">
+      <div className="mx-auto flex flex-col max-w-[800px] app-container">
+        <header className="sticky top-0 z-40 bg-white w-full">
+          {isDev && (
+            <div className="bg-blue-500 text-white text-center py-1 w-full">
+              Dev server (site: {process.env.SITE_ID})
+            </div>
+          )}
+          <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">
+            <nav className="ml-2 pl-1">
+              <div className="space-x-10">
+                {parentSiteUrl && (
+                  <Link
+                    href={parentSiteUrl}
+                    className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
+                    onClick={handleBackToLibrary}
+                  >
+                    ← {parentSiteName}
+                  </Link>
+                )}
                 <Link
-                  href={parentSiteUrl}
-                  className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-                  onClick={handleBackToLibrary}
+                  href="/"
+                  className={`hover:text-slate-600 cursor-pointer ${
+                    isActive('/') ? 'text-slate-800 font-bold' : ''
+                  }`}
                 >
-                  ← {parentSiteName}
+                  Ask
+                </Link>
+                <Link
+                  href="/answers"
+                  className={`hover:text-slate-600 cursor-pointer ${
+                    isActive('/answers') ? 'text-slate-800 font-bold' : ''
+                  }`}
+                >
+                  All&nbsp;Answers
+                </Link>
+              </div>
+            </nav>
+            <nav className="mr-4 pr-6 flex space-x-4">
+              {isLoggedIn ? (
+                <a
+                  href="#"
+                  onClick={handleLogout}
+                  className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
+                >
+                  Logout
+                </a>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
+                >
+                  Login
                 </Link>
               )}
-              <Link
-                href="/"
-                className={`hover:text-slate-600 cursor-pointer ${
-                  isActive('/') ? 'text-slate-800 font-bold' : ''
-                }`}
-              >
-                Ask
-              </Link>
-              <Link
-                href="/answers"
-                className={`hover:text-slate-600 cursor-pointer ${
-                  isActive('/answers') ? 'text-slate-800 font-bold' : ''
-                }`}
-              >
-                All&nbsp;Answers
-              </Link>
-            </div>
-          </nav>
-          <nav className="mr-4 pr-6 flex space-x-4">
-            {isLoggedIn ? (
-              <a
-                href="#"
-                onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-              >
-                Logout
-              </a>
-            ) : (
-              <Link
-                href="/login"
-                className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-              >
-                Login
-              </Link>
-            )}
-            {isSudoUser && (
-              <Link
-                href="/admin/downvotes"
-                className="text-blue-600 hover:underline"
-              >
-                Review Downvotes
-              </Link>
-            )}
-          </nav>
+              {isSudoUser && (
+                <Link
+                  href="/admin/downvotes"
+                  className="text-blue-600 hover:underline"
+                >
+                  Review Downvotes
+                </Link>
+              )}
+            </nav>
+          </div>
+        </header>
+        <div className="flex-grow overflow-auto">
+          <main className="flex flex-col h-full">{children}</main>
         </div>
-      </header>
-      <div className="flex-grow overflow-auto">
-        <main className="flex flex-col h-full">{children}</main>
       </div>
       <Footer siteConfig={siteConfig} />
     </div>
