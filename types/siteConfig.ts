@@ -1,3 +1,16 @@
+export interface HeaderConfig {
+  logo: string;
+  navItems: Array<{ label: string; path: string }>;
+}
+
+export interface FooterConfig {
+  links: Array<{
+    label: string;
+    url: string;
+    icon?: string;
+  }>;
+}
+
 export interface SiteConfig {
   siteId: string;
   shortname: string;
@@ -23,5 +36,8 @@ export interface SiteConfig {
   welcome_popup_heading: string;
   other_visitors_reference: string;
   loginImage: string | null;
-  chatPlaceholder?: string; // Add this line
+  chatPlaceholder?: string;
+  header: HeaderConfig;
+  footer: FooterConfig;
+  requireLogin: boolean;
 }

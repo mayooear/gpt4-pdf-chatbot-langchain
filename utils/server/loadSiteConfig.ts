@@ -14,7 +14,9 @@ export async function loadSiteConfig(
     return {
       ...siteConfig,
       siteId,
-      chatPlaceholder: siteConfig.chatPlaceholder || 'Ask a question...', // Add this line
+      chatPlaceholder: siteConfig.chatPlaceholder || 'Ask a question...',
+      header: siteConfig.header || { logo: '', navItems: [] },
+      footer: siteConfig.footer || { links: [] },
     } as SiteConfig;
   } catch (error) {
     console.error('Error loading site config:', error);

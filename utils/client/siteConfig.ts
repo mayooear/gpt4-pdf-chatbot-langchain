@@ -1,4 +1,4 @@
-import { SiteConfig } from '@/types/siteConfig';
+import { SiteConfig, HeaderConfig, FooterConfig } from '@/types/siteConfig';
 
 // These functions can be used in components that receive siteConfig as a prop
 export const getCollectionsConfig = (siteConfig: SiteConfig | null) =>
@@ -49,3 +49,18 @@ export const getLoginImage = (siteConfig: SiteConfig | null) =>
 export function getChatPlaceholder(siteConfig: SiteConfig | null): string {
   return siteConfig?.chatPlaceholder || '';
 }
+
+export const getHeaderConfig = (
+  siteConfig: SiteConfig | null,
+): HeaderConfig => {
+  return siteConfig?.header ?? { logo: '', navItems: [] };
+};
+
+export const getFooterConfig = (
+  siteConfig: SiteConfig | null,
+): FooterConfig => {
+  return siteConfig?.footer ?? { links: [] };
+};
+
+export const getRequireLogin = (siteConfig: SiteConfig | null): boolean =>
+  siteConfig?.requireLogin ?? true; // Default to true for safety

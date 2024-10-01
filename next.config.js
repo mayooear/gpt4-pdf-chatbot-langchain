@@ -59,6 +59,9 @@ const nextConfig = {
     SITE_ID: site,
     SITE_CONFIG: configData,
   },
+  images: {
+    domains: ['www.crystalclarity.com'],
+  },
 };
 
 export default nextConfig;

@@ -32,7 +32,31 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": true,
     "enableAuthorSelection": true,
-    "loginImage": "mascot.png"
+    "loginImage": "mascot.png",
+    "header": {
+      "logo": "ananda-logo.png",
+      "navItems": [
+        { "label": "Ask", "path": "/" },
+        { "label": "All Answers", "path": "/answers" }
+      ]
+    },
+    "footer": {
+      "links": [
+        {
+          "label": "Help",
+          "url": "https://www.anandalibrary.org/content/ai-chatbot-intro/"
+        },
+        {
+          "label": "Contact",
+          "url": "/contact"
+        },
+        {
+          "label": "Open Source",
+          "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
+        }
+      ]
+    },
+    "requireLogin": true
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -53,7 +77,27 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
-    "loginImage": null
+    "loginImage": null,
+    "header": {
+      "logo": "jairam-logo.png",
+      "navItems": [
+        { "label": "Ask", "path": "/" },
+        { "label": "All Answers", "path": "/answers" }
+      ]
+    },
+    "footer": {
+      "links": [
+        {
+          "label": "Copyright © 2024 Joe Hunt",
+          "url": null
+        },
+        {
+          "label": "Contact",
+          "url": "/contact"
+        }
+      ]
+    },
+    "requireLogin": true
   },
   "crystal": {
     "name": "The Crystal Clarity Chatbot",
@@ -74,6 +118,27 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
-    "loginImage": null
+    "loginImage": null,
+    "header": {
+      "logo": "//www.crystalclarity.com/cdn/shop/files/logo-white.png?v=1671755975&width=382",
+      "navItems": [
+        { "label": "Ask", "path": "/" },
+        { "label": "All Answers", "path": "/answers" }
+      ]
+    },
+    "footer": {
+      "links": [
+        {
+          "label": "Copyright © Crystal Clarity Publishers, 2024",
+          "url": null
+        },
+        {
+          "label": "Return to main site",
+          "url": "https://crystalclarity.com",
+          "icon": "chevron_right"
+        }
+      ]
+    },
+    "requireLogin": false
   }
 }
