@@ -1,41 +1,34 @@
 import React from 'react';
 import Image from 'next/image';
-import BaseHeader from './BaseHeader';
+import Link from 'next/link';
 import { SiteConfig } from '@/types/siteConfig';
-import { getParentSiteUrl, getParentSiteName } from '@/utils/client/siteConfig';
+import { getParentSiteUrl } from '@/utils/client/siteConfig';
 
 interface CrystalHeaderProps {
   siteConfig: SiteConfig;
-  isSudoUser: boolean;
-  isDev: boolean;
 }
 
 export default function CrystalHeader({ siteConfig }: CrystalHeaderProps) {
   const parentSiteUrl = getParentSiteUrl(siteConfig);
-  const parentSiteName = getParentSiteName(siteConfig);
-
-  const logoComponent = (
-    <div className="flex items-center">
-      <Image
-        src="https://www.crystalclarity.com/cdn/shop/files/logo-white.png?v=1671755975&width=382"
-        alt="Crystal Clarity Publishers"
-        width={382}
-        height={61}
-        sizes="(max-width: 300px) 300px, 382px"
-        className="header__logo-image"
-        priority
-      />
-    </div>
-  );
 
   return (
-    <BaseHeader
-      config={siteConfig.header}
-      parentSiteUrl={parentSiteUrl}
-      parentSiteName={parentSiteName}
-      className="bg-gradient-radial from-[#ffffff40] via-[#0092e340] to-[#0092e3] text-white h-24"
-      logoComponent={logoComponent}
-      requireLogin={siteConfig.requireLogin}
-    />
+    <header className="sticky top-0 z-40 w-full bg-[#0092e3] text-white">
+      <div className="h-24 flex justify-between items-center px-4">
+        <div className="flex items-center">
+          <Image
+            src="https://www.crystalclarity.com/cdn/shop/files/logo-white.png?v=1671755975&width=382"
+            alt="Crystal Clarity Publishers"
+            width={267}
+            height={43}
+            sizes="(max-width: 210px) 210px, 267px"
+            className="header__logo-image"
+            priority
+          />
+        </div>
+        <Link href={parentSiteUrl} className="text-base hover:underline">
+          Back to Main Site &gt;
+        </Link>
+      </div>
+    </header>
   );
 }

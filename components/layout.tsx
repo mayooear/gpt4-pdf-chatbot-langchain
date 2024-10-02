@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { SiteConfig } from '@/types/siteConfig';
 import AnandaHeader from './Header/AnandaHeader';
 import JairamHeader from './Header/JairamHeader';
@@ -12,14 +11,10 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, siteConfig }: LayoutProps) {
-  const [isDev, setIsDev] = useState(false);
-  const [isSudoUser, setIsSudoUser] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    setIsDev(process.env.NODE_ENV === 'development');
-    setIsSudoUser(Cookies.get('sudo') === 'true');
   }, []);
 
   const renderHeader = () => {
@@ -27,29 +22,11 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
 
     switch (siteConfig.siteId) {
       case 'ananda':
-        return (
-          <AnandaHeader
-            siteConfig={siteConfig}
-            isSudoUser={isSudoUser}
-            isDev={isDev}
-          />
-        );
+        return <AnandaHeader siteConfig={siteConfig} />;
       case 'jairam':
-        return (
-          <JairamHeader
-            siteConfig={siteConfig}
-            isSudoUser={isSudoUser}
-            isDev={isDev}
-          />
-        );
+        return <JairamHeader siteConfig={siteConfig} />;
       case 'crystal':
-        return (
-          <CrystalHeader
-            siteConfig={siteConfig}
-            isSudoUser={isSudoUser}
-            isDev={isDev}
-          />
-        );
+        return <CrystalHeader siteConfig={siteConfig} />;
       default:
         return null;
     }

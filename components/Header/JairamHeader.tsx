@@ -4,8 +4,6 @@ import { getParentSiteUrl, getParentSiteName } from '@/utils/client/siteConfig';
 
 interface JairamHeaderProps {
   siteConfig: SiteConfig;
-  isSudoUser: boolean;
-  isDev: boolean;
 }
 
 export default function JairamHeader({ siteConfig }: JairamHeaderProps) {

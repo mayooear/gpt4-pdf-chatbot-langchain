@@ -1,20 +1,17 @@
 import BaseHeader from './BaseHeader';
 import { SiteConfig } from '@/types/siteConfig';
 import { getParentSiteUrl, getParentSiteName } from '@/utils/client/siteConfig';
+import Cookies from 'js-cookie';
 import Link from 'next/link';
 
 interface AnandaHeaderProps {
   siteConfig: SiteConfig;
-  isSudoUser: boolean;
-  isDev: boolean;
 }
 
-export default function AnandaHeader({
-  siteConfig,
-  isSudoUser,
-}: AnandaHeaderProps) {
+export default function AnandaHeader({ siteConfig }: AnandaHeaderProps) {
   const parentSiteUrl = getParentSiteUrl(siteConfig);
   const parentSiteName = getParentSiteName(siteConfig);
+  const isSudoUser = Cookies.get('sudo') === 'true';
 
   return (
     <>
