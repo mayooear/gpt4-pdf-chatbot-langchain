@@ -7,18 +7,12 @@ import markdownStyles from '@/styles/MarkdownStyles.module.css';
 import SourcesList from '@/components/SourcesList';
 import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
-import { Document } from 'langchain/document';
 import { SiteConfig } from '@/types/siteConfig';
-import { DocMetadata } from '@/types/DocMetadata';
+import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
 
 interface MessageItemProps {
-  message: {
-    type: 'apiMessage' | 'userMessage';
-    message: string;
-    sourceDocs?: Document<DocMetadata>[];
-    docId?: string;
-    collection?: string;
-  };
+  message: ExtendedAIMessage;
+  previousMessage?: ExtendedAIMessage;
   index: number;
   isLastMessage: boolean;
   loading: boolean;
@@ -38,6 +32,7 @@ interface MessageItemProps {
 
 function MessageItem({
   message,
+  previousMessage,
   index,
   isLastMessage,
   loading,
@@ -131,7 +126,7 @@ function MessageItem({
                     markdown={message.message}
                     answerId={message.docId ?? ''}
                     sources={message.sourceDocs}
-                    question={message.message}
+                    question={previousMessage?.message ?? ''}
                     siteConfig={siteConfig}
                   />
                 </>

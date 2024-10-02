@@ -25,19 +25,12 @@ import {
   getEnableMediaTypeSelection,
   getEnableAuthorSelection,
 } from '@/utils/client/siteConfig';
-import { DocMetadata } from '@/types/DocMetadata';
 import { Document } from 'langchain/document';
 
 // Third-party library imports
 import Cookies from 'js-cookie';
 
-interface ExtendedAIMessage {
-  type: 'apiMessage' | 'userMessage';
-  message: string;
-  sourceDocs?: Document<DocMetadata>[];
-  docId?: string;
-  collection?: string;
-}
+import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
 
 export default function Home({
   siteConfig,
@@ -67,13 +60,7 @@ export default function Home({
     setError,
   } = useChat(collection, privateSession, mediaTypes, siteConfig);
   const { messages } = messageState as {
-    messages: {
-      type: 'apiMessage' | 'userMessage';
-      message: string;
-      sourceDocs?: Document<DocMetadata>[];
-      docId?: string;
-      collection?: string;
-    }[];
+    messages: ExtendedAIMessage[];
   };
   const [showLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
@@ -535,6 +522,7 @@ export default function Home({
                   key={`chatMessage-${index}`}
                   messageKey={`chatMessage-${index}`}
                   message={message}
+                  previousMessage={index > 0 ? messages[index - 1] : undefined}
                   index={index}
                   isLastMessage={index === messages.length - 1}
                   loading={loading}
