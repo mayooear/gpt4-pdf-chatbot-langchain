@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import CryptoJS from 'crypto-js';
+import { NextRequest, NextResponse } from 'next/server';
 import { isDevelopment } from '@/utils/env';
 import { isTokenValid } from '@/utils/server/passwordUtils';
+import CryptoJS from 'crypto-js';
+import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
@@ -18,6 +18,16 @@ export function middleware(req: NextRequest) {
     url.protocol = 'https:';
     return NextResponse.redirect(url);
   }
+
+  const siteId = process.env.SITE_ID || 'default';
+  const siteConfig = loadSiteConfigSync(siteId);
+
+  if (!siteConfig) {
+    console.error(`Configuration not found for site ID: ${siteId}`);
+    return NextResponse.next();
+  }
+
+  const { requireLogin } = siteConfig;
 
   const allowed_paths_starts = [
     '/login',
@@ -35,7 +45,7 @@ export function middleware(req: NextRequest) {
     !url.pathname.endsWith('.jpg') &&
     !url.pathname.endsWith('.gif');
 
-  if (pathname_is_private) {
+  if (pathname_is_private && requireLogin) {
     // Authentication check
     const cookie = req.cookies.get('siteAuth');
     const storedHashedToken = process.env.SECURE_TOKEN_HASH;
