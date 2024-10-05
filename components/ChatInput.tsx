@@ -268,7 +268,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   />
                 </div>
               )}
-              {!privateSession && (
+              {!privateSession && siteConfig?.allowPrivateSessions && (
                 <button
                   type="button"
                   onClick={handlePrivateSessionChange}

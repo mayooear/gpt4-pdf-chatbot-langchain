@@ -10,6 +10,9 @@ import React from 'react';
 import { GetServerSideProps } from 'next';
 import AnswerItem from '@/components/AnswerItem';
 import { SiteConfig } from '@/types/siteConfig';
+import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
+import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 interface AllAnswersProps {
   siteConfig: SiteConfig | null;
@@ -42,11 +45,11 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const saveScrollPosition = () => {
     const answersContainer = document.querySelector('.main-content-wrap');
 
-    if ( answersContainer ) {
+    if (answersContainer) {
       const scrollY = answersContainer.scrollTop;
 
       if (scrollY > 0) {
-        sessionStorage.setItem('answersScrollPosition', scrollY.toString()); 
+        sessionStorage.setItem('answersScrollPosition', scrollY.toString());
       }
     }
   };
@@ -94,14 +97,14 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     if (isRestoringScroll && !isLoading && initialLoadComplete) {
       const answersContainer = document.querySelector('.main-content-wrap');
 
-      if ( answersContainer ) {
+      if (answersContainer) {
         const savedPosition = getSavedScrollPosition();
         setTimeout(() => {
           answersContainer.scrollTop = savedPosition;
           setIsRestoringScroll(false);
           sessionStorage.removeItem('answersScrollPosition');
         }, 100);
-      }  
+      }
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
@@ -480,10 +483,31 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  // You can perform initial data fetching here if needed
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const siteId = process.env.SITE_ID || 'default';
+  const siteConfig = await loadSiteConfig(siteId);
+
+  if (!siteConfig) {
+    return {
+      notFound: true,
+    };
+  }
+
+  if (!siteConfig.allowAllAnswersPage) {
+    const req = context.req as unknown as NextApiRequest;
+    const res = context.res as unknown as NextApiResponse;
+
+    const sudoStatus = getSudoCookie(req, res);
+
+    if (!sudoStatus.sudoCookieValue) {
+      return {
+        notFound: true,
+      };
+    }
+  }
+
   return {
-    props: {}, // will be passed to the page component as props
+    props: { siteConfig },
   };
 };
 

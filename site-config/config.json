@@ -32,6 +32,9 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": true,
     "enableAuthorSelection": true,
+    "requireLogin": true,
+    "allowPrivateSessions": true,
+    "allowAllAnswersPage": true,
     "loginImage": "mascot.png",
     "header": {
       "logo": "ananda-logo.png",
@@ -55,8 +58,7 @@
           "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
         }
       ]
-    },
-    "requireLogin": true
+    }
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -77,13 +79,13 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
+    "allowPrivateSessions": false,
+    "allowAllAnswersPage": false,
+    "requireLogin": true,
     "loginImage": null,
     "header": {
       "logo": "jairam-logo.png",
-      "navItems": [
-        { "label": "Ask", "path": "/" },
-        { "label": "All Answers", "path": "/answers" }
-      ]
+      "navItems": []
     },
     "footer": {
       "links": [
@@ -96,14 +98,13 @@
           "url": "/contact"
         }
       ]
-    },
-    "requireLogin": true
+    }
   },
   "crystal": {
     "name": "The Crystal Clarity Chatbot",
     "shortname": "Crystal Clarity Chatbot",
     "tagline": "Explore the Crystal Clarity Library",
-    "greeting": "What can I answer for you using the Crystal Clarity Library?",
+    "greeting": "What can I answer for you using our library?",
     "welcome_popup_heading": "Welcome!",
     "other_visitors_reference": "other visitors",
     "chatPlaceholder": "Recommendations for developing healthy relationships?",
@@ -118,13 +119,13 @@
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": false,
     "enableAuthorSelection": false,
+    "allowPrivateSessions": false,
+    "allowAllAnswersPage": false,
+    "requireLogin": false,
     "loginImage": null,
     "header": {
       "logo": "//www.crystalclarity.com/cdn/shop/files/logo-white.png?v=1671755975&width=382",
-      "navItems": [
-        { "label": "Ask", "path": "/" },
-        { "label": "All Answers", "path": "/answers" }
-      ]
+      "navItems": []
     },
     "footer": {
       "links": [
@@ -138,7 +139,6 @@
           "icon": "chevron_right"
         }
       ]
-    },
-    "requireLogin": false
+    }
   }
 }

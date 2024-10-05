@@ -40,4 +40,6 @@ export interface SiteConfig {
   header: HeaderConfig;
   footer: FooterConfig;
   requireLogin: boolean;
+  allowPrivateSessions: boolean;
+  allowAllAnswersPage: boolean;
 }
