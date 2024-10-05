@@ -63,4 +63,12 @@ export const getFooterConfig = (
 };
 
 export const getRequireLogin = (siteConfig: SiteConfig | null): boolean =>
-  siteConfig?.requireLogin ?? true; // Default to true for safety
+  siteConfig?.requireLogin ?? true;
+
+export const getAllowPrivateSessions = (
+  siteConfig: SiteConfig | null,
+): boolean => siteConfig?.allowPrivateSessions ?? false;
+
+export const getAllowAllAnswersPage = (
+  siteConfig: SiteConfig | null,
+): boolean => siteConfig?.allowAllAnswersPage ?? false;
