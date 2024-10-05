@@ -23,7 +23,6 @@ export default function BaseHeader({
 }: BaseHeaderProps) {
   const router = useRouter();
   const isActive = (pathname: string) => router.pathname === pathname;
-  const isSudoUser = Cookies.get('sudo') === 'true';
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -86,14 +85,6 @@ export default function BaseHeader({
                 className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
               >
                 Login
-              </Link>
-            )}
-            {isSudoUser && (
-              <Link
-                href="/admin/downvotes"
-                className="text-blue-600 hover:underline"
-              >
-                Review Downvotes
               </Link>
             )}
           </nav>
