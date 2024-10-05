@@ -47,7 +47,7 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
               href="/admin/downvotes"
               className="text-sm hover:text-slate-600 cursor-pointer mx-2"
             >
-              Download Answer Review
+              Review Downvotes
             </Link>
             <Link
               href="/bless"
