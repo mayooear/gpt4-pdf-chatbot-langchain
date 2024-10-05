@@ -287,6 +287,23 @@ export default function Home({
                 isDone = true;
               } else if (jsonData.error) {
                 throw new Error(jsonData.error);
+              } else if (jsonData.docId) {
+                // Update the last message with the docId
+                setMessageState((prevState) => {
+                  const updatedMessages = [...prevState.messages];
+                  const lastMessage =
+                    updatedMessages[updatedMessages.length - 1];
+                  if (lastMessage.type === 'apiMessage') {
+                    updatedMessages[updatedMessages.length - 1] = {
+                      ...lastMessage,
+                      docId: jsonData.docId,
+                    };
+                  }
+                  return {
+                    ...prevState,
+                    messages: updatedMessages,
+                  };
+                });
               }
             } catch (parseError) {
               console.error('Error parsing JSON:', parseError);

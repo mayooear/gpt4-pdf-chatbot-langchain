@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
         sourceDocs?: Document[];
         done?: boolean;
         error?: string;
+        docId?: string;
       }) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
@@ -179,6 +180,9 @@ export async function POST(req: NextRequest) {
           };
           const docRef = await answerRef.add(answerEntry);
           const docId = docRef.id;
+
+          // Send the docId to the client
+          sendData({ docId });
 
           console.time('updateRelatedQuestions');
           try {
