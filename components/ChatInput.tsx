@@ -9,7 +9,6 @@ import {
   getEnableAuthorSelection,
   getChatPlaceholder,
 } from '@/utils/client/siteConfig';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { logEvent } from '@/utils/client/analytics';
 
 interface ChatInputProps {
@@ -71,18 +70,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState(false);
-  const [, setVisitCount] = useLocalStorage('visitCount', 0);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setVisitCount((prevCount: number) => {
-      const newCount = prevCount + 1;
-      const newSuggestionsExpanded = newCount < 5;
-      setSuggestionsExpanded(newSuggestionsExpanded);
-      return newCount;
-    });
-  }, [setVisitCount, setSuggestionsExpanded]);
+    const visitCount = parseInt(localStorage.getItem('visitCount') || '0');
+    setSuggestionsExpanded(visitCount < 10);
+  }, [setSuggestionsExpanded]);
 
   useEffect(() => {
     if (!loading && hasInteracted) {

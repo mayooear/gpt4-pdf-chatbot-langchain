@@ -90,7 +90,7 @@ After installation, you should now see a `node_modules` folder.
    - OPENAI_API_KEY
    - PINECONE_API_KEY
    - PINECONE_INDEX_NAME
-   - FIREBASE_ADMINSDK_JSON
+   - GOOGLE_APPLICATION_CREDENTIALS
    - Etc.
 
 - Visit [openai](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key)
@@ -291,8 +291,18 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 2. Edit the new config file with your site's details
 3. Write your system prompt in site-config/prompts/[site]-prompt.txt. Be sure above config file references
    the correct prompt for your site.
-4. Create .env.[site] and add your site's API keys. Be sure to get a unique FIREBASE_ADMINSDK_JSON for
+4. Create .env.[site] and add your site's API keys. Be sure to get a unique GOOGLE_APPLICATION_CREDENTIALS for
    your site.
+
+## To activate NPS survey
+
+1. Create a Google Sheet with columns: timestamp, uuid, score, feedback. Rename the tab to "Responses".
+2. Add your Google Sheet ID to the .env file
+3. Add your survey frequency in days to the .env file
+4. Get client email from GOOGLE_APPLICATION_CREDENTIALS in .env file and add it to the Google Sheet
+   as an "editor" user
+5. Find backend log error message That you have to activate Google Sheets in your project.
+   Follow the link they provide.
 
 ## Open Source Credits
 

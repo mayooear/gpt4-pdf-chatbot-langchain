@@ -10,15 +10,15 @@ from util.env_utils import load_env
 
 def initialize_firestore(env_prefix):
     # Load the service account credentials from the JSON string
-    credentials_json = os.getenv("FIREBASE_ADMINSDK_JSON")
+    credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not credentials_json:
-        raise ValueError("FIREBASE_ADMINSDK_JSON environment variable is not set or is empty")
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set or is empty")
 
     try:
         credentials_dict = json.loads(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(credentials_dict)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Error decoding JSON from FIREBASE_ADMINSDK_JSON: {e}")
+        raise ValueError(f"Error decoding JSON from GOOGLE_APPLICATION_CREDENTIALS: {e}")
 
     # if env_prefix == 'dev':
     #     firestore_emulator_host = os.getenv("FIRESTORE_EMULATOR_HOST")

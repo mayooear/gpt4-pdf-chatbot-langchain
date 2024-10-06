@@ -58,7 +58,8 @@
           "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
         }
       ]
-    }
+    },
+    "npsSurveyFrequencyDays": 90
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -98,7 +99,8 @@
           "url": "/contact"
         }
       ]
-    }
+    },
+    "npsSurveyFrequencyDays": 0
   },
   "crystal": {
     "name": "The Crystal Clarity Chatbot",
@@ -139,6 +141,7 @@
           "icon": "chevron_right"
         }
       ]
-    }
+    },
+    "npsSurveyFrequencyDays": 0
   }
 }

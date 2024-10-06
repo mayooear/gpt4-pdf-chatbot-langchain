@@ -42,4 +42,5 @@ export interface SiteConfig {
   requireLogin: boolean;
   allowPrivateSessions: boolean;
   allowAllAnswersPage: boolean;
+  npsSurveyFrequencyDays: number;
 }

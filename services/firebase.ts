@@ -3,16 +3,16 @@ import { initializeFirestore } from 'firebase-admin/firestore';
 
 // Initialize the Firebase admin SDK
 if (!fbadmin.apps.length) {
-  const serviceAccountJson = process.env.FIREBASE_ADMINSDK_JSON;
+  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (typeof serviceAccountJson !== 'string') {
     if (serviceAccountJson === undefined) {
       throw new Error(
-        'The FIREBASE_ADMINSDK_JSON environment variable is not set.',
+        'The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.',
       );
     } else if (typeof serviceAccountJson !== 'string') {
       console.error('Type of serviceAccountJson:', typeof serviceAccountJson);
       throw new Error(
-        'The FIREBASE_ADMINSDK_JSON environment variable is not a string.',
+        'The GOOGLE_APPLICATION_CREDENTIALS environment variable is not a string.',
       );
     }
   }
