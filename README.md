@@ -301,14 +301,15 @@ In general, keep an eye out in the `issues` and `discussions` section of this re
 3. Add your survey frequency in days to the .env file as NPS_SURVEY_FREQUENCY_DAYS
 4. Get client email from GOOGLE_APPLICATION_CREDENTIALS in .env file and add it to the Google Sheet as an "editor" user
 5. Enable the Google Sheets API in your Google Cloud Console:
-   - Go to the Google Cloud Console (https://console.cloud.google.com/)
+   - Go to the Google Cloud Console (<https://console.cloud.google.com/>)
    - Select your project
    - Navigate to "APIs & Services" > "Dashboard"
    - Click on "+ ENABLE APIS AND SERVICES"
    - Search for "Google Sheets API" and enable it
 6. Make sure your GOOGLE_APPLICATION_CREDENTIALS in the .env file is correctly set up with the necessary permissions
 
-Note: If you encounter any errors related to Google Sheets API activation, check the backend logs for specific instructions and follow the provided link to activate the API for your project.
+Note: If you encounter any errors related to Google Sheets API activation, check the backend logs
+for specific instructions and follow the provided link to activate the API for your project.
 
 ## Open Source Credits
 
