@@ -29,6 +29,30 @@ export default async function handler(
 
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // Check if UUID has submitted in the last month
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const oneMonthAgoTimestamp = oneMonthAgo.toISOString();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.NPS_SURVEY_GOOGLE_SHEET_ID,
+      range: 'Responses!A:B',
+    });
+
+    const rows = response.data.values;
+    if (rows) {
+      const recentSubmission = rows.find(
+        (row) => row[1] === uuid && row[0] > oneMonthAgoTimestamp,
+      );
+
+      if (recentSubmission) {
+        return res
+          .status(429)
+          .json({ message: 'You can only submit one survey per month' });
+      }
+    }
+
+    // If no recent submission, proceed with adding the new entry
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.NPS_SURVEY_GOOGLE_SHEET_ID,
       range: 'Responses',
