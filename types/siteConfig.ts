@@ -43,4 +43,5 @@ export interface SiteConfig {
   allowPrivateSessions: boolean;
   allowAllAnswersPage: boolean;
   npsSurveyFrequencyDays: number;
+  queriesPerUserPerDay: number;
 }

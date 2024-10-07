@@ -59,7 +59,8 @@
         }
       ]
     },
-    "npsSurveyFrequencyDays": 90
+    "npsSurveyFrequencyDays": 90,
+    "queriesPerUserPerDay": 0
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -100,7 +101,8 @@
         }
       ]
     },
-    "npsSurveyFrequencyDays": 0
+    "npsSurveyFrequencyDays": 0,
+    "queriesPerUserPerDay": 100
   },
   "crystal": {
     "name": "The Crystal Clarity Chatbot",
@@ -142,6 +144,7 @@
         }
       ]
     },
-    "npsSurveyFrequencyDays": 0
+    "npsSurveyFrequencyDays": 0,
+    "queriesPerUserPerDay": 40
   }
 }

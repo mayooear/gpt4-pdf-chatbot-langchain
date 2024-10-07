@@ -247,7 +247,8 @@ export default function Home({
 
       if (!response.ok) {
         setLoading(false);
-        setError(response.statusText);
+        const errorData = await response.json();
+        setError(errorData.error || response.statusText);
         return;
       }
 
@@ -317,7 +318,11 @@ export default function Home({
       }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      setError('An error occurred while streaming the response.');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'An error occurred while streaming the response.',
+      );
       setLoading(false);
     }
   };

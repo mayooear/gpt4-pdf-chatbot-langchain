@@ -6,6 +6,8 @@ function parseSiteConfig(siteId: string = 'default'): SiteConfig | null {
     const siteConfig = allConfigs[siteId];
 
     if (!siteConfig) {
+      console.error(`Configuration not found for site ID: ${siteId}`);
+      console.log('Available site IDs:', Object.keys(allConfigs));
       throw new Error(`Configuration not found for site ID: ${siteId}`);
     }
 
@@ -17,19 +19,19 @@ function parseSiteConfig(siteId: string = 'default'): SiteConfig | null {
       footer: siteConfig.footer || { links: [] },
     } as SiteConfig;
   } catch (error) {
-    console.error('Error loading site config:', error);
+    console.error('Error parsing site config:', error);
     return null;
   }
 }
 
 export async function loadSiteConfig(
-  siteId: string = 'default',
+  siteId?: string,
 ): Promise<SiteConfig | null> {
-  return parseSiteConfig(siteId);
+  const configSiteId = siteId || process.env.SITE_ID || 'default';
+  return parseSiteConfig(configSiteId);
 }
 
-export function loadSiteConfigSync(
-  siteId: string = 'default',
-): SiteConfig | null {
-  return parseSiteConfig(siteId);
+export function loadSiteConfigSync(siteId?: string): SiteConfig | null {
+  const configSiteId = siteId || process.env.SITE_ID || 'default';
+  return parseSiteConfig(configSiteId);
 }

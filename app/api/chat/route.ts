@@ -13,6 +13,8 @@ import { db } from '@/services/firebase';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
+import { queryRateLimiter } from '@/utils/server/queryRateLimiter';
+import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240; // This function can run for a maximum of 240 seconds
@@ -35,6 +37,27 @@ export async function POST(req: NextRequest) {
 
   const { collection, question, history, privateSession, mediaTypes } =
     requestBody;
+
+  // Load site config
+  const siteConfig = loadSiteConfigSync();
+  if (!siteConfig) {
+    return NextResponse.json(
+      { error: 'Failed to load site configuration' },
+      { status: 500 },
+    );
+  }
+
+  // Apply query rate limiting
+  const isAllowed = await queryRateLimiter(
+    req,
+    siteConfig.queriesPerUserPerDay,
+  );
+  if (!isAllowed) {
+    return NextResponse.json(
+      { error: 'Daily query limit reached. Please try again tomorrow.' },
+      { status: 429 },
+    );
+  }
 
   if (
     typeof collection !== 'string' ||
