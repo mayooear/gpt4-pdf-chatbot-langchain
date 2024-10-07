@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SiteConfig } from '@/types/siteConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
+import Toast from '@/components/Toast';
 
 interface NPSSurveyProps {
   siteConfig: SiteConfig;
@@ -12,6 +13,8 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
   const [score, setScore] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [additionalComments, setAdditionalComments] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const surveyFrequency = siteConfig.npsSurveyFrequencyDays;
@@ -63,6 +66,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
         uuid,
         score,
         feedback,
+        additionalComments,
         timestamp: new Date().toISOString(),
       };
 
@@ -81,6 +85,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
           setShowSurvey(false);
           setErrorMessage(null);
           setShowFeedbackIcon(false);
+          setToastMessage('Thank you for your feedback!');
         } else {
           setErrorMessage(data.message);
         }
@@ -101,8 +106,34 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
   return (
     <>
       {showSurvey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={dismissSurvey}
+        >
+          <div
+            className="bg-white p-6 rounded-lg max-w-md w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={dismissSurvey}
+              aria-label="Close"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
             <h2 className="text-xl font-bold mb-4">
               How likely are you to recommend our service to a friend or
               colleague?
@@ -111,7 +142,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
               {[...Array(11)].map((_, i) => (
                 <button
                   key={i}
-                  className={`px-3 py-1 rounded ${score === i ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                  className={`px-2 py-1 text-sm rounded ${score === i ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
                   onClick={() => setScore(i)}
                 >
                   {i}
@@ -126,16 +157,18 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
             />
+            <h3 className="text-lg font-semibold mb-2">
+              Additional comments (optional)
+            </h3>
+            <textarea
+              className="w-full p-2 border rounded mb-4"
+              value={additionalComments}
+              onChange={(e) => setAdditionalComments(e.target.value)}
+            />
             {errorMessage && (
               <div className="text-red-500 mb-4">{errorMessage}</div>
             )}
             <div className="flex justify-end">
-              <button
-                className="mr-2 px-4 py-2 bg-gray-200 rounded"
-                onClick={dismissSurvey}
-              >
-                Dismiss
-              </button>
               <button
                 className={`px-4 py-2 rounded ${score !== null ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                 onClick={submitSurvey}
@@ -162,6 +195,9 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
             Take 1-minute survey
           </span>
         </button>
+      )}
+      {toastMessage && (
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
     </>
   );

@@ -9,7 +9,7 @@ export default async function handler(
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { uuid, score, feedback, timestamp } = req.body;
+  const { uuid, score, feedback, additionalComments, timestamp } = req.body;
 
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     console.error('Missing Google credentials');
@@ -34,7 +34,7 @@ export default async function handler(
       range: 'Responses',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[timestamp, uuid, score, feedback]],
+        values: [[timestamp, uuid, score, feedback, additionalComments]],
       },
     });
 
@@ -46,11 +46,9 @@ export default async function handler(
         .status(500)
         .json({ message: `Error submitting survey: ${error.message}` });
     } else {
-      res
-        .status(500)
-        .json({
-          message: 'An unknown error occurred while submitting the survey',
-        });
+      res.status(500).json({
+        message: 'An unknown error occurred while submitting the survey',
+      });
     }
   }
 }
