@@ -75,11 +75,14 @@ class TestAudioProcessing(unittest.TestCase):
         logger.debug(f"Set up test with audio file: {self.test_audio_path}")
         self.trimmed_audio_path = trim_audio(self.test_audio_path)
         logger.debug(f"Created trimmed audio file: {self.trimmed_audio_path}")
+        self.temp_files = [self.trimmed_audio_path]
 
     def tearDown(self):
-        if os.path.exists(self.trimmed_audio_path):
-            os.remove(self.trimmed_audio_path)
-            logger.debug(f"Cleaned up trimmed audio file: {self.trimmed_audio_path}")
+        for temp_file in self.temp_files:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+                logger.debug(f"Cleaned up temporary file: {temp_file}")
+        self.temp_files = []
 
     def test_audio_metadata(self):
         logger.debug("Starting audio metadata test")
