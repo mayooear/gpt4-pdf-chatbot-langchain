@@ -36,6 +36,7 @@ export function middleware(req: NextRequest) {
     '/contact',
     '/api/',
     '/_next',
+    '/survey',
   ];
 
   const pathname_is_private =

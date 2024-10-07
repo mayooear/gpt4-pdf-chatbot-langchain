@@ -5,9 +5,13 @@ import Toast from '@/components/Toast';
 
 interface NPSSurveyProps {
   siteConfig: SiteConfig;
+  forceSurvey?: boolean;
 }
 
-const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
+const NPSSurvey: React.FC<NPSSurveyProps> = ({
+  siteConfig,
+  forceSurvey = false,
+}) => {
   const [showSurvey, setShowSurvey] = useState(false);
   const [showFeedbackIcon, setShowFeedbackIcon] = useState(false);
   const [score, setScore] = useState<number | null>(null);
@@ -17,6 +21,12 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (forceSurvey) {
+      setShowSurvey(true);
+      setShowFeedbackIcon(false);
+      return;
+    }
+
     const surveyFrequency = siteConfig.npsSurveyFrequencyDays;
     const lastCompleted = localStorage.getItem('npsSurveyCompleted');
     const lastDismissed = localStorage.getItem('npsSurveyDismissed');
@@ -50,13 +60,18 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
         setShowFeedbackIcon(true);
       }
     }
-  }, [siteConfig.npsSurveyFrequencyDays]);
+  }, [siteConfig.npsSurveyFrequencyDays, forceSurvey]);
 
   const dismissSurvey = () => {
-    setShowSurvey(false);
-    setErrorMessage(null);
-    setShowFeedbackIcon(true);
-    localStorage.setItem('npsSurveyDismissed', Date.now().toString());
+    if (forceSurvey) {
+      // Redirect to homepage
+      window.location.href = '/';
+    } else {
+      setShowSurvey(false);
+      setErrorMessage(null);
+      setShowFeedbackIcon(true);
+      localStorage.setItem('npsSurveyDismissed', Date.now().toString());
+    }
   };
 
   const submitSurvey = async () => {
@@ -86,6 +101,13 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
           setErrorMessage(null);
           setShowFeedbackIcon(false);
           setToastMessage('Thank you for your feedback!');
+
+          if (forceSurvey) {
+            // Redirect to homepage after 3 seconds
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 3000);
+          }
         } else {
           setErrorMessage(data.message);
         }
@@ -108,7 +130,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
       {showSurvey && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={dismissSurvey}
+          onClick={forceSurvey ? undefined : dismissSurvey}
         >
           <div
             className="bg-white p-6 rounded-lg max-w-md w-full relative"
@@ -135,8 +157,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({ siteConfig }) => {
               </svg>
             </button>
             <h2 className="text-xl font-bold mb-4">
-              How likely are you to recommend our service to a friend or
-              colleague?
+              How likely are you to recommend the Ananda Chatbot to a gurubhai?
             </h2>
             <div className="flex justify-between mb-4">
               {[...Array(11)].map((_, i) => (
