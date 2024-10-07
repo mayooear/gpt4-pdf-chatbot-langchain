@@ -64,7 +64,8 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
       top: 0,
       behavior: 'auto',
     });
-    document.body.offsetHeight; // Force a reflow
+    // Force a reflow
+    void document.body.offsetHeight;
   };
 
   // Scroll position related effects

@@ -14,7 +14,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
 import { getPineconeClient } from '@/utils/server/pinecone-client';
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import { getPineconeIngestIndexName } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import readline from 'readline';
@@ -93,7 +93,7 @@ async function loadCheckpoint(): Promise<{
   try {
     const data = await fsPromises.readFile(CHECKPOINT_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     return null;
   }
 }

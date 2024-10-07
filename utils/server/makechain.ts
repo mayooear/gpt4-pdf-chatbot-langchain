@@ -32,7 +32,9 @@ async function loadTextFile(filePath: string): Promise<string> {
   try {
     return await fs.readFile(filePath, 'utf8');
   } catch (error) {
-    console.warn(`Failed to load file: ${filePath}. Using empty string.`);
+    console.warn(
+      `Failed to load file: ${filePath}. Using empty string. (Error: ${error})`,
+    );
     return '';
   }
 }
@@ -70,7 +72,7 @@ async function loadSiteConfig(siteId: string): Promise<SiteConfig> {
     return JSON.parse(data);
   } catch (error) {
     console.warn(
-      `Failed to load site-specific config for ${siteId}. Using default.`,
+      `Failed to load site-specific config for ${siteId}. Using default. (Error: ${error})`,
     );
     const defaultPath = path.join(promptsDir, 'default.json');
     const defaultData = await fs.readFile(defaultPath, 'utf8');
