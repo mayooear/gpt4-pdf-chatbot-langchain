@@ -3,6 +3,7 @@ import { SiteConfig } from '@/types/siteConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import Toast from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logEvent } from '@/utils/client/analytics';
 
 interface NPSSurveyProps {
   siteConfig: SiteConfig;
@@ -53,6 +54,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
           () => {
             setShowSurvey(true);
             setShowFeedbackIcon(false);
+            logEvent('Display', 'NPS_Survey', 'Automatic');
           },
           process.env.NODE_ENV === 'production' ? 2 * 60 * 1000 : 15 * 1000,
         );
@@ -64,6 +66,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
   }, [siteConfig.npsSurveyFrequencyDays, forceSurvey]);
 
   const dismissSurvey = () => {
+    logEvent('Dismiss', 'NPS_Survey', forceSurvey ? 'Forced' : 'Regular');
     if (forceSurvey) {
       // Redirect to homepage
       window.location.href = '/';
@@ -78,6 +81,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
 
   const submitSurvey = async () => {
     if (score !== null) {
+      logEvent('Submit', 'NPS_Survey', `Score: ${score}`, score);
       const uuid = getOrCreateUUID();
       const surveyData = {
         uuid,
@@ -123,6 +127,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
   };
 
   const openSurvey = () => {
+    logEvent('Open', 'NPS_Survey', 'From Feedback Icon');
     setShowSurvey(true);
     setShowFeedbackIcon(false);
   };
