@@ -239,7 +239,7 @@ python ingest_queue.py \
 Then process the queue:
 
 ```bash
-python data-ingestion/scripts/transcribe_and_ingest_media.py
+python data_ingestion/scripts/transcribe_and_ingest_media.py
 ```
 
 Check Pinecone dashboard to verify your namespace and vectors have been added.
@@ -247,7 +247,7 @@ Check Pinecone dashboard to verify your namespace and vectors have been added.
 ## Run the unit tests
 
 ````bash
-python -m unittest discover -s python/data-ingestion/tests/ -p 'test*.py'
+python -m unittest discover -s python/data_ingestion/tests/ -p 'test*.py'
 `3``
 
 ## Running the Development Server
