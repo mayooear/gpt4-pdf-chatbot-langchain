@@ -10,8 +10,74 @@ import { Answer } from '@/types/answer';
 import {
   getFromCache,
   setInCache,
+  deleteFromCache,
   CACHE_EXPIRATION,
 } from '@/utils/server/redisUtils';
+
+// in bytes. Upstash max is 1MB, so we stay well under that.
+const MAX_CHUNK_SIZE = 1000000;
+
+// This function handles both chunked and non-chunked caching
+async function safeSetInCache(key: string, value: any, expiration?: number) {
+  const serialized = JSON.stringify(value);
+  console.log(`safeSetInCache: serialized length: ${serialized.length}`);
+  if (serialized.length > MAX_CHUNK_SIZE) {
+    console.warn(
+      `Cache value for key ${key} exceeds ${MAX_CHUNK_SIZE} bytes. Splitting into chunks.`,
+    );
+    const chunks = [];
+    let chunkIndex = 0;
+    while (chunkIndex * MAX_CHUNK_SIZE < serialized.length) {
+      chunks.push(
+        serialized.slice(
+          chunkIndex * MAX_CHUNK_SIZE,
+          (chunkIndex + 1) * MAX_CHUNK_SIZE,
+        ),
+      );
+      chunkIndex++;
+    }
+
+    // Delete the non-chunked version if it exists
+    await deleteFromCache(key);
+
+    await setInCache(`${key}_chunk_count`, chunks.length, expiration);
+    for (let i = 0; i < chunks.length; i++) {
+      await setInCache(`${key}_chunk_${i}`, chunks[i], expiration);
+    }
+  } else {
+    // Delete any existing chunks if we're now storing a non-chunked version
+    const existingChunkCount = await getFromCache<number>(`${key}_chunk_count`);
+    if (existingChunkCount) {
+      await deleteFromCache(`${key}_chunk_count`);
+      for (let i = 0; i < existingChunkCount; i++) {
+        await deleteFromCache(`${key}_chunk_${i}`);
+      }
+    }
+
+    await setInCache(key, value, expiration);
+  }
+}
+
+// This function retrieves data from cache, handling both chunked and non-chunked data
+async function safeGetFromCache<T>(key: string): Promise<T | null> {
+  // First, try to get the value as if it's not chunked
+  const value = await getFromCache<T>(key);
+  if (value) return value;
+
+  // If not found, check if it's chunked
+  const chunkCount = await getFromCache<number>(`${key}_chunk_count`);
+  if (!chunkCount) return null;
+
+  // Reconstruct the value from chunks
+  let serialized = '';
+  for (let i = 0; i < chunkCount; i++) {
+    const chunk = await getFromCache<string>(`${key}_chunk_${i}`);
+    if (!chunk) return null;
+    serialized += chunk;
+  }
+
+  return JSON.parse(serialized) as T;
+}
 
 // Add this function at the top of the file
 function safeRakeGenerate(text: string, questionId: string): string[] {
@@ -215,7 +281,7 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   const cacheKey = getCacheKeyForKeywords();
   let cachedKeywords:
     | { id: string; keywords: string[]; title: string }[]
-    | null = await getFromCache(cacheKey);
+    | null = await safeGetFromCache(cacheKey);
   if (!cachedKeywords) {
     cachedKeywords = [];
   }
@@ -259,7 +325,7 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   await batch.commit();
 
   // Update the cache
-  await setInCache(cacheKey, cachedKeywords);
+  await safeSetInCache(cacheKey, cachedKeywords);
 }
 
 export async function fetchKeywords(): Promise<
@@ -267,7 +333,7 @@ export async function fetchKeywords(): Promise<
 > {
   const cacheKey = getCacheKeyForKeywords();
   const cachedKeywords =
-    await getFromCache<{ id: string; keywords: string[]; title: string }[]>(
+    await safeGetFromCache<{ id: string; keywords: string[]; title: string }[]>(
       cacheKey,
     );
   if (cachedKeywords) {
@@ -282,7 +348,7 @@ export async function fetchKeywords(): Promise<
     keywords.push({ id: doc.id, keywords: data.keywords, title: data.title });
   });
 
-  await setInCache(cacheKey, keywords, CACHE_EXPIRATION);
+  await safeSetInCache(cacheKey, keywords, CACHE_EXPIRATION);
   console.log(`Caching ${keywords.length} keywords`);
 
   return keywords;

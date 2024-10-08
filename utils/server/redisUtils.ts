@@ -59,3 +59,14 @@ export async function setInCache(
     console.error(`Error setting in cache for key '${key}':`, error);
   }
 }
+
+export async function deleteFromCache(key: string): Promise<void> {
+  const redisClient = initializeRedis();
+  if (!redisClient) return;
+
+  try {
+    await redisClient.del(key);
+  } catch (error) {
+    console.error(`Error deleting from cache for key '${key}':`, error);
+  }
+}
