@@ -18,7 +18,11 @@ import {
 const MAX_CHUNK_SIZE = 1000000;
 
 // This function handles both chunked and non-chunked caching
-async function safeSetInCache(key: string, value: any, expiration?: number) {
+async function safeSetInCache(
+  key: string,
+  value: string | number | boolean | object | null,
+  expiration?: number,
+) {
   const serialized = JSON.stringify(value);
   console.log(`safeSetInCache: serialized length: ${serialized.length}`);
   if (serialized.length > MAX_CHUNK_SIZE) {
@@ -126,7 +130,6 @@ function getCacheKeyForKeywords(): string {
 export async function getRelatedQuestions(
   questionId: string,
 ): Promise<Answer[]> {
-  console.log('getRelatedQuestions: Question ID:', questionId);
   const doc = await db
     .collection(getAnswersCollectionName())
     .doc(questionId)
@@ -159,9 +162,6 @@ async function getQuestionsBatch(
     .orderBy('timestamp', 'desc')
     .limit(batchSize);
   if (lastProcessedId) {
-    console.log(
-      `Last processed ID found: ${lastProcessedId}. Fetching last document...`,
-    );
     const lastDoc = await db
       .collection(getAnswersCollectionName())
       .doc(lastProcessedId)
@@ -170,7 +170,6 @@ async function getQuestionsBatch(
   }
 
   const snapshot = await query.get();
-  console.log(`Fetched ${snapshot.docs.length} documents from Firestore`);
 
   if (snapshot.empty) {
     console.warn('No documents found in the batch query.');
@@ -179,7 +178,6 @@ async function getQuestionsBatch(
   const questions: Answer[] = snapshot.docs.map(
     (doc) => ({ id: doc.id, ...doc.data() }) as Answer,
   );
-  console.log(`Processed ${questions.length} questions`);
 
   return questions;
 }
@@ -332,7 +330,6 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   // Convert map back to array and update the cache
   const updatedCachedKeywords = Array.from(cachedKeywordsMap.values());
   await safeSetInCache(cacheKey, updatedCachedKeywords);
-  console.log(`Caching ${updatedCachedKeywords.length} keywords`);
 }
 
 export async function fetchKeywords(): Promise<
@@ -356,7 +353,6 @@ export async function fetchKeywords(): Promise<
   });
 
   await safeSetInCache(cacheKey, keywords, CACHE_EXPIRATION);
-  console.log(`Caching ${keywords.length} keywords`);
 
   return keywords;
 }
