@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.609.0",
+    "@aws-sdk/client-ses": "^3.668.0",
     "@aws-sdk/client-sts": "^3.609.0",
     "@aws-sdk/credential-providers": "^3.609.0",
     "@aws-sdk/s3-request-presigner": "^3.609.0",

@@ -1,42 +1,55 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import AWS from 'aws-sdk';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+const ses = new SESClient({
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
   region: process.env.AWS_REGION,
 });
 
-const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method === 'POST') {
     const { name, email, message } = req.body;
 
     const sourceEmail = process.env.CONTACT_EMAIL;
     if (!sourceEmail) {
-      return res.status(500).json({ message: 'CONTACT_EMAIL environment variable is not set' });
+      return res
+        .status(500)
+        .json({ message: 'CONTACT_EMAIL environment variable is not set' });
     }
 
-    const params: AWS.SES.SendEmailRequest = {
+    const siteConfig = loadSiteConfigSync();
+    if (!siteConfig) {
+      return res
+        .status(500)
+        .json({ message: 'Failed to load site configuration' });
+    }
+
+    const params = {
       Source: sourceEmail,
       Destination: {
         ToAddresses: [sourceEmail],
       },
       Message: {
         Subject: {
-          Data: `Ananda Chatbot Contact Form Msg from ${name}`,
+          Data: `${siteConfig.shortname} Contact Form Msg from ${name}`,
         },
         Body: {
           Text: {
-            Data: `From: ${name} <${email}>\n\nMessage: ${message}`,
+            Data: `From: ${name} <${email}>\n\nMessage:\n\n${message}`,
           },
         },
       },
     };
 
     try {
-      await ses.sendEmail(params).promise();
+      await ses.send(new SendEmailCommand(params));
       res.status(200).json({ message: 'Message sent successfully' });
     } catch (error) {
       console.error('Error sending email:', error);

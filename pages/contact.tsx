@@ -1,6 +1,7 @@
 import { SiteConfig } from '@/types/siteConfig';
 import React, { useState } from 'react';
 import Layout from '@/components/layout';
+import Link from 'next/link';
 
 interface ContactProps {
   siteConfig: SiteConfig | null;
@@ -10,6 +11,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,10 +23,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
       body: JSON.stringify({ name, email, message }),
     });
     if (res.ok) {
-      alert('Message sent successfully!');
-      setName('');
-      setEmail('');
-      setMessage('');
+      setIsSubmitted(true);
     } else {
       alert('Failed to send message.');
     }
@@ -34,7 +33,10 @@ const Contact = ({ siteConfig }: ContactProps) => {
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto p-4">
         <h1 className="text-2xl mb-4">Contact Us</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className={`space-y-4 ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}`}
+        >
           <div className="flex space-x-4">
             <div className="w-1/2">
               <label className="block text-sm font-medium text-gray-700">
@@ -46,6 +48,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
                 required
+                disabled={isSubmitted}
               />
             </div>
             <div className="w-1/2">
@@ -58,6 +61,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
                 required
+                disabled={isSubmitted}
               />
             </div>
           </div>
@@ -70,15 +74,30 @@ const Contact = ({ siteConfig }: ContactProps) => {
               onChange={(e) => setMessage(e.target.value)}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm h-48"
               required
+              disabled={isSubmitted}
             />
           </div>
           <button
             type="submit"
             className="bg-blue-500 text-white px-4 py-2 rounded-md"
+            disabled={isSubmitted}
           >
             Send
           </button>
         </form>
+        {isSubmitted && (
+          <div className="mt-8 text-center">
+            <h2 className="text-xl font-semibold text-green-600 mb-4">
+              Thanks, message sent!
+            </h2>
+            <Link
+              href="/"
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Go to Homepage
+            </Link>
+          </div>
+        )}
       </div>
     </Layout>
   );

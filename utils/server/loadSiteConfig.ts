@@ -17,6 +17,7 @@ function parseSiteConfig(siteId: string = 'default'): SiteConfig | null {
       chatPlaceholder: siteConfig.chatPlaceholder || 'Ask a question...',
       header: siteConfig.header || { logo: '', navItems: [] },
       footer: siteConfig.footer || { links: [] },
+      name: siteConfig.shortname || siteConfig.name, // Use shortname if available, otherwise fallback to name
     } as SiteConfig;
   } catch (error) {
     console.error('Error parsing site config:', error);
