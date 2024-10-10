@@ -428,19 +428,21 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         {showErrorPopup && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
             <p>{typeof error === 'string' ? error : error?.message}</p>
-            {error === 'Your IP has changed. Please re-authenticate.' && (
-              <Link href="/bless">
-                <span className="underline cursor-pointer">
-                  Go to Bless page
-                </span>
-              </Link>
-            )}
-            <button
-              onClick={() => setShowErrorPopup(false)}
-              className="mt-2 underline"
-            >
-              Close
-            </button>
+            <div className="flex flex-col">
+              {error === 'Your IP has changed. Please re-authenticate.' && (
+                <Link href="/bless">
+                  <span className="underline cursor-pointer mb-4 block">
+                    Go to Bless page
+                  </span>
+                </Link>
+              )}
+              <button
+                onClick={() => setShowErrorPopup(false)}
+                className="underline self-end"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
         {(isLoading && !initialLoadComplete) || isChangingPage ? (
