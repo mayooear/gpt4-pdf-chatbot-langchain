@@ -104,6 +104,7 @@ function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
         return {
           sudoCookieValue: false,
           message: 'IP mismatch: Extracted IP does not match User IP',
+          ipMismatch: true,
         };
       }
     } catch (error) {

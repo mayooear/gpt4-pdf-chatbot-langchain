@@ -13,6 +13,7 @@ import { SiteConfig } from '@/types/siteConfig';
 import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { NextApiRequest, NextApiResponse } from 'next';
+import Link from 'next/link';
 
 interface AllAnswersProps {
   siteConfig: SiteConfig | null;
@@ -390,6 +391,10 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
       });
       const data = await response.json();
       setIsSudoUser(data.sudoCookieValue);
+      if (data.ipMismatch) {
+        setError('Your IP has changed. Please re-authenticate.');
+        setShowErrorPopup(true);
+      }
     } catch (error) {
       console.error('Error checking sudo status:', error);
       setIsSudoUser(false);
@@ -420,9 +425,16 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         </div>
       </div>
       <div className="mx-auto max-w-full sm:max-w-4xl px-2 sm:px-6 lg:px-8">
-        {showErrorPopup && error && (
+        {showErrorPopup && (
           <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
-            <p>{typeof error === 'string' ? error : error.message}</p>
+            <p>{typeof error === 'string' ? error : error?.message}</p>
+            {error === 'Your IP has changed. Please re-authenticate.' && (
+              <Link href="/bless">
+                <span className="underline cursor-pointer">
+                  Go to Bless page
+                </span>
+              </Link>
+            )}
             <button
               onClick={() => setShowErrorPopup(false)}
               className="mt-2 underline"
