@@ -286,6 +286,11 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
     cachedKeywords = [];
   }
 
+  // Create a map for faster lookup
+  const cachedKeywordsMap = new Map(
+    cachedKeywords.map((item) => [item.id, item]),
+  );
+
   for (const q of questions) {
     try {
       if (!q.question || typeof q.question !== 'string') {
@@ -312,8 +317,8 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
       const keywordDocRef = db.collection(`${envName}_keywords`).doc(q.id);
       batch.set(keywordDocRef, { keywords, title: q.question });
 
-      // Add keywords to cache
-      cachedKeywords.push({ id: q.id, keywords, title: q.question });
+      // Update or add keywords to cache map
+      cachedKeywordsMap.set(q.id, { id: q.id, keywords, title: q.question });
     } catch (error) {
       console.error(
         `Error generating keywords for question ID ${q.id} with text "${q.question}":`,
@@ -324,8 +329,10 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
 
   await batch.commit();
 
-  // Update the cache
-  await safeSetInCache(cacheKey, cachedKeywords);
+  // Convert map back to array and update the cache
+  const updatedCachedKeywords = Array.from(cachedKeywordsMap.values());
+  await safeSetInCache(cacheKey, updatedCachedKeywords);
+  console.log(`Caching ${updatedCachedKeywords.length} keywords`);
 }
 
 export async function fetchKeywords(): Promise<
