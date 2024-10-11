@@ -1,16 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
-import { isSudo } from '../utils/client/cookieUtils';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useSudo } from '@/contexts/SudoContext';
 
 const SudoPage: React.FC = () => {
   const [password, setPassword] = useState('');
-  const [sudoStatus, setSudoStatus] = useState('');
-
-  const checkSudoStatus = useCallback(async () => {
-    const cookies = document.cookie;
-    const isSudoUser = await isSudo(cookies);
-    setSudoStatus(isSudoUser ? 'You are Blessed!' : 'You are not blessed');
-  }, []);
+  const { isSudoUser, checkSudoStatus } = useSudo();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -21,30 +15,25 @@ const SudoPage: React.FC = () => {
       },
       body: JSON.stringify({ password }),
     });
-    const data = await response.json();
-    setSudoStatus(data.message);
+    await response.json();
     checkSudoStatus();
   };
 
   const handleRemoveBlessed = async () => {
-    const response = await fetch('/api/sudoCookie', {
+    await fetch('/api/sudoCookie', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    const data = await response.json();
-    setSudoStatus(data.message);
     checkSudoStatus();
   };
 
-  useEffect(() => {
-    checkSudoStatus();
-  }, [checkSudoStatus]);
-
   return (
     <div className="flex flex-col justify-center items-center h-screen">
-      <p className="text-lg text-gray-600 mb-4">{sudoStatus}</p>
+      <p className="text-lg text-gray-600 mb-4">
+        {isSudoUser ? 'You are Blessed!' : 'You are not blessed'}
+      </p>
       <form onSubmit={handleSubmit} className="mb-4">
         <input
           type="password"

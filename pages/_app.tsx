@@ -6,6 +6,7 @@ import { GoogleAnalytics, event } from 'nextjs-google-analytics';
 import { Inter } from 'next/font/google';
 import { ToastContainer } from 'react-toastify';
 import { AudioProvider } from '@/contexts/AudioContext';
+import { SudoProvider } from '@/contexts/SudoContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
 
@@ -24,13 +25,15 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   return (
-    <AudioProvider>
-      <main className={inter.variable}>
-        {!isDevelopment && <GoogleAnalytics trackPageViews />}
-        <Component {...pageProps} />
-      </main>
-      <ToastContainer />
-    </AudioProvider>
+    <SudoProvider>
+      <AudioProvider>
+        <main className={inter.variable}>
+          {!isDevelopment && <GoogleAnalytics trackPageViews />}
+          <Component {...pageProps} />
+        </main>
+        <ToastContainer />
+      </AudioProvider>
+    </SudoProvider>
   );
 }
 

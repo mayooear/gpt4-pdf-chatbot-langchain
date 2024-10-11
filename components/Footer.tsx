@@ -1,33 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/types/siteConfig';
 import { getFooterConfig } from '@/utils/client/siteConfig';
+import { useSudo } from '@/contexts/SudoContext';
 
 interface FooterProps {
   siteConfig: SiteConfig | null;
 }
 
 const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
-  const [isSudoUser, setIsSudoUser] = useState(false);
+  const { isSudoUser } = useSudo();
   const footerConfig = getFooterConfig(siteConfig);
-
-  useEffect(() => {
-    const checkSudoStatus = async () => {
-      try {
-        const response = await fetch('/api/sudoCookie', {
-          method: 'GET',
-          credentials: 'include', // Important for including cookies
-        });
-        const data = await response.json();
-        setIsSudoUser(data.sudoCookieValue || false);
-      } catch (error) {
-        console.error('Error checking sudo status:', error);
-        setIsSudoUser(false);
-      }
-    };
-
-    checkSudoStatus();
-  }, []);
 
   return (
     <>

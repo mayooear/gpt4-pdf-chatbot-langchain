@@ -5,11 +5,11 @@ import Layout from '@/components/layout';
 import AnswerItem from '@/components/AnswerItem';
 import { Answer } from '@/types/answer';
 import { checkUserLikes } from '@/services/likeService';
-import { isSudo } from '@/utils/client/cookieUtils';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import { logEvent } from '@/utils/client/analytics';
 import Head from 'next/head';
 import { getShortname } from '@/utils/client/siteConfig';
+import { useSudo } from '@/contexts/SudoContext';
 
 interface SingleAnswerProps {
   siteConfig: SiteConfig | null;
@@ -20,9 +20,9 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   const { answerId } = router.query;
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
-  const [isSudoUser, setIsSudoUser] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const { isSudoUser } = useSudo();
 
   useEffect(() => {
     const fetchAnswer = async () => {
@@ -39,15 +39,6 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
       fetchAnswer();
     }
   }, [answerId]);
-
-  useEffect(() => {
-    const checkSudoStatus = async () => {
-      const cookies = document.cookie;
-      const sudoStatus = await isSudo(cookies);
-      setIsSudoUser(sudoStatus);
-    };
-    checkSudoStatus();
-  }, []);
 
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
@@ -125,7 +116,9 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   return (
     <Layout siteConfig={siteConfig}>
       <Head>
-        <title>{getShortname(siteConfig)}: {answer.question.substring(0, 150)}</title>
+        <title>
+          {getShortname(siteConfig)}: {answer.question.substring(0, 150)}
+        </title>
       </Head>
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <AnswerItem

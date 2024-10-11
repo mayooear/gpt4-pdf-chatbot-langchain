@@ -13,7 +13,7 @@ import { SiteConfig } from '@/types/siteConfig';
 import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { NextApiRequest, NextApiResponse } from 'next';
-import Link from 'next/link';
+import { useSudo } from '@/contexts/SudoContext';
 
 interface AllAnswersProps {
   siteConfig: SiteConfig | null;
@@ -30,9 +30,6 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [likeStatuses, setLikeStatuses] = useState<Record<string, boolean>>({});
-  const [isSudoUser, setIsSudoUser] = useState(false);
-  const [error, setError] = useState<Error | string | null>(null);
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
 
   // State to track if the data has been loaded at least once
@@ -41,6 +38,8 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const [, setShowDelayedSpinner] = useState(false);
 
   const [isRestoringScroll, setIsRestoringScroll] = useState(false);
+
+  const { isSudoUser, checkSudoStatus } = useSudo();
 
   // Scroll position management functions
   const saveScrollPosition = () => {
@@ -131,8 +130,6 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         setIsChangingPage(true);
         setAnswers([]); // Clear answers when changing page
       }
-      setError(null);
-      setShowErrorPopup(false);
 
       try {
         const answersResponse = await fetch(
@@ -155,11 +152,10 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
       } catch (error: Error | unknown) {
         console.error('Failed to fetch answers:', error);
         if (error instanceof Error && error.message.includes('429')) {
-          setError('Quota exceeded. Please try again later.');
+          throw new Error('Quota exceeded. Please try again later.');
         } else {
-          setError('Failed to fetch answers. Please try again.');
+          throw new Error('Failed to fetch answers. Please try again.');
         }
-        setShowErrorPopup(true);
       } finally {
         setIsLoading(false);
         setIsChangingPage(false);
@@ -383,24 +379,6 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }, 0);
   };
 
-  const checkSudoStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/api/sudoCookie', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      const data = await response.json();
-      setIsSudoUser(data.sudoCookieValue);
-      if (data.ipMismatch) {
-        setError('Your IP has changed. Please re-authenticate.');
-        setShowErrorPopup(true);
-      }
-    } catch (error) {
-      console.error('Error checking sudo status:', error);
-      setIsSudoUser(false);
-    }
-  }, []);
-
   useEffect(() => {
     checkSudoStatus();
   }, [checkSudoStatus]);
@@ -425,26 +403,6 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         </div>
       </div>
       <div className="mx-auto max-w-full sm:max-w-4xl px-2 sm:px-6 lg:px-8">
-        {showErrorPopup && (
-          <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded shadow-lg z-50">
-            <p>{typeof error === 'string' ? error : error?.message}</p>
-            <div className="flex flex-col">
-              {error === 'Your IP has changed. Please re-authenticate.' && (
-                <Link href="/bless">
-                  <span className="underline cursor-pointer mb-4 block">
-                    Go to Bless page
-                  </span>
-                </Link>
-              )}
-              <button
-                onClick={() => setShowErrorPopup(false)}
-                className="underline self-end"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
         {(isLoading && !initialLoadComplete) || isChangingPage ? (
           <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
