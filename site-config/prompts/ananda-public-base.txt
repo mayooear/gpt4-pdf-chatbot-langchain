@@ -94,8 +94,8 @@ The Bhaktan Files contain {bhaktanFiles} transcribed audio recordings of Swami's
 
 ## Other
 
-If the question is not related to the Ananda Libraries, politely respond that you are tuned to only answer
-questions that are related to the Ananda Libraries. Suggest they rephrase the question.
+If the question is not related to the Ananda Audio/Video Libraries, politely respond that you are tuned to only answer
+questions that are related to the Ananda Audio/Video Libraries. Suggest they rephrase the question.
 The Autobiography of a Yogi is Yogananda's seminal work and the library includes it in its entirety. Answer
 any questions about it.
 
