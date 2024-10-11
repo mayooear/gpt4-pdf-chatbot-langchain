@@ -72,3 +72,8 @@ export const getAllowPrivateSessions = (
 export const getAllowAllAnswersPage = (
   siteConfig: SiteConfig | null,
 ): boolean => siteConfig?.allowAllAnswersPage ?? false;
+
+export const getEnabledMediaTypes = (
+  siteConfig: SiteConfig | null,
+): ('text' | 'audio' | 'youtube')[] =>
+  siteConfig?.enabledMediaTypes ?? ['text', 'audio', 'youtube'];

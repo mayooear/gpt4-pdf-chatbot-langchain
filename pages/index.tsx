@@ -24,6 +24,7 @@ import {
   getCollectionsConfig,
   getEnableMediaTypeSelection,
   getEnableAuthorSelection,
+  getEnabledMediaTypes,
 } from '@/utils/client/siteConfig';
 import { Document } from 'langchain/document';
 
@@ -153,15 +154,18 @@ export default function Home({
 
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
     if (getEnableMediaTypeSelection(siteConfig)) {
-      setMediaTypes((prev) => {
-        const newValue = !prev[type];
-        logEvent(
-          `select_media_type_${type}`,
-          'Engagement',
-          newValue ? 'on' : 'off',
-        );
-        return { ...prev, [type]: newValue };
-      });
+      const enabledTypes = getEnabledMediaTypes(siteConfig);
+      if (enabledTypes.includes(type)) {
+        setMediaTypes((prev) => {
+          const newValue = !prev[type];
+          logEvent(
+            `select_media_type_${type}`,
+            'Engagement',
+            newValue ? 'on' : 'off',
+          );
+          return { ...prev, [type]: newValue };
+        });
+      }
     }
   };
 

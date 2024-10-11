@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SiteConfig } from '@/types/siteConfig';
 import AnandaHeader from './Header/AnandaHeader';
+import AnandaPublicHeader from './Header/AnandaPublicHeader';
 import JairamHeader from './Header/JairamHeader';
 import CrystalHeader from './Header/CrystalHeader';
 import Footer from './Footer';
@@ -37,6 +38,8 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
     switch (siteConfig.siteId) {
       case 'ananda':
         return <AnandaHeader siteConfig={siteConfig} />;
+      case 'ananda-public':
+        return <AnandaPublicHeader siteConfig={siteConfig} />;
       case 'jairam':
         return <JairamHeader siteConfig={siteConfig} />;
       case 'crystal':

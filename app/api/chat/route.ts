@@ -17,7 +17,7 @@ import { queryRateLimiter } from '@/utils/server/queryRateLimiter';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
 export const runtime = 'nodejs';
-export const maxDuration = 240; // This function can run for a maximum of 240 seconds
+export const maxDuration = 240;
 
 export async function POST(req: NextRequest) {
   console.log('Received POST request to /api/chat');
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
         const filter: {
           type: { $in: string[] };
           author?: { $in: string[] };
+          library?: { $in: string[] };
         } = {
           type: { $in: [] },
           ...(collection === 'master_swami' && {
@@ -119,12 +120,26 @@ export async function POST(req: NextRequest) {
           }),
         };
 
-        if (!mediaTypes.text && !mediaTypes.audio && !mediaTypes.youtube) {
-          mediaTypes.text = mediaTypes.audio = mediaTypes.youtube = true;
+        // Add library filter based on site configuration
+        if (siteConfig.includedLibraries) {
+          filter.library = { $in: siteConfig.includedLibraries };
         }
-        if (mediaTypes.text) filter.type.$in.push('text');
-        if (mediaTypes.audio) filter.type.$in.push('audio');
-        if (mediaTypes.youtube) filter.type.$in.push('youtube');
+
+        const enabledMediaTypes = siteConfig.enabledMediaTypes || [
+          'text',
+          'audio',
+          'youtube',
+        ];
+
+        enabledMediaTypes.forEach((type) => {
+          if (mediaTypes[type]) {
+            filter.type.$in.push(type);
+          }
+        });
+
+        if (filter.type.$in.length === 0) {
+          filter.type.$in = enabledMediaTypes;
+        }
 
         const vectorStore = await PineconeStore.fromExistingIndex(
           new OpenAIEmbeddings({}),

@@ -8,6 +8,7 @@ import {
   getEnableMediaTypeSelection,
   getEnableAuthorSelection,
   getChatPlaceholder,
+  getEnabledMediaTypes,
 } from '@/utils/client/siteConfig';
 import { logEvent } from '@/utils/client/analytics';
 
@@ -155,6 +156,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showSuggestedQueries = getEnableSuggestedQueries(siteConfig);
   const showMediaTypeSelection = getEnableMediaTypeSelection(siteConfig);
   const showAuthorSelection = getEnableAuthorSelection(siteConfig);
+  const enabledMediaTypes = getEnabledMediaTypes(siteConfig);
 
   const toggleSuggestions = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -219,39 +221,45 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <div className="flex flex-wrap gap-2 mb-2">
               {showMediaTypeSelection && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => handleMediaTypeChange('text')}
-                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                      mediaTypes.text
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Writings
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMediaTypeChange('audio')}
-                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                      mediaTypes.audio
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Audio
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMediaTypeChange('youtube')}
-                    className={`px-2 py-1 text-xs sm:text-sm rounded ${
-                      mediaTypes.youtube
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Video
-                  </button>
+                  {enabledMediaTypes.includes('text') && (
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange('text')}
+                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                        mediaTypes.text
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Writings
+                    </button>
+                  )}
+                  {enabledMediaTypes.includes('audio') && (
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange('audio')}
+                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                        mediaTypes.audio
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Audio
+                    </button>
+                  )}
+                  {enabledMediaTypes.includes('youtube') && (
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange('youtube')}
+                      className={`px-2 py-1 text-xs sm:text-sm rounded ${
+                        mediaTypes.youtube
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Video
+                    </button>
+                  )}
                 </>
               )}
               {showAuthorSelection && (

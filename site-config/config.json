@@ -62,6 +62,66 @@
     "npsSurveyFrequencyDays": 90,
     "queriesPerUserPerDay": 0
   },
+  "ananda-public": {
+    "name": "The Ananda Public Chatbot",
+    "shortname": "Ananda Public Chatbot",
+    "tagline": "Explore, Discover, Learn – Uncover the treasures of our path.",
+    "greeting": "Hi! How can I help you on our path today?",
+    "welcome_popup_heading": "Welcome!",
+    "other_visitors_reference": "other visitors",
+    "chatPlaceholder": "How can I think of God more?",
+    "parent_site_url": "https://www.ananda.org",
+    "parent_site_name": "Ananda",
+    "help_url": "https://www.ananda.org/ai-chatbot-help/",
+    "help_text": "Help",
+    "collectionConfig": {
+      "whole_library": "All authors"
+    },
+    "libraryMappings": {
+      "Ananda Youtube": {
+        "displayName": "Ananda YouTube",
+        "url": "https://www.youtube.com/user/AnandaWorldwide"
+      },
+      "Treasures": {
+        "displayName": "Treasures",
+        "url": "https://www.treasuresalongthepath.com/"
+      }
+    },
+    "enableSuggestedQueries": true,
+    "enableMediaTypeSelection": true,
+    "enableAuthorSelection": true,
+    "requireLogin": false,
+    "allowPrivateSessions": true,
+    "allowAllAnswersPage": true,
+    "loginImage": null,
+    "header": {
+      "logo": "ananda-logo.png",
+      "navItems": [
+        { "label": "Ask", "path": "/" },
+        { "label": "All Answers", "path": "/answers" }
+      ]
+    },
+    "footer": {
+      "links": [
+        {
+          "label": "Help",
+          "url": "https://www.ananda.org/ai-chatbot-help/"
+        },
+        {
+          "label": "Contact",
+          "url": "/contact"
+        },
+        {
+          "label": "Open Source",
+          "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
+        }
+      ]
+    },
+    "npsSurveyFrequencyDays": 0,
+    "queriesPerUserPerDay": 40,
+    "includedLibraries": ["Ananda Youtube", "Treasures", "The Bhaktan Files"],
+    "enabledMediaTypes": ["audio", "youtube"]
+  },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
     "shortname": "Free Joe Hunt Chatbot",

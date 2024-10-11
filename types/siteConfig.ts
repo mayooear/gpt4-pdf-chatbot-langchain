@@ -44,4 +44,6 @@ export interface SiteConfig {
   allowAllAnswersPage: boolean;
   npsSurveyFrequencyDays: number;
   queriesPerUserPerDay: number;
+  includedLibraries?: string[];
+  enabledMediaTypes?: ('text' | 'audio' | 'youtube')[];
 }

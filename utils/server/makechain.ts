@@ -134,6 +134,7 @@ const combineDocumentsFn = (docs: Document[]) => {
     // 9/4/24 MO: Note this was formerly doc.id before estype checking was added. maybe this is
     // going to break?
     id: doc.metadata.id,
+    library: doc.metadata.library,
   }));
   return JSON.stringify(serializedDocs);
 };
