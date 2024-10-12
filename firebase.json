@@ -9,5 +9,8 @@
       "port": 4000
     },
     "singleProjectMode": true
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

@@ -1,7 +1,42 @@
+rules_version = '2';
 service cloud.firestore {
     match /databases/{database}/documents {
+        // Function to check if the request is coming from your app's server
+        function isServerRequest() {
+            return request.auth != null && request.auth.token.firebase.sign_in_provider == 'custom';
+        }
+
+        // Match the answers collection
+        match /{envName} {
+            match /chatLogs/{answerId} {
+                allow read: if true; // Anyone can read answers
+                allow create, update, delete: if isServerRequest(); // Only your server can modify
+            }
+        }
+
+        // Match the queryLimits collection
+        match /{envName} {
+            match /queryLimits/{userId} {
+                allow read, write: if isServerRequest(); // Only your server can access
+            }
+        }
+
+        // Match the likes collection
+        match /{envName} {
+            match /likes/{likeId} {
+                allow read: if true;
+                allow create, update, delete: if isServerRequest(); // Only your server can modify
+            }
+        }
+
+        // Match the rateLimits collection
+        match /rateLimits/{document=**} {
+            allow read, write: if isServerRequest();
+        }
+
+        // Deny access to all other collections by default
         match /{document=**} {
-            allow read, write: if true;
+            allow read, write: if false;
         }
     }
 }
