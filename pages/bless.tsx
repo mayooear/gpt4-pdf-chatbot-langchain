@@ -1,32 +1,63 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSudo } from '@/contexts/SudoContext';
+import validator from 'validator';
 
 const SudoPage: React.FC = () => {
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { isSudoUser, checkSudoStatus } = useSudo();
+
+  const validatePassword = (password: string) => {
+    if (!validator.isLength(password, { min: 8, max: 100 })) {
+      return 'Password must be between 8 and 100 characters';
+    }
+    return null;
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const response = await fetch('/api/sudoCookie', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ password }),
-    });
-    await response.json();
-    checkSudoStatus();
+    setError(null);
+
+    const validationError = validatePassword(password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/sudoCookie', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'An error occurred');
+      }
+      checkSudoStatus();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    }
   };
 
   const handleRemoveBlessed = async () => {
-    await fetch('/api/sudoCookie', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    checkSudoStatus();
+    try {
+      const response = await fetch('/api/sudoCookie', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to remove blessed status');
+      }
+      checkSudoStatus();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    }
   };
 
   return (
@@ -34,6 +65,7 @@ const SudoPage: React.FC = () => {
       <p className="text-lg text-gray-600 mb-4">
         {isSudoUser ? 'You are Blessed!' : 'You are not blessed'}
       </p>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="mb-4">
         <input
           type="password"
@@ -41,6 +73,8 @@ const SudoPage: React.FC = () => {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter password"
           className="border p-2 mb-2"
+          minLength={8}
+          maxLength={100}
         />
         <button type="submit" className="bg-blue-500 text-white p-2">
           Submit

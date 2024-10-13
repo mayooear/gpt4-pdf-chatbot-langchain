@@ -2,6 +2,7 @@ import { SiteConfig } from '@/types/siteConfig';
 import React, { useState } from 'react';
 import Layout from '@/components/layout';
 import Link from 'next/link';
+import validator from 'validator';
 
 interface ContactProps {
   siteConfig: SiteConfig | null;
@@ -12,9 +13,32 @@ const Contact = ({ siteConfig }: ContactProps) => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateInputs = () => {
+    if (!validator.isLength(name, { min: 1, max: 100 })) {
+      setError('Name must be between 1 and 100 characters');
+      return false;
+    }
+    if (!validator.isEmail(email)) {
+      setError('Invalid email address');
+      return false;
+    }
+    if (!validator.isLength(message, { min: 1, max: 1000 })) {
+      setError('Message must be between 1 and 1000 characters');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (!validateInputs()) {
+      return;
+    }
+
     const res = await fetch('/api/contact', {
       method: 'POST',
       headers: {
@@ -25,7 +49,8 @@ const Contact = ({ siteConfig }: ContactProps) => {
     if (res.ok) {
       setIsSubmitted(true);
     } else {
-      alert('Failed to send message.');
+      const data = await res.json();
+      setError(data.message || 'Failed to send message.');
     }
   };
 
@@ -33,6 +58,14 @@ const Contact = ({ siteConfig }: ContactProps) => {
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto p-4">
         <h1 className="text-2xl mb-4">Contact Us</h1>
+        {error && (
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+            role="alert"
+          >
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className={`space-y-4 ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}`}
@@ -49,6 +82,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
                 required
                 disabled={isSubmitted}
+                maxLength={100}
               />
             </div>
             <div className="w-1/2">
@@ -75,6 +109,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm h-48"
               required
               disabled={isSubmitted}
+              maxLength={1000}
             />
           </div>
           <button

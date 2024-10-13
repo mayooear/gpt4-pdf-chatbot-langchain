@@ -79,10 +79,11 @@ export function middleware(req: NextRequest) {
       }
 
       // For other routes, redirect to login
-      console.log('Redirecting to /login');
-      url.pathname = '/login';
-      url.searchParams.set('redirect', req.nextUrl.pathname);
-      return NextResponse.redirect(url);
+      const fullPath = `${url.pathname}${url.search}`;
+      const loginUrl = new URL('/login', req.url);
+      loginUrl.searchParams.set('redirect', fullPath);
+
+      return NextResponse.redirect(loginUrl);
     }
   }
 

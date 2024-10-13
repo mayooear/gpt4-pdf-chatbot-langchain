@@ -15,6 +15,7 @@ import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { queryRateLimiter } from '@/utils/server/queryRateLimiter';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
+import validator from 'validator';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -37,6 +38,23 @@ export async function POST(req: NextRequest) {
 
   const { collection, question, history, privateSession, mediaTypes } =
     requestBody;
+
+  // Input validation
+  if (
+    typeof question !== 'string' ||
+    !validator.isLength(question, { min: 1, max: 4000 })
+  ) {
+    return NextResponse.json(
+      { error: 'Invalid question. Must be between 1 and 4000 characters.' },
+      { status: 400 },
+    );
+  }
+
+  const originalQuestion = question;
+  // Sanitize the input
+  const sanitizedQuestion = validator
+    .escape(question.trim())
+    .replaceAll('\n', ' ');
 
   // Load site config
   const siteConfig = loadSiteConfigSync();
@@ -69,13 +87,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!question) {
-    return NextResponse.json(
-      { message: 'No question in the request' },
-      { status: 400 },
-    );
-  }
-
   let clientIP =
     req.headers.get('x-forwarded-for') ||
     req.ip ||
@@ -84,9 +95,6 @@ export async function POST(req: NextRequest) {
   if (Array.isArray(clientIP)) {
     clientIP = clientIP[0];
   }
-
-  const originalQuestion = question;
-  const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
   let fullResponse = '';
 

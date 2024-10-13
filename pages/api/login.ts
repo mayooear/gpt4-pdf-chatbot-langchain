@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { rateLimiter } from 'utils/server/rateLimiter';
 import { isDevelopment } from '@/utils/env';
+import validator from 'validator';
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,13 +24,45 @@ export default async function handler(
 
   if (req.method === 'POST') {
     const { password, redirect } = req.body;
-    console.log('Received login request with redirect:', redirect);
+
+    // Input validation
+    if (typeof password !== 'string' || validator.isEmpty(password)) {
+      return res.status(400).json({ message: 'Invalid password' });
+    }
+
+    if (!validator.isLength(password, { min: 6, max: 100 })) {
+      return res.status(400).json({ message: 'Invalid password length' });
+    }
+
+    if (
+      redirect &&
+      redirect !== '/' &&
+      !validator.isURL(redirect, {
+        require_tld: false,
+        allow_protocol_relative_urls: true,
+        require_protocol: false,
+        allow_fragments: false,
+        allow_query_components: true,
+      }) &&
+      !redirect.startsWith('/')
+    ) {
+      console.log('Invalid redirect URL:', redirect);
+      return res.status(400).json({ message: 'Invalid redirect URL' });
+    }
+
+    // Sanitize inputs
+    const sanitizedPassword = password.trim();
+    const sanitizedRedirect = redirect
+      ? decodeURIComponent(redirect.trim())
+      : '/';
+
+    console.log('Received login request with redirect:', sanitizedRedirect);
     const storedHashedPassword = process.env.SITE_PASSWORD;
     const storedHashedToken = process.env.SECURE_TOKEN_HASH;
     const fixedToken = process.env.SECURE_TOKEN;
 
     if (
-      !password ||
+      !sanitizedPassword ||
       !storedHashedPassword ||
       !storedHashedToken ||
       !fixedToken
@@ -37,7 +70,7 @@ export default async function handler(
       return res.status(400).json({ message: 'Bad request' });
     }
 
-    const match = await bcrypt.compare(password, storedHashedPassword);
+    const match = await bcrypt.compare(sanitizedPassword, storedHashedPassword);
     if (match) {
       const hashedToken = crypto
         .createHash('sha256')
@@ -71,7 +104,9 @@ export default async function handler(
         expires: expiryDate,
         sameSite: 'lax',
       });
-      return res.status(200).json({ message: 'Authenticated', redirect });
+      return res
+        .status(200)
+        .json({ message: 'Authenticated', redirect: sanitizedRedirect });
     } else {
       return res.status(403).json({ message: 'Incorrect password' });
     }

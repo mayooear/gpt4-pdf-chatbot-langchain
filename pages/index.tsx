@@ -205,6 +205,11 @@ export default function Home({
     e.preventDefault();
     if (submittedQuery.trim() === '') return;
 
+    if (submittedQuery.length > 4000) {
+      setError('Input must be 4000 characters or less');
+      return;
+    }
+
     if (loading) {
       handleStop();
       return;
@@ -580,11 +585,11 @@ export default function Home({
                 handleCollectionChange={handleCollectionChange}
                 handlePrivateSessionChange={handlePrivateSessionChange}
                 collection={collection}
+                privateSession={privateSession}
                 error={chatError}
+                setError={setError}
                 randomQueries={randomQueries}
                 shuffleQueries={shuffleQueries}
-                isLoadingQueries={isLoadingQueries}
-                privateSession={privateSession}
                 textAreaRef={textAreaRef}
                 mediaTypes={mediaTypes}
                 handleMediaTypeChange={handleMediaTypeChange}
@@ -596,6 +601,7 @@ export default function Home({
                 handleStop={handleStop}
                 isNearBottom={isNearBottom}
                 setIsNearBottom={setIsNearBottom}
+                isLoadingQueries={isLoadingQueries}
               />
             )}
           </div>

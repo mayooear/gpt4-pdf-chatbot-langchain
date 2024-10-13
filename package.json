@@ -31,6 +31,8 @@
     "@pinecone-database/pinecone": "^3.0.0",
     "@radix-ui/react-accordion": "^1.1.1",
     "@tailwindcss/typography": "^0.5.14",
+    "@types/dompurify": "^3.0.5",
+    "@types/validator": "^13.12.2",
     "@upstash/redis": "^1.34.0",
     "ai": "^3.3.28",
     "aws-sdk": "^2.1655.0",
@@ -41,6 +43,7 @@
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.1.7",
     "dotenv": "^16.0.3",
     "express-rate-limit": "^7.4.0",
     "firebase-admin": "^12.2.0",
@@ -69,7 +72,8 @@
     "remark-gfm": "^4.0.0",
     "showdown": "^2.1.0",
     "tailwind-merge": "^2.5.2",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20",
+    "validator": "^13.12.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

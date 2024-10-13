@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
+import validator from 'validator';
 
 const ses = new SESClient({
   credentials: {
@@ -16,6 +17,22 @@ export default async function handler(
 ) {
   if (req.method === 'POST') {
     const { name, email, message } = req.body;
+
+    // Input validation
+    if (!validator.isLength(name, { min: 1, max: 100 })) {
+      return res.status(400).json({ message: 'Invalid name' });
+    }
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: 'Invalid email' });
+    }
+    if (!validator.isLength(message, { min: 1, max: 1000 })) {
+      return res.status(400).json({ message: 'Invalid message length' });
+    }
+
+    // Sanitize inputs (only remove potentially harmful characters)
+    const sanitizedName = name.trim().replace(/[<>]/g, '');
+    const sanitizedEmail = email.trim();
+    const sanitizedMessage = message.trim().replace(/[<>]/g, '');
 
     const sourceEmail = process.env.CONTACT_EMAIL;
     if (!sourceEmail) {
@@ -38,11 +55,11 @@ export default async function handler(
       },
       Message: {
         Subject: {
-          Data: `${siteConfig.shortname} Contact Form Msg from ${name}`,
+          Data: `${siteConfig.shortname} Contact Form Msg from ${sanitizedName}`,
         },
         Body: {
           Text: {
-            Data: `From: ${name} <${email}>\n\nMessage:\n\n${message}`,
+            Data: `From: ${sanitizedName} <${sanitizedEmail}>\n\nMessage:\n\n${sanitizedMessage}`,
           },
         },
       },

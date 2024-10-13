@@ -4,6 +4,7 @@ import { getOrCreateUUID } from '@/utils/client/uuid';
 import Toast from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logEvent } from '@/utils/client/analytics';
+import validator from 'validator';
 
 interface NPSSurveyProps {
   siteConfig: SiteConfig;
@@ -79,50 +80,70 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
     }
   };
 
+  const validateInput = () => {
+    if (score === null) {
+      setErrorMessage('Please select a score');
+      return false;
+    }
+    if (!validator.isInt(score.toString(), { min: 0, max: 10 })) {
+      setErrorMessage('Score must be between 0 and 10');
+      return false;
+    }
+    if (feedback && feedback.length > 1000) {
+      setErrorMessage('Feedback must be 1000 characters or less');
+      return false;
+    }
+    if (additionalComments.length > 1000) {
+      setErrorMessage('Additional comments must be 1000 characters or less');
+      return false;
+    }
+    return true;
+  };
+
   const submitSurvey = async () => {
-    if (score !== null) {
-      logEvent('Submit', 'NPS_Survey', `Score: ${score}`, score);
-      const uuid = getOrCreateUUID();
-      const surveyData = {
-        uuid,
-        score,
-        feedback,
-        additionalComments,
-        timestamp: new Date().toISOString(),
-      };
+    if (!validateInput()) {
+      return;
+    }
 
-      try {
-        const response = await fetch('/api/submitNpsSurvey', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(surveyData),
-        });
+    logEvent('Submit', 'NPS_Survey', `Score: ${score}`, score ?? undefined);
+    const uuid = getOrCreateUUID();
+    const surveyData = {
+      uuid,
+      score: score!,
+      feedback: feedback.trim(),
+      additionalComments: additionalComments.trim(),
+      timestamp: new Date().toISOString(),
+    };
 
-        const data = await response.json();
+    try {
+      const response = await fetch('/api/submitNpsSurvey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(surveyData),
+      });
 
-        if (response.ok) {
-          localStorage.setItem('npsSurveyCompleted', Date.now().toString());
-          localStorage.removeItem('npsSurveyDismissed');
-          setShowSurvey(false);
-          setErrorMessage(null);
-          setShowFeedbackIcon(false);
-          setToastMessage('Thank you for your feedback!');
+      const data = await response.json();
 
-          if (forceSurvey) {
-            // Redirect to homepage after 3 seconds
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 3000);
-          }
-        } else {
-          setErrorMessage(data.message);
+      if (response.ok) {
+        localStorage.setItem('npsSurveyCompleted', Date.now().toString());
+        localStorage.removeItem('npsSurveyDismissed');
+        setShowSurvey(false);
+        setErrorMessage(null);
+        setShowFeedbackIcon(false);
+        setToastMessage('Thank you for your feedback!');
+
+        if (forceSurvey) {
+          // Redirect to homepage after 3 seconds
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
         }
-      } catch (error) {
-        console.error(error);
-        setErrorMessage(
-          'Error submitting survey: An unexpected error occurred',
-        );
+      } else {
+        setErrorMessage(data.message);
       }
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Error submitting survey: An unexpected error occurred');
     }
   };
 
@@ -195,6 +216,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 className="w-full p-2 border rounded mb-4"
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
+                maxLength={1000}
               />
               <h3 className="text-lg font-semibold mb-2">
                 Additional comments (optional)
@@ -203,6 +225,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 className="w-full p-2 border rounded mb-4"
                 value={additionalComments}
                 onChange={(e) => setAdditionalComments(e.target.value)}
+                maxLength={1000}
               />
               {errorMessage && (
                 <div className="text-red-500 mb-4">{errorMessage}</div>

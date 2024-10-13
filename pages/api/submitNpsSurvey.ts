@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
+import validator from 'validator';
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,6 +11,31 @@ export default async function handler(
   }
 
   const { uuid, score, feedback, additionalComments, timestamp } = req.body;
+
+  // Input validation
+  if (!validator.isUUID(uuid)) {
+    return res.status(400).json({ message: 'Invalid UUID' });
+  }
+
+  if (!validator.isInt(score.toString(), { min: 0, max: 10 })) {
+    return res.status(400).json({ message: 'Score must be between 0 and 10' });
+  }
+
+  if (feedback && feedback.length > 1000) {
+    return res
+      .status(400)
+      .json({ message: 'Feedback must be 1000 characters or less' });
+  }
+
+  if (additionalComments && additionalComments.length > 1000) {
+    return res
+      .status(400)
+      .json({ message: 'Additional comments must be 1000 characters or less' });
+  }
+
+  if (!validator.isISO8601(timestamp)) {
+    return res.status(400).json({ message: 'Invalid timestamp' });
+  }
 
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     console.error('Missing Google credentials');

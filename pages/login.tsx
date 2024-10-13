@@ -11,6 +11,7 @@ interface LoginProps {
 export default function Login({ siteConfig }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
   const { redirect } = router.query;
 
@@ -22,23 +23,36 @@ export default function Login({ siteConfig }: LoginProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     console.log('Submitting login with redirect:', redirect);
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ password, redirect }),
-    });
 
-    if (res.ok) {
-      const data = await res.json();
-      console.log('Login successful, redirecting to:', data.redirect);
-      router.push(data.redirect || '/');
-    } else if (res.status === 429) {
-      alert('Too many login attempts. Please try again later.');
-    } else {
-      alert('Incorrect password');
+    if (!password.trim()) {
+      setError('Password cannot be empty');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password, redirect }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Login successful, redirecting to:', data.redirect);
+        router.push(data.redirect || '/');
+      } else if (res.status === 429) {
+        setError('Too many login attempts. Please try again later.');
+      } else {
+        const errorData = await res.json();
+        setError(errorData.message || 'Incorrect password');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An error occurred. Please try again.');
     }
   };
 
@@ -77,6 +91,7 @@ export default function Login({ siteConfig }: LoginProps) {
             {showPassword ? '🙈' : '👁️'}
           </button>
         </div>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
         <button type="submit" className="p-2 bg-blue-500 text-white rounded">
           Log In
         </button>

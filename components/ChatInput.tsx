@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
+import validator from 'validator';
 import styles from '@/styles/Home.module.css';
 import RandomQueries from '@/components/RandomQueries';
 import CollectionSelector from '@/components/CollectionSelector';
@@ -28,6 +30,7 @@ interface ChatInputProps {
   collection: string;
   privateSession: boolean;
   error: string | null;
+  setError: (error: string | null) => void;
   randomQueries: string[];
   shuffleQueries: () => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
@@ -54,6 +57,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   collection,
   privateSession,
   error,
+  setError,
   randomQueries,
   shuffleQueries,
   textAreaRef,
@@ -125,17 +129,37 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }, 0);
   };
 
+  const sanitizeInput = (input: string) => {
+    return DOMPurify.sanitize(input);
+  };
+
+  const validateInput = (input: string) => {
+    if (validator.isEmpty(input)) {
+      return 'Input cannot be empty';
+    }
+    if (!validator.isLength(input, { min: 1, max: 4000 })) {
+      return 'Input must be between 1 and 4000 characters';
+    }
+    return null;
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) {
       handleStop();
       logEvent('stop_query', 'Engagement', '');
     } else {
-      setIsNearBottom(true); // Set to true when submitting a new message
-      handleSubmit(e, input);
+      const sanitizedInput = sanitizeInput(input);
+      const validationError = validateInput(sanitizedInput);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setIsNearBottom(true);
+      handleSubmit(e, sanitizedInput);
       setQuery('');
       focusInput();
-      logEvent('submit_query', 'Engagement', input);
+      logEvent('submit_query', 'Engagement', sanitizedInput);
     }
   };
 
@@ -143,10 +167,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       if (!loading) {
         e.preventDefault();
-        logEvent('submit_query_enter', 'Engagement', input);
+        const sanitizedInput = sanitizeInput(input);
+        const validationError = validateInput(sanitizedInput);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+        logEvent('submit_query_enter', 'Engagement', sanitizedInput);
         setHasInteracted(true);
-        setIsNearBottom(true); // Set to true when submitting a new message
-        handleEnter(e, input);
+        setIsNearBottom(true);
+        handleEnter(e, sanitizedInput);
         setQuery('');
         focusInput();
       }
@@ -183,7 +213,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               ref={inputRef}
               autoFocus={false}
               rows={1}
-              maxLength={3000}
+              maxLength={4000}
               id="userInput"
               name="userInput"
               placeholder={hasInteracted ? '' : placeholderText}

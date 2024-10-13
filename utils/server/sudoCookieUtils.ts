@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { isDevelopment } from '@/utils/env';
+import validator from 'validator';
 
 const secretKey = crypto
   .createHash('sha256')
@@ -55,6 +56,11 @@ async function setSudoCookie(
 
   if (!password || !storedHashedPassword) {
     throw new Error('Bad request');
+  }
+
+  // Validate password
+  if (!validator.isLength(password, { min: 8, max: 100 })) {
+    throw new Error('Invalid password');
   }
 
   const match = await bcrypt.compare(password, storedHashedPassword);
