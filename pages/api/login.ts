@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
 import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
-import { rateLimiter } from 'utils/server/rateLimiter';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { isDevelopment } from '@/utils/env';
 import validator from 'validator';
 
@@ -14,7 +14,12 @@ export default async function handler(
   await runMiddleware(req, res, cors);
 
   // Apply rate limiting
-  const isAllowed = await rateLimiter(req, res);
+  const isAllowed = await genericRateLimiter(req, res, {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 8, // 8 requests per 15 minutes
+    name: 'login',
+  });
+
   if (!isAllowed) return;
 
   if (req.method === 'OPTIONS') {

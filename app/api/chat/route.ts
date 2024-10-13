@@ -13,9 +13,9 @@ import { db } from '@/services/firebase';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { Index, RecordMetadata } from '@pinecone-database/pinecone';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
-import { queryRateLimiter } from '@/utils/server/queryRateLimiter';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -66,10 +66,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Apply query rate limiting
-  const isAllowed = await queryRateLimiter(
+  const isAllowed = await genericRateLimiter(
     req,
-    siteConfig.queriesPerUserPerDay,
+    null,
+    {
+      windowMs: 24 * 60 * 60 * 1000, // 24 hours
+      max: siteConfig.queriesPerUserPerDay,
+      name: 'query',
+    },
+    req.ip,
   );
+
   if (!isAllowed) {
     return NextResponse.json(
       { error: 'Daily query limit reached. Please try again tomorrow.' },

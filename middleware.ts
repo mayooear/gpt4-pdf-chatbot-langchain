@@ -3,8 +3,25 @@ import { isDevelopment } from '@/utils/env';
 import { isTokenValid } from '@/utils/server/passwordUtils';
 import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
+  // Apply rate limiting
+  const isAllowed = await genericRateLimiter(
+    req,
+    null,
+    {
+      windowMs: 60 * 1000, // 1 minute
+      max: 30, // requests per minute
+      name: 'middleware',
+    },
+    req.ip,
+  );
+
+  if (!isAllowed) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   const url = req.nextUrl.clone();
 
   // Redirect /all to /answers, preserving query parameters
@@ -90,18 +107,21 @@ export function middleware(req: NextRequest) {
   const allowedOrigins = [process.env.NEXT_PUBLIC_BASE_URL];
   const origin = req.headers.get('origin');
 
-  // Explicitly type the corsHeaders object
   const corsHeaders: {
     'Access-Control-Allow-Methods': string;
     'Access-Control-Allow-Headers': string;
     'Access-Control-Allow-Origin'?: string;
   } = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
   if (origin && allowedOrigins.includes(origin)) {
     corsHeaders['Access-Control-Allow-Origin'] = origin;
+  } else {
+    // If the origin is not in the allowed list, don't set the header
+    // This will result in the browser blocking the request
+    console.warn(`Blocked request from unauthorized origin: ${origin}`);
   }
 
   if (url.pathname === '/api/chat') {
@@ -112,3 +132,16 @@ export function middleware(req: NextRequest) {
     headers: corsHeaders,
   });
 }
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};

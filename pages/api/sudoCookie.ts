@@ -5,7 +5,7 @@ import {
   getSudoCookie,
   deleteSudoCookie,
 } from '@/utils/server/sudoCookieUtils';
-import { rateLimiter } from '@/utils/server/rateLimiter';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import validator from 'validator';
 
 export default async function handler(
@@ -21,10 +21,16 @@ export default async function handler(
 
   try {
     if (req.method === 'POST') {
-      const isAllowed = await rateLimiter(req, res);
+      const isAllowed = await genericRateLimiter(req, res, {
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 8, // 8 requests per 15 minutes
+        name: 'sudo_cookie',
+      });
+
       if (!isAllowed) {
         return; // Rate limiter already sent the response
       }
+
       const { password } = req.body;
 
       // Validate password
