@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
 const ses = new SESClient({
   credentials: {
@@ -16,6 +17,16 @@ export default async function handler(
   res: NextApiResponse,
 ) {
   if (req.method === 'POST') {
+    const isAllowed = await genericRateLimiter(req, res, {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 3, // 3 requests per 15 minutes
+      name: 'contact_form',
+    });
+
+    if (!isAllowed) {
+      return; // Rate limiter already sent the response
+    }
+
     const { name, email, message } = req.body;
 
     // Input validation

@@ -4,7 +4,8 @@ export const handleVote = async (
   docId: string,
   isUpvote: boolean,
   votes: Record<string, number>,
-  setVotes: React.Dispatch<React.SetStateAction<Record<string, number>>>
+  setVotes: React.Dispatch<React.SetStateAction<Record<string, number>>>,
+  setVoteError: React.Dispatch<React.SetStateAction<string | null>>,
 ) => {
   if (!docId) {
     console.error('Vote error: Missing document ID');
@@ -25,7 +26,12 @@ export const handleVote = async (
     return updatedVotes;
   });
 
-  logEvent(isUpvote ? 'upvote_answer' : 'downvote_answer', 'Engagement', docId, vote);
+  logEvent(
+    isUpvote ? 'upvote_answer' : 'downvote_answer',
+    'Engagement',
+    docId,
+    vote,
+  );
 
   try {
     const response = await fetch('/api/vote', {
@@ -37,9 +43,14 @@ export const handleVote = async (
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error);
+      throw new Error(data.message || 'Failed to update vote');
     }
+    setVotes({ ...votes, [docId]: vote });
   } catch (error) {
     console.error('Vote error:', error);
+    setVoteError(
+      error instanceof Error ? error.message : 'An error occurred while voting',
+    );
+    setTimeout(() => setVoteError(null), 3000);
   }
 };

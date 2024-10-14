@@ -73,7 +73,7 @@ export async function genericRateLimiter(
           if (res) {
             if ('status' in res && typeof res.status === 'function') {
               res.status(429).json({
-                message: 'Too many requests, please try again later.',
+                message: `Too many ${name} requests, please try again later.`,
               });
             } else if (res instanceof NextResponse) {
               return false;

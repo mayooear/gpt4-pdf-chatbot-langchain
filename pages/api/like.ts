@@ -3,6 +3,7 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
 // Create a cache object to store the fetched like statuses
 const likeStatusCache: Record<string, Record<string, boolean>> = {};
@@ -161,6 +162,19 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // Apply rate limiting
+  const isAllowed = await genericRateLimiter(req, res, {
+    windowMs: 60 * 1000 * 10, // 10 minutes
+    max: 30, // 30 likes per 10 minutes
+    name: 'like',
+  });
+
+  if (!isAllowed) {
+    return res
+      .status(429)
+      .json({ error: 'Too many likes. Please try again later.' });
+  }
+
   const action = req.query.action;
 
   // DEBUG

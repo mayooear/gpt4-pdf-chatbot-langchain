@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getOrCreateUUID } from '@/utils/client/uuid';
+import { updateLike } from '@/services/likeService';
 
 interface LikeButtonProps {
   answerId: string;
@@ -19,6 +20,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likes, setLikes] = useState(likeCount);
   const [animate, setAnimate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLiked(initialLiked);
@@ -36,33 +38,17 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     setTimeout(() => setAnimate(false), 300);
 
     try {
-      const response = await fetch('/api/like', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answerId, uuid, like: newLikedState }),
-      });
-
-      if (!response.ok) {
-        // If the response is not ok, revert the liked state
-        setIsLiked(!newLikedState);
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error ||
-            'An error occurred while updating the like status.',
-        );
-      }
-
-      // Call the onLikeCountChange callback with the updated like count
+      await updateLike(answerId, uuid, newLikedState);
       onLikeCountChange(answerId, newLikedState ? likes + 1 : likes - 1);
+      setLikes((prevLikes) => (newLikedState ? prevLikes + 1 : prevLikes - 1));
     } catch (error) {
       console.error('LikeButton: Like error:', error);
       setIsLiked(!newLikedState);
-      // TODO: Optionally handle the error state in the UI, e.g., with a toast notification
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      setTimeout(() => setError(null), 3000);
+      // Revert the like count if there's an error
+      setLikes((prevLikes) => (newLikedState ? prevLikes - 1 : prevLikes + 1));
     }
-
-    setLikes((prevLikes) => (newLikedState ? prevLikes + 1 : prevLikes - 1));
   };
 
   return (
@@ -83,6 +69,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
       {showLikeCount && likes > 0 && (
         <span className="like-count text-sm">{likes}</span>
       )}
+      {error && <span className="text-red-500 text-sm ml-2">{error}</span>}
     </div>
   );
 };

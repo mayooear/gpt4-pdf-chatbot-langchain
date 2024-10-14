@@ -23,6 +23,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   const [notFound, setNotFound] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const { isSudoUser } = useSudo();
+  const [likeError, setLikeError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAnswer = async () => {
@@ -42,9 +43,19 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
 
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
-      const uuid = getOrCreateUUID();
-      const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
+      try {
+        const uuid = getOrCreateUUID();
+        const statuses = await checkUserLikes(answerIds, uuid);
+        setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
+      } catch (error) {
+        console.error('Error fetching like statuses:', error);
+        setLikeError(
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while checking likes.',
+        );
+        setTimeout(() => setLikeError(null), 5000); // Clear error after 5 seconds
+      }
     };
 
     if (answer) {
@@ -53,13 +64,20 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   }, [answer]);
 
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
-    if (answer) {
-      setAnswer({
-        ...answer,
-        likeCount: newLikeCount,
-      });
+    try {
+      if (answer) {
+        setAnswer({
+          ...answer,
+          likeCount: newLikeCount,
+        });
+      }
+      logEvent('like_answer', 'Engagement', answerId);
+    } catch (error) {
+      setLikeError(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
+      setTimeout(() => setLikeError(null), 3000);
     }
-    logEvent('like_answer', 'Engagement', answerId);
   };
 
   const handleCopyLink = () => {
@@ -132,6 +150,9 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
           isSudoUser={isSudoUser}
           isFullPage={true}
         />
+        {likeError && (
+          <div className="text-red-500 text-sm mt-2">{likeError}</div>
+        )}
       </div>
     </Layout>
   );

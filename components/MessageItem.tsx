@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import gfm from 'remark-gfm';
@@ -28,9 +28,10 @@ interface MessageItemProps {
   handleVote: (docId: string, isUpvote: boolean) => void;
   lastMessageRef: React.RefObject<HTMLDivElement> | null;
   messageKey: string;
+  voteError: string | null;
 }
 
-function MessageItem({
+const MessageItem: React.FC<MessageItemProps> = ({
   message,
   previousMessage,
   index,
@@ -48,7 +49,21 @@ function MessageItem({
   handleVote,
   lastMessageRef,
   messageKey,
-}: MessageItemProps) {
+  voteError,
+}) => {
+  const [likeError, setLikeError] = useState<string | null>(null);
+
+  const onLikeButtonClick = (answerId: string, newLikeCount: number) => {
+    try {
+      handleLikeCountChange(answerId, newLikeCount > 0);
+    } catch (error) {
+      setLikeError(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
+      setTimeout(() => setLikeError(null), 3000);
+    }
+  };
+
   let icon;
   let className;
 
@@ -144,30 +159,44 @@ function MessageItem({
                         {linkCopied === message.docId ? 'check' : 'link'}
                       </span>
                     </button>
-                    <LikeButton
-                      answerId={message.docId ?? ''}
-                      initialLiked={likeStatuses[message.docId ?? ''] || false}
-                      likeCount={0}
-                      onLikeCountChange={(answerId, newLikeCount) =>
-                        handleLikeCountChange(answerId, newLikeCount > 0)
-                      }
-                      showLikeCount={false}
-                    />
-                    <button
-                      onClick={() => handleVote(message.docId ?? '', false)}
-                      className={`${styles.voteButton} ${
-                        votes[message.docId ?? ''] === -1
-                          ? styles.voteButtonDownActive
-                          : ''
-                      } hover:bg-gray-200 flex items-center`}
-                      title="Downvote (private) for system training"
-                    >
-                      <span className="material-icons text-black">
-                        {votes[message.docId ?? ''] === -1
-                          ? 'thumb_down'
-                          : 'thumb_down_off_alt'}
-                      </span>
-                    </button>
+                    <div className="flex items-center">
+                      <LikeButton
+                        answerId={message.docId ?? ''}
+                        initialLiked={
+                          likeStatuses[message.docId ?? ''] || false
+                        }
+                        likeCount={0}
+                        onLikeCountChange={onLikeButtonClick}
+                        showLikeCount={false}
+                      />
+                      {likeError && (
+                        <span className="text-red-500 text-sm ml-2">
+                          {likeError}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleVote(message.docId ?? '', false)}
+                        className={`${styles.voteButton} ${
+                          votes[message.docId ?? ''] === -1
+                            ? styles.voteButtonDownActive
+                            : ''
+                        } hover:bg-gray-200 flex items-center`}
+                        title="Downvote (private) for system training"
+                      >
+                        <span className="material-icons text-black">
+                          {votes[message.docId ?? ''] === -1
+                            ? 'thumb_down'
+                            : 'thumb_down_off_alt'}
+                        </span>
+                      </button>
+                      {voteError && (
+                        <span className="text-red-500 text-sm ml-2">
+                          {voteError}
+                        </span>
+                      )}
+                    </div>
                   </>
                 )}
             </div>
@@ -176,6 +205,6 @@ function MessageItem({
       </div>
     </Fragment>
   );
-}
+};
 
 export default MessageItem;

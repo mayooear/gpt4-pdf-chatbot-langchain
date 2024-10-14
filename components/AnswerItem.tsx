@@ -42,6 +42,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
     siteConfig || undefined,
   );
   const [expanded, setExpanded] = useState(isFullPage);
+  const [likeError, setLikeError] = useState<string | null>(null);
 
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     if (!question) {
@@ -61,6 +62,17 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
 
   const truncateTitle = (title: string, maxLength: number) => {
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
+  };
+
+  const onLikeButtonClick = (answerId: string, newLikeCount: number) => {
+    try {
+      handleLikeCountChange(answerId, newLikeCount);
+    } catch (error) {
+      setLikeError(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
+      setTimeout(() => setLikeError(null), 3000);
+    }
   };
 
   return (
@@ -205,8 +217,11 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 answerId={answer.id}
                 initialLiked={likeStatuses[answer.id] || false}
                 likeCount={answer.likeCount}
-                onLikeCountChange={handleLikeCountChange}
+                onLikeCountChange={onLikeButtonClick}
               />
+              {likeError && (
+                <span className="text-red-500 text-sm ml-2">{likeError}</span>
+              )}
             </div>
             {isSudoUser && (
               <>

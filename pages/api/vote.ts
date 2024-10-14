@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
+import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
 export default async function handler(
   req: NextApiRequest,
@@ -8,6 +9,16 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const isAllowed = await genericRateLimiter(req, res, {
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 10, // 10 requests per 5 minutes
+    name: 'vote',
+  });
+
+  if (!isAllowed) {
+    return; // Rate limiter already sent the response
   }
 
   const { docId, vote } = req.body;

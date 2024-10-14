@@ -60,7 +60,7 @@
       ]
     },
     "npsSurveyFrequencyDays": 90,
-    "queriesPerUserPerDay": 0
+    "queriesPerUserPerDay": 200
   },
   "ananda-public": {
     "name": "The Ananda Public Chatbot",

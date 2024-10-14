@@ -3,25 +3,8 @@ import { isDevelopment } from '@/utils/env';
 import { isTokenValid } from '@/utils/server/passwordUtils';
 import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
-import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 
-export async function middleware(req: NextRequest) {
-  // Apply rate limiting
-  const isAllowed = await genericRateLimiter(
-    req,
-    null,
-    {
-      windowMs: 60 * 1000, // 1 minute
-      max: 30, // requests per minute
-      name: 'middleware',
-    },
-    req.ip,
-  );
-
-  if (!isAllowed) {
-    return new NextResponse('Too Many Requests', { status: 429 });
-  }
-
+export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
   // Redirect /all to /answers, preserving query parameters

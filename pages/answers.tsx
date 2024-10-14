@@ -279,10 +279,20 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       if (hasFetchedLikeStatuses.current) return;
 
-      const uuid = getOrCreateUUID();
-      const statuses = await checkUserLikes(answerIds, uuid);
-      setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
-      hasFetchedLikeStatuses.current = true;
+      try {
+        const uuid = getOrCreateUUID();
+        const statuses = await checkUserLikes(answerIds, uuid);
+        setLikeStatuses((prevStatuses) => ({ ...prevStatuses, ...statuses }));
+        hasFetchedLikeStatuses.current = true;
+      } catch (error) {
+        console.error('Error fetching like statuses:', error);
+        setLikeError(
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while checking likes.',
+        );
+        setTimeout(() => setLikeError(null), 5000); // Clear error after 5 seconds
+      }
     };
 
     if (answers.length > 0 && !hasFetchedLikeStatuses.current) {
@@ -290,18 +300,26 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   }, [answers]);
 
-  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
-    setAnswers((prevAnswers) => {
-      const updatedAnswers = prevAnswers.map((answer) => {
-        if (answer.id === answerId) {
-          return { ...answer, likeCount: newLikeCount };
-        }
-        return answer;
-      });
-      return updatedAnswers;
-    });
+  const [likeError, setLikeError] = useState<string | null>(null);
 
-    logEvent('like_answer', 'Engagement', answerId);
+  const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
+    try {
+      setAnswers((prevAnswers) => {
+        const updatedAnswers = prevAnswers.map((answer) => {
+          if (answer.id === answerId) {
+            return { ...answer, likeCount: newLikeCount };
+          }
+          return answer;
+        });
+        return updatedAnswers;
+      });
+      logEvent('like_answer', 'Engagement', answerId);
+    } catch (error) {
+      setLikeError(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
+      setTimeout(() => setLikeError(null), 3000);
+    }
   };
 
   const handleDelete = async (answerId: string) => {
@@ -452,6 +470,9 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
           </div>
         )}
       </div>
+      {likeError && (
+        <div className="text-red-500 text-sm mt-2 text-center">{likeError}</div>
+      )}
     </Layout>
   );
 };

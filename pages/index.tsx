@@ -437,13 +437,21 @@ export default function Home({
     3,
   );
 
-  const handleLikeCountChange = (answerId: string, liked: boolean) => {
-    setLikeStatuses((prevStatuses) => ({
-      ...prevStatuses,
-      [answerId]: liked,
-    }));
+  const [likeError, setLikeError] = useState<string | null>(null);
 
-    logEvent('like_answer', 'Engagement', answerId);
+  const handleLikeCountChange = (answerId: string, liked: boolean) => {
+    try {
+      setLikeStatuses((prevStatuses) => ({
+        ...prevStatuses,
+        [answerId]: liked,
+      }));
+      logEvent('like_answer', 'Engagement', answerId);
+    } catch (error) {
+      setLikeError(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
+      setTimeout(() => setLikeError(null), 3000);
+    }
   };
 
   const handlePrivateSessionChange = (
@@ -462,9 +470,10 @@ export default function Home({
   };
 
   const [votes, setVotes] = useState<Record<string, number>>({});
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   const handleVote = (docId: string, isUpvote: boolean) => {
-    handleVoteUtil(docId, isUpvote, votes, setVotes);
+    handleVoteUtil(docId, isUpvote, votes, setVotes, setVoteError);
   };
 
   const handleCopyLink = (answerId: string) => {
@@ -570,6 +579,7 @@ export default function Home({
                   handleCopyLink={handleCopyLink}
                   handleVote={handleVote}
                   lastMessageRef={lastMessageRef}
+                  voteError={voteError}
                 />
               ))}
               <div ref={bottomOfListRef} style={{ height: '1px' }} />
@@ -619,6 +629,9 @@ export default function Home({
             </div>
           )}
         </div>
+        {likeError && (
+          <div className="text-red-500 text-sm mt-2">{likeError}</div>
+        )}
       </Layout>
     </>
   );
