@@ -42,16 +42,13 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const { isSudoUser, checkSudoStatus } = useSudo();
 
   // Scroll position management functions
-  const saveScrollPosition = () => {
-    const answersContainer = document.querySelector('.main-content-wrap');
+  const saveScrollPosition = () => { 
 
-    if (answersContainer) {
-      const scrollY = answersContainer.scrollTop;
+      const scrollY = window.scrollY;
 
       if (scrollY > 0) {
         sessionStorage.setItem('answersScrollPosition', scrollY.toString());
       }
-    }
   };
 
   const getSavedScrollPosition = () => {
@@ -96,16 +93,16 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
 
   useEffect(() => {
     if (isRestoringScroll && !isLoading && initialLoadComplete) {
-      const answersContainer = document.querySelector('.main-content-wrap');
 
-      if (answersContainer) {
-        const savedPosition = getSavedScrollPosition();
-        setTimeout(() => {
-          answersContainer.scrollTop = savedPosition;
-          setIsRestoringScroll(false);
-          sessionStorage.removeItem('answersScrollPosition');
-        }, 100);
-      }
+      const savedPosition = getSavedScrollPosition();
+      setTimeout(() => {
+        window.scrollTo({
+          top: savedPosition,
+          behavior: 'auto',
+        });
+        setIsRestoringScroll(false);
+        sessionStorage.removeItem('answersScrollPosition');
+      }, 100);
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
 

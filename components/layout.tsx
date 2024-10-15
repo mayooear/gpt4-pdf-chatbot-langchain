@@ -55,7 +55,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
     <div className="h-screen flex flex-col app-container-wrap">
       <div className="flex-grow mx-auto flex flex-col max-w-[800px] app-container">
         {renderHeader()}
-        <div className="flex-grow overflow-auto">
+        <div className="flex-grow overflow-auto main-content-wrap">
           <main className="flex flex-col h-full">{children}</main>
           {siteConfig && <NPSSurvey siteConfig={siteConfig} />}
         </div>
