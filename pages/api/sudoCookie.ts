@@ -7,11 +7,9 @@ import {
 } from '@/utils/server/sudoCookieUtils';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import validator from 'validator';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
 
   if (req.method === 'OPTIONS') {
@@ -57,3 +55,5 @@ export default async function handler(
     });
   }
 }
+
+export default withApiMiddleware(handler);

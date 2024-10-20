@@ -1,11 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
 import validator from 'validator';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
@@ -102,3 +100,5 @@ export default async function handler(
     }
   }
 }
+
+export default withApiMiddleware(handler);

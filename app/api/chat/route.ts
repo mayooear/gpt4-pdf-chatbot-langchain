@@ -1,5 +1,8 @@
 // We have to use a custom chat route because that's how we can get streaming on Vercel production,
 // per https://vercel.com/docs/functions/streaming/quickstart
+//
+// TODO: wrap this in apiMiddleware
+//
 
 import { NextRequest, NextResponse } from 'next/server';
 import { Document } from 'langchain/document';

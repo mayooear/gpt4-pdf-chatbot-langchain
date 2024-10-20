@@ -2,11 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client } from '@/utils/server/awsConfig';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Set CORS headers
   const allowedOrigin =
     process.env.NODE_ENV === 'production'
@@ -68,3 +66,5 @@ export default async function handler(
     }
   }
 }
+
+export default withApiMiddleware(handler);

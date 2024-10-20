@@ -4,6 +4,7 @@ import firebase from 'firebase-admin';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
 import { getEnvName } from '@/utils/env';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
 // Create a cache object to store the fetched like statuses
 const likeStatusCache: Record<string, Record<string, boolean>> = {};
@@ -158,10 +159,7 @@ async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Apply rate limiting
   const isAllowed = await genericRateLimiter(req, res, {
     windowMs: 60 * 1000 * 10, // 10 minutes
@@ -311,3 +309,5 @@ export default async function handler(
 //     console.error('Error during like count integrity check:', error);
 //   }
 // }
+
+export default withApiMiddleware(handler);

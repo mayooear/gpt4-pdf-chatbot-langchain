@@ -3,6 +3,7 @@ import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
 const ses = new SESClient({
   credentials: {
@@ -12,10 +13,7 @@ const ses = new SESClient({
   region: process.env.AWS_REGION,
 });
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     const isAllowed = await genericRateLimiter(req, res, {
       windowMs: 15 * 60 * 1000, // 15 minutes
@@ -87,3 +85,5 @@ export default async function handler(
     res.status(405).json({ message: 'Method not allowed' });
   }
 }
+
+export default withApiMiddleware(handler);

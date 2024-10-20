@@ -4,9 +4,125 @@ import { isTokenValid } from '@/utils/server/passwordUtils';
 import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
+const logSuspiciousActivity = (req: NextRequest, reason: string) => {
+  const clientIP = req.ip || 'unknown';
+  const userAgent = req.headers.get('user-agent') || 'unknown';
+  const method = req.method;
+  const url = req.url;
+  console.warn(
+    `Suspicious activity detected: ${reason}. IP: ${clientIP}, User-Agent: ${userAgent}, Method: ${method}, URL: ${url}`,
+  );
+};
+
+const performSecurityChecks = (req: NextRequest, url: URL) => {
+  if (url.pathname.includes('..') || url.pathname.includes('//')) {
+    logSuspiciousActivity(req, 'Potential path traversal attempt');
+  }
+
+  if (req.headers.get('x-forwarded-for')?.includes(',')) {
+    logSuspiciousActivity(
+      req,
+      'Multiple IP addresses in X-Forwarded-For header',
+    );
+  }
+
+  // Check for unusually long URLs
+  if (url.pathname.length > 255) {
+    logSuspiciousActivity(req, 'Unusually long URL');
+  }
+
+  // Check for SQL injection attempts in query parameters
+  const sqlInjectionPattern = /(\%27)|(\')|(\-\-)|(\%23)|(#)/i;
+  if (sqlInjectionPattern.test(url.search)) {
+    logSuspiciousActivity(
+      req,
+      'Potential SQL injection attempt in query parameters',
+    );
+  }
+
+  // Check for unusual or suspicious user agents
+  const suspiciousUserAgents = [
+    'sqlmap',
+    'nikto',
+    'nmap',
+    'masscan',
+    'python-requests',
+    'curl',
+    'wget',
+    'burp',
+  ];
+  const userAgent = req.headers.get('user-agent')?.toLowerCase() || '';
+  if (suspiciousUserAgents.some((agent) => userAgent.includes(agent))) {
+    logSuspiciousActivity(req, 'Suspicious user agent detected');
+  }
+
+  // Check for attempts to access sensitive files
+  const sensitiveFiles = [
+    '.env',
+    'wp-config.php',
+    '.git',
+    '.htaccess',
+    'config.json',
+    'secrets.yaml',
+  ];
+  if (
+    sensitiveFiles.some((file) => url.pathname.toLowerCase().includes(file))
+  ) {
+    logSuspiciousActivity(req, 'Attempt to access potentially sensitive file');
+  }
+
+  // Check for unusual HTTP methods
+  const allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
+  if (!allowedMethods.includes(req.method)) {
+    logSuspiciousActivity(req, `Unusual HTTP method: ${req.method}`);
+  }
+
+  // Check for missing or suspicious referer header for POST requests
+  if (req.method === 'POST') {
+    const referer = req.headers.get('referer');
+    if (
+      !referer ||
+      !referer.startsWith(process.env.NEXT_PUBLIC_BASE_URL || '')
+    ) {
+      logSuspiciousActivity(
+        req,
+        'Missing or suspicious referer for POST request',
+      );
+    }
+  }
+
+  // Check for excessive number of cookies
+  const cookieHeader = req.headers.get('cookie');
+  if (cookieHeader && cookieHeader.split(';').length > 30) {
+    logSuspiciousActivity(req, 'Excessive number of cookies');
+  }
+
+  // Check for potential XSS attempts in query parameters
+  const xssPattern = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+  if (xssPattern.test(decodeURIComponent(url.search))) {
+    logSuspiciousActivity(req, 'Potential XSS attempt in query parameters');
+  }
+
+  // Check for unusual content-type headers
+  const contentType = req.headers.get('content-type');
+  if (
+    contentType &&
+    ![
+      'application/json',
+      'application/x-www-form-urlencoded',
+      'multipart/form-data',
+    ].includes(contentType.split(';')[0])
+  ) {
+    logSuspiciousActivity(req, `Unusual content-type header: ${contentType}`);
+  }
+};
+
 export function middleware(req: NextRequest) {
   const response = NextResponse.next();
   const url = req.nextUrl.clone();
+
+  // Perform security checks
+  performSecurityChecks(req, url);
 
   // Redirect /all to /answers, preserving query parameters
   if (url.pathname === '/all') {
@@ -88,7 +204,10 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  const allowedOrigins = [process.env.NEXT_PUBLIC_BASE_URL];
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_BASE_URL,
+    'http://localhost:3000',
+  ];
   const origin = req.headers.get('origin');
 
   const corsHeaders: {
@@ -100,12 +219,17 @@ export function middleware(req: NextRequest) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
-  if (origin && allowedOrigins.includes(origin)) {
-    corsHeaders['Access-Control-Allow-Origin'] = origin;
+  if (origin) {
+    if (allowedOrigins.includes(origin)) {
+      corsHeaders['Access-Control-Allow-Origin'] = origin;
+    } else {
+      console.warn(
+        `Blocked request from unauthorized origin: ${origin}. URL: ${url.toString()}, Method: ${req.method}`,
+      );
+    }
   } else {
-    // If the origin is not in the allowed list, don't set the header
-    // This will result in the browser blocking the request
-    console.warn(`Blocked request from unauthorized origin: ${origin}`);
+    // For same-origin requests, origin will be null
+    corsHeaders['Access-Control-Allow-Origin'] = '*';
   }
 
   if (url.pathname === '/api/chat') {

@@ -6,21 +6,10 @@ import cors, { runMiddleware } from 'utils/server/corsMiddleware';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { isDevelopment } from '@/utils/env';
 import validator from 'validator';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors);
-
-  // Apply rate limiting
-  const isAllowed = await genericRateLimiter(req, res, {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 8, // 8 requests per 15 minutes
-    name: 'login',
-  });
-
-  if (!isAllowed) return;
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -28,6 +17,15 @@ export default async function handler(
   }
 
   if (req.method === 'POST') {
+    // Apply rate limiting
+    const isAllowed = await genericRateLimiter(req, res, {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 8, // 8 requests per 15 minutes
+      name: 'login',
+    });
+
+    if (!isAllowed) return;
+
     const { password, redirect } = req.body;
 
     // Input validation
@@ -119,3 +117,5 @@ export default async function handler(
     res.status(405).json({ message: 'Method not allowed' });
   }
 }
+
+export default withApiMiddleware(handler);

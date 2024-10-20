@@ -3,11 +3,9 @@ import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -47,3 +45,5 @@ export default async function handler(
     }
   }
 }
+
+export default withApiMiddleware(handler);

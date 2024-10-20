@@ -3,8 +3,9 @@ import {
   updateRelatedQuestionsBatch,
   updateRelatedQuestions,
 } from '@/utils/server/relatedQuestionsUtils';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse<{ message: string; error?: string }>,
 ) {
@@ -73,3 +74,5 @@ export default async function handler(
     res.status(405).json({ message: 'Method not allowed' });
   }
 }
+
+export default withApiMiddleware(handler);

@@ -2,11 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { getAnswersCollectionName } from '@/utils/server/firestoreUtils';
+import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -36,3 +34,5 @@ export default async function handler(
     });
   }
 }
+
+export default withApiMiddleware(handler);
