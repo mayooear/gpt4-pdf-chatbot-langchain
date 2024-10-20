@@ -11,8 +11,8 @@ import { SiteConfig } from '@/types/siteConfig';
 import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
 
 const inter = Inter({
-  variable: '--font-inter',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 interface CustomAppProps extends AppProps {
@@ -27,7 +27,7 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   return (
     <SudoProvider>
       <AudioProvider>
-        <main className={inter.variable}>
+        <main className={inter.className}>
           {!isDevelopment && <GoogleAnalytics trackPageViews />}
           <Component {...pageProps} />
         </main>
