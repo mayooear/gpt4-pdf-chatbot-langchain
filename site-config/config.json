@@ -89,7 +89,7 @@
     },
     "enableSuggestedQueries": true,
     "enableMediaTypeSelection": true,
-    "enableAuthorSelection": true,
+    "enableAuthorSelection": false,
     "requireLogin": false,
     "allowPrivateSessions": true,
     "allowAllAnswersPage": true,
