@@ -133,10 +133,16 @@ export async function POST(req: NextRequest) {
           library?: { $in: string[] };
         } = {
           type: { $in: [] },
-          ...(collection === 'master_swami' && {
-            author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] },
-          }),
         };
+
+        // Only add author filter for 'master_swami' collection if it's configured
+        // TODO: Move author filters into config.json
+        if (
+          collection === 'master_swami' &&
+          siteConfig.collectionConfig?.master_swami
+        ) {
+          filter.author = { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] };
+        }
 
         // Add library filter based on site configuration
         if (siteConfig.includedLibraries) {
@@ -215,6 +221,15 @@ export async function POST(req: NextRequest) {
 
         // Wait for the documents to be retrieved
         const promiseDocuments = await documentPromise;
+
+        // Add this check and warning
+        if (promiseDocuments.length === 0) {
+          console.warn(
+            `Warning: No sources returned for query: "${sanitizedQuestion}"`,
+          );
+          console.log('Filter used:', JSON.stringify(filter));
+          console.log('Pinecone index:', getPineconeIndexName());
+        }
 
         // Wait for the chain to complete
         await chainPromise;

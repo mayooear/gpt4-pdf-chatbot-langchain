@@ -172,10 +172,15 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   ]);
 
   // Retrieve documents based on a query, then format them.
-  const retrievalChain = retriever.pipe((docs: Document[]) => ({
-    documents: docs,
-    combinedContent: combineDocumentsFn(docs),
-  }));
+  const retrievalChain = retriever.pipe((docs: Document[]) => {
+    if (docs.length === 0) {
+      console.warn(`Warning: makeChain: No sources returned for query`);
+    }
+    return {
+      documents: docs,
+      combinedContent: combineDocumentsFn(docs),
+    };
+  });
 
   // Generate an answer to the standalone question based on the chat history
   // and retrieved documents. Additionally, we return the source documents directly.
@@ -214,6 +219,15 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
       chat_history: (input: AnswerChainInput) => input.chat_history,
     },
     answerChain,
+    (result: string) => {
+      // not sure this string is reliable
+      if (result.includes("I don't have any specific information")) {
+        console.warn(
+          `Warning: AI response indicates no relevant information found`,
+        );
+      }
+      return result;
+    },
   ]);
 
   return conversationalRetrievalQAChain;
