@@ -5,6 +5,7 @@ import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
 export function middleware(req: NextRequest) {
+  const response = NextResponse.next();
   const url = req.nextUrl.clone();
 
   // Redirect /all to /answers, preserving query parameters
@@ -111,9 +112,39 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  return NextResponse.next({
-    headers: corsHeaders,
+  // Add security headers (similar to Helmet)
+  const securityHeaders = {
+    'Content-Security-Policy': `
+      default-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL};
+      script-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://*.googletagmanager.com;
+      connect-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com;
+      style-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} 'unsafe-inline' https://fonts.googleapis.com https://www.googletagmanager.com;
+      font-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://fonts.gstatic.com data:;
+      img-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://www.googletagmanager.com https://fonts.gstatic.com data:;
+      media-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://ananda-chatbot.s3.us-west-1.amazonaws.com blob:;
+      frame-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.youtube.com https://www.youtube-nocookie.com https://youtu.be;
+    `
+      .replace(/\s{2,}/g, ' ')
+      .trim(),
+    'X-XSS-Protection': '1; mode=block',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  };
+
+  // Apply security headers
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
   });
+
+  // Apply CORS headers
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
 }
 
 export const config = {
