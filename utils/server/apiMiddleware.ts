@@ -11,19 +11,17 @@ export function withApiMiddleware(handler: ApiHandler): ApiHandler {
 
     if (req.method === 'POST' && !isDevelopment) {
       if (!referer) {
-        console.warn(
-          `Suspicious POST request to ${req.url}: Missing referer. IP: ${req.socket.remoteAddress}`,
+        console.info(
+          `POST request to ${req.url} without referer. IP: ${req.socket.remoteAddress}`,
         );
-        return res.status(403).json({ message: 'Forbidden: Missing referer' });
-      }
-
-      if (typeof referer === 'string') {
+        // You might want to allow this, or handle it differently based on your security requirements
+      } else if (typeof referer === 'string') {
         const refererUrl = new URL(referer);
         const baseUrlObj = new URL(baseUrl);
 
         if (!isVercelPreview && refererUrl.hostname !== baseUrlObj.hostname) {
           console.warn(
-            `Suspicious POST request to ${req.url}: Invalid referer. IP: ${req.socket.remoteAddress}, Referer: ${referer}`,
+            `POST request to ${req.url} with invalid referer. IP: ${req.socket.remoteAddress}, Referer: ${referer}`,
           );
           return res
             .status(403)

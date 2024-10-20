@@ -224,12 +224,12 @@ export function middleware(req: NextRequest) {
       corsHeaders['Access-Control-Allow-Origin'] = origin;
     } else {
       console.warn(
-        `Blocked request from unauthorized origin: ${origin}. URL: ${url.toString()}, Method: ${req.method}`,
+        `Request from unauthorized origin: ${origin}. URL: ${url.toString()}, Method: ${req.method}`,
       );
     }
   } else {
-    // For same-origin requests, origin will be null
-    corsHeaders['Access-Control-Allow-Origin'] = '*';
+    // For same-origin requests or requests without Origin header, don't set ACAO header
+    // The browser will handle this correctly
   }
 
   if (url.pathname === '/api/chat') {
