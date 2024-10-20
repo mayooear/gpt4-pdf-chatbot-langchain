@@ -44,31 +44,33 @@ export default function BaseHeader({
         </div>
       )}
       <div className="h-16 border-b border-b-slate-200 py-4 flex justify-between items-center px-4">
-        {logoComponent}
-        <nav className="ml-2 pl-1">
-          <div className="space-x-10">
-            {parentSiteUrl && (
-              <Link
-                href={parentSiteUrl}
-                className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
-                onClick={handleBackToLibrary}
-              >
-                ← {parentSiteName}
-              </Link>
-            )}
-            {config.navItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`hover:text-slate-600 cursor-pointer ${
-                  isActive(item.path) ? 'text-slate-800 font-bold' : ''
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </nav>
+        <div className="flex items-center">
+          {logoComponent ? <Link href="/">{logoComponent}</Link> : null}
+          <nav className={`${logoComponent ? 'ml-2 pl-1' : ''}`}>
+            <div className="space-x-10">
+              {parentSiteUrl && (
+                <Link
+                  href={parentSiteUrl}
+                  className="text-sm text-gray-500 hover:text-slate-600 cursor-pointer"
+                  onClick={handleBackToLibrary}
+                >
+                  ← {parentSiteName}
+                </Link>
+              )}
+              {config.navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`hover:text-slate-600 cursor-pointer ${
+                    isActive(item.path) ? 'text-slate-800 font-bold' : ''
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        </div>
         {requireLogin && (
           <nav className="mr-4 pr-6 flex space-x-4">
             {Cookies.get('isLoggedIn') === 'true' ? (
