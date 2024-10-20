@@ -2,6 +2,7 @@ import { db } from '@/services/firebase';
 import { isDevelopment } from '@/utils/env';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
+import { getClientIp } from '@/utils/server/sudoCookieUtils';
 
 type RateLimitConfig = {
   windowMs: number;
@@ -10,7 +11,7 @@ type RateLimitConfig = {
   collectionPrefix?: string;
 };
 
-const defaultConfig: Partial<RateLimitConfig> = {
+const defaultRateLimitConfig: Partial<RateLimitConfig> = {
   windowMs: isDevelopment() ? 180 * 1000 : 60 * 1000, // 3 minutes for dev, 1 minute for prod
   max: 25,
   collectionPrefix: isDevelopment() ? 'dev' : 'prod',
@@ -23,7 +24,7 @@ export async function genericRateLimiter(
   ip?: string,
 ): Promise<boolean> {
   const { windowMs, max, name, collectionPrefix } = {
-    ...defaultConfig,
+    ...defaultRateLimitConfig,
     ...config,
   };
 
@@ -96,5 +97,29 @@ export async function genericRateLimiter(
   } catch (error) {
     console.error('RateLimiterError:', error);
     return true; // Allow the request in case of an error
+  }
+}
+
+export async function deleteRateLimitCounter(
+  req: NextApiRequest,
+  name: string,
+): Promise<void> {
+  const ip = getClientIp(req);
+  const key = `${ip}`;
+  const collectionName = `${defaultRateLimitConfig.collectionPrefix}_${name}_rateLimits`;
+
+  try {
+    const docRef = db.collection(collectionName).doc(key);
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+      await docRef.delete();
+    } else {
+      console.warn(
+        `No rate limit counter found for ${key}. Nothing to delete.`,
+      );
+    }
+  } catch (error) {
+    console.error(`Error deleting rate limit counter for ${key}:`, error);
   }
 }

@@ -3,7 +3,10 @@ import bcrypt from 'bcrypt';
 import Cookies from 'cookies';
 import crypto from 'crypto';
 import cors, { runMiddleware } from 'utils/server/corsMiddleware';
-import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
+import {
+  genericRateLimiter,
+  deleteRateLimitCounter,
+} from '@/utils/server/genericRateLimiter';
 import { isDevelopment } from '@/utils/env';
 import validator from 'validator';
 import { withApiMiddleware } from '@/utils/server/apiMiddleware';
@@ -107,6 +110,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         expires: expiryDate,
         sameSite: 'lax',
       });
+
+      // Delete the rate limit counter after successful login
+      await deleteRateLimitCounter(req, 'login');
+
       return res
         .status(200)
         .json({ message: 'Authenticated', redirect: sanitizedRedirect });

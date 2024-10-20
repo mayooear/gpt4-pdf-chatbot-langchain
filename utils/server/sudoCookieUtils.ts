@@ -33,7 +33,7 @@ function decrypt(text: string) {
   }
 }
 
-function getClientIp(req: NextApiRequest): string {
+export function getClientIp(req: NextApiRequest): string {
   const xForwardedFor = req.headers['x-forwarded-for'];
   if (xForwardedFor) {
     const ips = (xForwardedFor as string).split(',');
