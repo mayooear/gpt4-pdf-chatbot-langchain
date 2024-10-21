@@ -1,3 +1,11 @@
+/**
+ * This file implements a custom chat route for handling streaming responses on Vercel production.
+ * It processes incoming chat requests, interacts with a language model and vector store,
+ * and returns responses in a streaming format. The route also handles rate limiting,
+ * input validation, and error handling. It supports different collections and media types,
+ * and can optionally save responses to Firestore for non-private sessions.
+ */
+
 // We have to use a custom chat route because that's how we can get streaming on Vercel production,
 // per https://vercel.com/docs/functions/streaming/quickstart
 //
@@ -19,14 +27,28 @@ import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
+import { SiteConfig } from '@/types/siteConfig';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
 
-export async function POST(req: NextRequest) {
-  console.log('Received POST request to /api/chat');
+interface ChatRequestBody {
+  collection: string;
+  question: string;
+  history: [string, string][];
+  privateSession: boolean;
+  mediaTypes: Record<string, boolean>;
+}
 
-  let requestBody;
+async function validateAndPreprocessInput(req: NextRequest): Promise<
+  | {
+      sanitizedInput: ChatRequestBody;
+      originalQuestion: string;
+    }
+  | NextResponse
+> {
+  // Parse and validate request body
+  let requestBody: ChatRequestBody;
   try {
     requestBody = await req.json();
     console.log('Request body:', JSON.stringify(requestBody));
@@ -39,10 +61,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { collection, question, history, privateSession, mediaTypes } =
-    requestBody;
+  const { collection, question } = requestBody;
 
-  // Input validation
+  // Validate question length
   if (
     typeof question !== 'string' ||
     !validator.isLength(question, { min: 1, max: 4000 })
@@ -54,21 +75,35 @@ export async function POST(req: NextRequest) {
   }
 
   const originalQuestion = question;
-  // Sanitize the input
+  // Sanitize the input to prevent XSS attacks
   const sanitizedQuestion = validator
     .escape(question.trim())
     .replaceAll('\n', ' ');
 
-  // Load site config
-  const siteConfig = loadSiteConfigSync();
-  if (!siteConfig) {
+  // Validate collection
+  if (
+    typeof collection !== 'string' ||
+    !['master_swami', 'whole_library'].includes(collection)
+  ) {
     return NextResponse.json(
-      { error: 'Failed to load site configuration' },
-      { status: 500 },
+      { error: 'Invalid collection provided' },
+      { status: 400 },
     );
   }
 
-  // Apply query rate limiting
+  return {
+    sanitizedInput: {
+      ...requestBody,
+      question: sanitizedQuestion,
+    },
+    originalQuestion,
+  };
+}
+
+async function applyRateLimiting(
+  req: NextRequest,
+  siteConfig: SiteConfig,
+): Promise<NextResponse | null> {
   const isAllowed = await genericRateLimiter(
     req,
     null,
@@ -87,16 +122,273 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  return null; // Rate limiting passed
+}
+
+// Define a custom type for our filter structure
+type PineconeFilter = {
+  $and: Array<{
+    [key: string]: {
+      $in: string[];
+    };
+  }>;
+};
+
+async function setupPineconeAndFilter(
+  collection: string,
+  mediaTypes: Record<string, boolean>,
+  siteConfig: SiteConfig,
+): Promise<{ index: Index<RecordMetadata>; filter: PineconeFilter }> {
+  // Initialize Pinecone client and index
+  const pinecone = await getPineconeClient();
+  const index = pinecone.Index(
+    getPineconeIndexName() || '',
+  ) as Index<RecordMetadata>;
+
+  // Set up filter for vector search
+  const filter: PineconeFilter = {
+    $and: [{ type: { $in: [] } }],
+  };
+
+  // Add author filter for 'master_swami' collection if configured
+  // TODO: Move author filters into config.json
   if (
-    typeof collection !== 'string' ||
-    !['master_swami', 'whole_library'].includes(collection)
+    collection === 'master_swami' &&
+    siteConfig.collectionConfig?.master_swami
   ) {
+    filter.$and.push({
+      author: { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] },
+    });
+  }
+
+  // Add library filter based on site configuration
+  if (siteConfig.includedLibraries) {
+    filter.$and.push({ library: { $in: siteConfig.includedLibraries } });
+  }
+
+  // Set up media type filters
+  const enabledMediaTypes = siteConfig.enabledMediaTypes || [
+    'text',
+    'audio',
+    'youtube',
+  ];
+
+  enabledMediaTypes.forEach((type) => {
+    if (mediaTypes[type]) {
+      filter.$and[0].type.$in.push(type);
+    }
+  });
+
+  if (filter.$and[0].type.$in.length === 0) {
+    filter.$and[0].type.$in = enabledMediaTypes;
+  }
+
+  return { index, filter };
+}
+
+async function setupVectorStoreAndRetriever(
+  index: Index<RecordMetadata>,
+  filter: PineconeFilter,
+  sendData: (data: {
+    token?: string;
+    sourceDocs?: Document[];
+    done?: boolean;
+    error?: string;
+    docId?: string;
+  }) => void,
+): Promise<{
+  vectorStore: PineconeStore;
+  retriever: ReturnType<PineconeStore['asRetriever']>;
+  documentPromise: Promise<Document[]>;
+}> {
+  // Initialize vector store with Pinecone
+  const vectorStore = await PineconeStore.fromExistingIndex(
+    new OpenAIEmbeddings({}),
+    {
+      pineconeIndex: index,
+      textKey: 'text',
+      filter: filter,
+    },
+  );
+
+  // Set up promise to resolve with retrieved documents
+  let resolveWithDocuments: (value: Document[]) => void;
+  const documentPromise = new Promise<Document[]>((resolve) => {
+    resolveWithDocuments = resolve;
+  });
+
+  // Create retriever with callback to send source documents
+  const retriever = vectorStore.asRetriever({
+    callbacks: [
+      {
+        handleRetrieverEnd(docs: Document[]) {
+          resolveWithDocuments(docs);
+          sendData({ sourceDocs: docs });
+        },
+      } as Partial<BaseCallbackHandler>,
+    ],
+  });
+
+  return { vectorStore, retriever, documentPromise };
+}
+
+async function setupAndExecuteLanguageModelChain(
+  retriever: ReturnType<PineconeStore['asRetriever']>,
+  sanitizedQuestion: string,
+  history: [string, string][],
+  sendData: (data: {
+    token?: string;
+    sourceDocs?: Document[];
+    done?: boolean;
+    error?: string;
+    docId?: string;
+  }) => void,
+): Promise<string> {
+  // Create language model chain
+  const chain = await makeChain(retriever);
+  const pastMessages = history
+    .map((message: [string, string]) => {
+      return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
+    })
+    .join('\n');
+
+  let fullResponse = '';
+
+  // Invoke the chain with callbacks for streaming tokens
+  const chainPromise = chain.invoke(
+    {
+      question: sanitizedQuestion,
+      chat_history: pastMessages,
+    },
+    {
+      callbacks: [
+        {
+          handleLLMNewToken(token: string) {
+            fullResponse += token;
+            sendData({ token });
+          },
+          handleChainEnd() {
+            sendData({ done: true });
+          },
+        } as Partial<BaseCallbackHandler>,
+      ],
+    },
+  );
+
+  // Wait for the chain to complete
+  await chainPromise;
+
+  return fullResponse;
+}
+
+async function saveAnswerToFirestore(
+  originalQuestion: string,
+  fullResponse: string,
+  collection: string,
+  promiseDocuments: Document[],
+  history: [string, string][],
+  clientIP: string,
+): Promise<string> {
+  const answerRef = db.collection(getAnswersCollectionName());
+  const answerEntry = {
+    question: originalQuestion,
+    answer: fullResponse,
+    collection: collection,
+    sources: JSON.stringify(promiseDocuments),
+    likeCount: 0,
+    history: history.map((messagePair: [string, string]) => ({
+      question: messagePair[0],
+      answer: messagePair[1],
+    })),
+    ip: clientIP,
+    timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
+  };
+  const docRef = await answerRef.add(answerEntry);
+  return docRef.id;
+}
+
+async function updateRelatedQuestions(docId: string) {
+  console.time('updateRelatedQuestions');
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/relatedQuestions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ docId }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    await response.json();
+  } catch (error) {
+    console.error('Error updating related questions:', error);
+  }
+  console.timeEnd('updateRelatedQuestions');
+}
+
+// New function for error handling
+function handleError(
+  error: unknown,
+  sendData: (data: { error: string }) => void,
+) {
+  console.error('Error in chat route:', error);
+  if (error instanceof Error) {
+    // Handle specific error cases
+    if (error.name === 'PineconeNotFoundError') {
+      console.error('Pinecone index not found:', getPineconeIndexName());
+      sendData({
+        error:
+          'The specified Pinecone index does not exist. Please notify your administrator.',
+      });
+    } else if (error.message.includes('429')) {
+      console.log(
+        'First 10 chars of OPENAI_API_KEY:',
+        process.env.OPENAI_API_KEY?.substring(0, 10),
+      );
+      sendData({
+        error:
+          'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.',
+      });
+    } else {
+      sendData({ error: error.message || 'Something went wrong' });
+    }
+  } else {
+    sendData({ error: 'An unknown error occurred' });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  console.log('Received POST request to /api/chat');
+
+  const validationResult = await validateAndPreprocessInput(req);
+  if (validationResult instanceof NextResponse) {
+    return validationResult;
+  }
+
+  const { sanitizedInput, originalQuestion } = validationResult;
+
+  // Load site configuration
+  const siteConfig = loadSiteConfigSync();
+  if (!siteConfig) {
     return NextResponse.json(
-      { error: 'Invalid collection provided' },
-      { status: 400 },
+      { error: 'Failed to load site configuration' },
+      { status: 500 },
     );
   }
 
+  // Apply rate limiting
+  const rateLimitResult = await applyRateLimiting(req, siteConfig);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
+  // Get client IP for logging purposes
   let clientIP =
     req.headers.get('x-forwarded-for') ||
     req.ip ||
@@ -106,11 +398,11 @@ export async function POST(req: NextRequest) {
     clientIP = clientIP[0];
   }
 
-  let fullResponse = '';
-
+  // Set up streaming response
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      // Helper function to send data chunks
       const sendData = (data: {
         token?: string;
         sourceDocs?: Document[];
@@ -122,193 +414,62 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const pinecone = await getPineconeClient();
-        const index = pinecone.Index(
-          getPineconeIndexName() || '',
-        ) as Index<RecordMetadata>;
-
-        const filter: {
-          type: { $in: string[] };
-          author?: { $in: string[] };
-          library?: { $in: string[] };
-        } = {
-          type: { $in: [] },
-        };
-
-        // Only add author filter for 'master_swami' collection if it's configured
-        // TODO: Move author filters into config.json
-        if (
-          collection === 'master_swami' &&
-          siteConfig.collectionConfig?.master_swami
-        ) {
-          filter.author = { $in: ['Paramhansa Yogananda', 'Swami Kriyananda'] };
-        }
-
-        // Add library filter based on site configuration
-        if (siteConfig.includedLibraries) {
-          filter.library = { $in: siteConfig.includedLibraries };
-        }
-
-        const enabledMediaTypes = siteConfig.enabledMediaTypes || [
-          'text',
-          'audio',
-          'youtube',
-        ];
-
-        enabledMediaTypes.forEach((type) => {
-          if (mediaTypes[type]) {
-            filter.type.$in.push(type);
-          }
-        });
-
-        if (filter.type.$in.length === 0) {
-          filter.type.$in = enabledMediaTypes;
-        }
-
-        const vectorStore = await PineconeStore.fromExistingIndex(
-          new OpenAIEmbeddings({}),
-          {
-            pineconeIndex: index,
-            textKey: 'text',
-            filter: filter,
-          },
+        // Set up Pinecone and filter
+        const { index, filter } = await setupPineconeAndFilter(
+          sanitizedInput.collection,
+          sanitizedInput.mediaTypes,
+          siteConfig,
         );
 
-        let resolveWithDocuments: (value: Document[]) => void;
-        const documentPromise = new Promise<Document[]>((resolve) => {
-          resolveWithDocuments = resolve;
-        });
+        const { retriever, documentPromise } =
+          await setupVectorStoreAndRetriever(index, filter, sendData);
 
-        const retriever = vectorStore.asRetriever({
-          callbacks: [
-            {
-              handleRetrieverEnd(docs: Document[]) {
-                resolveWithDocuments(docs);
-                sendData({ sourceDocs: docs });
-              },
-            } as Partial<BaseCallbackHandler>,
-          ],
-        });
-
-        const chain = await makeChain(retriever);
-        const pastMessages = history
-          .map((message: [string, string]) => {
-            return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join(
-              '\n',
-            );
-          })
-          .join('\n');
-
-        const chainPromise = chain.invoke(
-          {
-            question: sanitizedQuestion,
-            chat_history: pastMessages,
-          },
-          {
-            callbacks: [
-              {
-                handleLLMNewToken(token: string) {
-                  fullResponse += token;
-                  sendData({ token });
-                },
-                handleChainEnd() {
-                  sendData({ done: true });
-                },
-              } as Partial<BaseCallbackHandler>,
-            ],
-          },
+        // Execute language model chain
+        const fullResponse = await setupAndExecuteLanguageModelChain(
+          retriever,
+          sanitizedInput.question,
+          sanitizedInput.history,
+          sendData,
         );
 
-        // Wait for the documents to be retrieved
+        // Log warning if no sources were found
         const promiseDocuments = await documentPromise;
-
-        // Add this check and warning
         if (promiseDocuments.length === 0) {
           console.warn(
-            `Warning: No sources returned for query: "${sanitizedQuestion}"`,
+            `Warning: No sources returned for query: "${sanitizedInput.question}"`,
           );
           console.log('Filter used:', JSON.stringify(filter));
           console.log('Pinecone index:', getPineconeIndexName());
         }
 
-        // Wait for the chain to complete
-        await chainPromise;
-
-        if (!privateSession) {
-          const answerRef = db.collection(getAnswersCollectionName());
-          const answerEntry = {
-            question: originalQuestion,
-            answer: fullResponse,
-            collection: collection,
-            sources: JSON.stringify(promiseDocuments),
-            likeCount: 0,
-            history: history.map((messagePair: [string, string]) => ({
-              question: messagePair[0],
-              answer: messagePair[1],
-            })),
-            ip: clientIP,
-            timestamp: fbadmin.firestore.FieldValue.serverTimestamp(),
-          };
-          const docRef = await answerRef.add(answerEntry);
-          const docId = docRef.id;
+        // Save answer to Firestore if not a private session
+        if (!sanitizedInput.privateSession) {
+          const docId = await saveAnswerToFirestore(
+            originalQuestion,
+            fullResponse,
+            sanitizedInput.collection,
+            promiseDocuments,
+            sanitizedInput.history,
+            clientIP,
+          );
 
           // Send the docId to the client
           sendData({ docId });
 
-          console.time('updateRelatedQuestions');
-          try {
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_BASE_URL}/api/relatedQuestions`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ docId }),
-              },
-            );
-
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            await response.json();
-          } catch (error) {
-            console.error('Error updating related questions:', error);
-          }
-          console.timeEnd('updateRelatedQuestions');
+          // Update related questions asynchronously
+          updateRelatedQuestions(docId);
         }
 
         controller.close();
       } catch (error: unknown) {
-        console.error('Error in chat route:', error);
-        if (error instanceof Error) {
-          if (error.name === 'PineconeNotFoundError') {
-            console.error('Pinecone index not found:', getPineconeIndexName());
-            sendData({
-              error:
-                'The specified Pinecone index does not exist. Please notify your administrator.',
-            });
-          } else if (error.message.includes('429')) {
-            console.log(
-              'First 10 chars of OPENAI_API_KEY:',
-              process.env.OPENAI_API_KEY?.substring(0, 10),
-            );
-            sendData({
-              error:
-                'The site has exceeded its current quota with OpenAI, please tell an admin to check the plan and billing details.',
-            });
-          } else {
-            sendData({ error: error.message || 'Something went wrong' });
-          }
-        } else {
-          sendData({ error: 'An unknown error occurred' });
-        }
+        handleError(error, sendData);
+      } finally {
         controller.close();
       }
     },
   });
 
+  // Return streaming response
   return new NextResponse(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
