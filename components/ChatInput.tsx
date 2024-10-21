@@ -1,3 +1,6 @@
+// This component renders a chat input interface with various options and controls
+// It handles user input, submission, and displays suggested queries and media type options
+
 import React, { useState, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import validator from 'validator';
@@ -14,6 +17,7 @@ import {
 } from '@/utils/client/siteConfig';
 import { logEvent } from '@/utils/client/analytics';
 
+// Define the props interface for the ChatInput component
 interface ChatInputProps {
   loading: boolean;
   handleSubmit: (e: React.FormEvent, query: string) => void;
@@ -70,6 +74,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setIsNearBottom,
   isLoadingQueries,
 }) => {
+  // State variables for managing component behavior
   const [, setLocalQuery] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const [isFirstQuery, setIsFirstQuery] = useState<boolean>(true);
@@ -78,11 +83,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Effect to set initial suggestions expanded state based on visit count
   useEffect(() => {
     const visitCount = parseInt(localStorage.getItem('visitCount') || '0');
     setSuggestionsExpanded(visitCount < 10);
   }, [setSuggestionsExpanded]);
 
+  // Effect to reset input after submission
   useEffect(() => {
     if (!loading && hasInteracted) {
       setLocalQuery('');
@@ -92,6 +99,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [loading, hasInteracted, textAreaRef]);
 
+  // Effect to handle mobile responsiveness
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth < 768;
@@ -109,6 +117,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     };
   }, []);
 
+  // Effect to reset input and update first query state
   useEffect(() => {
     if (!loading) {
       setLocalQuery('');
@@ -121,6 +130,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [loading, isFirstQuery, textAreaRef]);
 
+  // Function to focus on the input field
   const focusInput = () => {
     setTimeout(() => {
       if (inputRef.current) {
@@ -129,10 +139,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }, 0);
   };
 
+  // Function to sanitize user input
   const sanitizeInput = (input: string) => {
     return DOMPurify.sanitize(input);
   };
 
+  // Function to validate user input
   const validateInput = (input: string) => {
     if (validator.isEmpty(input)) {
       return 'Input cannot be empty';
@@ -143,6 +155,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     return null;
   };
 
+  // Function to handle form submission
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) {
@@ -163,6 +176,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  // Function to handle Enter key press
   const onEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       if (!loading) {
@@ -183,16 +197,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  // Get configuration options from siteConfig
   const showSuggestedQueries = getEnableSuggestedQueries(siteConfig);
   const showMediaTypeSelection = getEnableMediaTypeSelection(siteConfig);
   const showAuthorSelection = getEnableAuthorSelection(siteConfig);
   const enabledMediaTypes = getEnabledMediaTypes(siteConfig);
 
+  // Function to toggle suggestions visibility
   const toggleSuggestions = (e: React.MouseEvent) => {
     e.preventDefault();
     setSuggestionsExpanded(!suggestionsExpanded);
   };
 
+  // Function to handle clicking on a suggested query
   const onQueryClick = (q: string) => {
     setLocalQuery(q);
     setIsNearBottom(true);
@@ -201,10 +218,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const placeholderText = getChatPlaceholder(siteConfig) || 'Ask a question...';
 
+  // Render the chat input interface
   return (
     <div className={`${styles.center} w-full mt-4 px-2 md:px-0`}>
       <div className="w-full">
         <form onSubmit={onSubmit}>
+          {/* Input textarea and submit button */}
           <div className="flex items-center space-x-2 mb-4">
             <textarea
               onKeyDown={onEnter}
@@ -235,6 +254,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </button>
           </div>
 
+          {/* Mobile options toggle */}
           {isMobile && (
             <div className="mb-4">
               <button
@@ -247,6 +267,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
           )}
 
+          {/* Options section (media type, collection selector, private session) */}
           {(!isMobile || showOptions) && (
             <div className="flex flex-wrap gap-2 mb-2">
               {showMediaTypeSelection && (
@@ -315,6 +336,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
           )}
 
+          {/* Error display */}
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
               <strong className="font-bold">An error occurred: </strong>
@@ -323,6 +345,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
         </form>
 
+        {/* Suggested queries section */}
         {!isLoadingQueries &&
           showSuggestedQueries &&
           randomQueries.length > 0 && (

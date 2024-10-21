@@ -1,3 +1,8 @@
+// This file implements the main chat interface for a Next.js application.
+// It includes features like real-time chat, collection selection, private sessions,
+// and media type filtering. The component manages chat state, handles user input,
+// and communicates with a backend API for chat responses.
+
 // React and Next.js imports
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
@@ -33,11 +38,13 @@ import Cookies from 'js-cookie';
 
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
 
+// Main component for the chat interface
 export default function Home({
   siteConfig,
 }: {
   siteConfig: SiteConfig | null;
 }) {
+  // State variables for various features and UI elements
   const [isMaintenanceMode] = useState<boolean>(false);
   const [collection, setCollection] = useState(() => {
     const collections = getCollectionsConfig(siteConfig);
@@ -52,6 +59,8 @@ export default function Home({
     audio: boolean;
     youtube: boolean;
   }>({ text: true, audio: true, youtube: true });
+
+  // Chat state management using custom hook
   const {
     messageState,
     setMessageState,
@@ -63,9 +72,12 @@ export default function Home({
   const { messages } = messageState as {
     messages: ExtendedAIMessage[];
   };
+
+  // UI state variables
   const [showLikePrompt] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<string | null>(null);
 
+  // Refs for DOM elements and scroll management
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -76,6 +88,7 @@ export default function Home({
   const lastScrollTopRef = useRef(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Function to scroll to the bottom of the chat
   const scrollToBottom = useCallback(() => {
     if (
       bottomOfListRef.current &&
@@ -92,6 +105,7 @@ export default function Home({
     }
   }, [isNearBottom]);
 
+  // Effect for handling scroll behavior and user interactions
   useEffect(() => {
     const handleScroll = () => {
       if (scrollTimeoutRef.current) {
@@ -145,13 +159,14 @@ export default function Home({
     };
   }, [isAutoScrolling]);
 
-  // Use this effect to handle auto-scrolling when new messages are added
+  // Effect for auto-scrolling when new messages are added
   useEffect(() => {
     if (loading && isNearBottom && !userHasScrolledUpRef.current) {
       scrollToBottom();
     }
   }, [messages, loading, isNearBottom, scrollToBottom]);
 
+  // Function to handle media type selection
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
     if (getEnableMediaTypeSelection(siteConfig)) {
       const enabledTypes = getEnabledMediaTypes(siteConfig);
@@ -169,7 +184,7 @@ export default function Home({
     }
   };
 
-  // popup message for new users
+  // Custom hook for displaying popup messages
   const { showPopup, closePopup, popupMessage } = usePopup(
     '1.02',
     siteConfig?.allowPrivateSessions
@@ -178,6 +193,7 @@ export default function Home({
       : '',
   );
 
+  // Function to handle collection change
   const handleCollectionChange = (newCollection: string) => {
     if (getEnableAuthorSelection(siteConfig) && newCollection !== collection) {
       setCollectionChanged(true);
@@ -187,12 +203,15 @@ export default function Home({
     }
   };
 
+  // State for managing collection queries
   const [collectionQueries, setCollectionQueries] = useState({});
   const [isLoadingQueries, setIsLoadingQueries] = useState(true);
 
+  // State for managing API request cancellation
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
 
+  // Function to stop ongoing API request
   const handleStop = useCallback(() => {
     if (abortController) {
       abortController.abort();
@@ -201,6 +220,7 @@ export default function Home({
     }
   }, [abortController, setLoading, setAbortController]);
 
+  // Main function to handle chat submission
   const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
     e.preventDefault();
     if (submittedQuery.trim() === '') return;
@@ -336,6 +356,7 @@ export default function Home({
     }
   };
 
+  // Function to update message state with incoming API response
   const updateMessageState = (
     accumulatedResponse: string,
     sourceDocs: Document[] | null,
@@ -373,6 +394,7 @@ export default function Home({
     scrollToBottom();
   };
 
+  // Function to handle 'Enter' key press in the input field
   const handleEnter = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     submittedQuery: string,
@@ -389,10 +411,12 @@ export default function Home({
     }
   };
 
+  // Function to handle input change in the chat input field
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuery(e.target.value);
   };
 
+  // Effect to fetch collection queries on component mount
   useEffect(() => {
     let isMounted = true;
     async function fetchQueries() {
@@ -414,6 +438,7 @@ export default function Home({
     };
   }, [siteConfig]);
 
+  // Memoized queries for the current collection
   const queriesForCollection = useMemo(() => {
     if (!collectionQueries[collection as keyof typeof collectionQueries]) {
       // If the current collection is not found, use the first available collection
@@ -431,14 +456,16 @@ export default function Home({
     return queries;
   }, [collection, collectionQueries]);
 
-  // Use the memoized queries
+  // Custom hook for managing random queries
   const { randomQueries, shuffleQueries } = useRandomQueries(
     queriesForCollection,
     3,
   );
 
+  // State for managing like functionality
   const [likeError, setLikeError] = useState<string | null>(null);
 
+  // Function to handle like count changes
   const handleLikeCountChange = (answerId: string, liked: boolean) => {
     try {
       setLikeStatuses((prevStatuses) => ({
@@ -454,6 +481,7 @@ export default function Home({
     }
   };
 
+  // Function to handle private session changes
   const handlePrivateSessionChange = (
     event: React.MouseEvent<HTMLButtonElement>,
   ) => {
@@ -469,13 +497,16 @@ export default function Home({
     }
   };
 
+  // State for managing voting functionality
   const [votes, setVotes] = useState<Record<string, number>>({});
   const [voteError, setVoteError] = useState<string | null>(null);
 
+  // Function to handle voting on answers
   const handleVote = (docId: string, isUpvote: boolean) => {
     handleVoteUtil(docId, isUpvote, votes, setVotes, setVoteError);
   };
 
+  // Function to handle copying answer links
   const handleCopyLink = (answerId: string) => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -485,6 +516,7 @@ export default function Home({
     });
   };
 
+  // Effect to set initial collection and focus input on component mount
   useEffect(() => {
     // Retrieve and set the collection from the cookie
     // TODO: This is a hack for jairam site test
@@ -500,10 +532,12 @@ export default function Home({
     }
   }, []);
 
+  // Custom hook to check if multiple collections are available
   const hasMultipleCollections = useMultipleCollections(
     siteConfig || undefined,
   );
 
+  // Function to handle clicking on suggested queries
   const handleClick = (clickedQuery: string) => {
     setQuery(clickedQuery);
     setIsNearBottom(true);
@@ -513,6 +547,7 @@ export default function Home({
     );
   };
 
+  // Render maintenance mode message if active
   if (isMaintenanceMode) {
     return (
       <Layout siteConfig={siteConfig}>
@@ -532,8 +567,10 @@ export default function Home({
     );
   }
 
+  // Main component render
   return (
     <>
+      {/* Popup component for new user messages */}
       {showPopup && popupMessage && (
         <Popup
           message={popupMessage}
@@ -544,6 +581,7 @@ export default function Home({
       <Layout siteConfig={siteConfig}>
         <LikePrompt show={showLikePrompt} siteConfig={siteConfig} />
         <div className="flex flex-col h-full">
+          {/* Private session banner */}
           {privateSession && (
             <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
               <span className="material-icons text-2xl mr-2">lock</span>
@@ -559,6 +597,7 @@ export default function Home({
           )}
           <div className="flex-grow overflow-hidden answers-container">
             <div ref={messageListRef} className="h-full overflow-y-auto">
+              {/* Render chat messages */}
               {messages.map((message, index) => (
                 <MessageItem
                   key={`chatMessage-${index}`}
@@ -586,6 +625,7 @@ export default function Home({
             </div>
           </div>
           <div className="mt-4 px-2 md:px-0">
+            {/* Render chat input component */}
             {isLoadingQueries ? null : (
               <ChatInput
                 loading={loading}
@@ -615,6 +655,7 @@ export default function Home({
               />
             )}
           </div>
+          {/* Private session banner (bottom) */}
           {privateSession && (
             <div className="bg-purple-100 text-purple-800 text-center py-2 flex items-center justify-center">
               <span className="material-icons text-2xl mr-2">lock</span>
@@ -629,6 +670,7 @@ export default function Home({
             </div>
           )}
         </div>
+        {/* Display like error if any */}
         {likeError && (
           <div className="text-red-500 text-sm mt-2">{likeError}</div>
         )}
