@@ -9,7 +9,7 @@ To add comments to this code, follow these steps:
 2. Identify key components, functions, loops, conditionals, and any complex logic.
 3. Add comments that explain:
 
-- The overall purpose of the code
+- At the top of the file, the overall purpose of the code
 - The purpose of functions or code blocks
 - How complex algorithms or logic work
 - Any assumptions or limitations in the code
