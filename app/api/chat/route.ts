@@ -330,11 +330,12 @@ async function callUpdateRelatedQuestions(
     }
 
     const data = await response.json();
+    console.log('Response from relatedQuestions API:', data);
     relatedQuestions = data.relatedQuestions || [];
   } catch (error) {
     console.error('Error updating related questions:', error);
   }
-
+  console.log('Returning relatedQuestions:', relatedQuestions);
   return relatedQuestions;
 }
 

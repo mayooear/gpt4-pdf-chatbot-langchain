@@ -98,6 +98,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const renderRelatedQuestions = (
     relatedQuestions: RelatedQuestion[] | undefined,
   ) => {
+    console.log('relatedQuestions:', relatedQuestions);
+
     if (!relatedQuestions || !Array.isArray(relatedQuestions)) {
       console.error('relatedQuestions is not an array:', relatedQuestions);
       return null;

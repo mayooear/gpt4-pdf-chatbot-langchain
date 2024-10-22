@@ -61,6 +61,10 @@ async function handler(
 
     try {
       const relatedQuestions = await updateRelatedQuestions(docId);
+      console.log(
+        'relatedQuestions from updateRelatedQuestions:',
+        relatedQuestions,
+      );
       return res.status(200).json({
         message: 'Related questions updated successfully',
         relatedQuestions,
