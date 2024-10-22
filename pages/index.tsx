@@ -222,6 +222,10 @@ export default function Home({
   }, [abortController, setLoading, setAbortController]);
 
   const [sourceDocs, setSourceDocs] = useState<Document[] | null>(null);
+  const [lastRelatedQuestionsUpdate, setLastRelatedQuestionsUpdate] = useState<
+    string | null
+  >(null);
+
   const accumulatedResponseRef = useRef('');
 
   const updateMessageState = useCallback(
@@ -302,10 +306,19 @@ export default function Home({
               : msg,
           ),
         }));
+        setLastRelatedQuestionsUpdate(data.docId);
       }
     },
-    [setMessageState, updateMessageState, setLoading, setError, sourceDocs],
+    [updateMessageState, sourceDocs, setLoading, setError, setMessageState],
   );
+
+  // Effect to scroll to bottom after related questions are added
+  useEffect(() => {
+    if (lastRelatedQuestionsUpdate) {
+      scrollToBottom();
+      setLastRelatedQuestionsUpdate(null);
+    }
+  }, [lastRelatedQuestionsUpdate, scrollToBottom]);
 
   // Main function to handle chat submission
   const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
