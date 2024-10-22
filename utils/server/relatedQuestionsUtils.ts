@@ -13,6 +13,7 @@ import {
   deleteFromCache,
   CACHE_EXPIRATION,
 } from '@/utils/server/redisUtils';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
 
 // in bytes. Upstash max is 1MB, so we stay well under that.
 const MAX_CHUNK_SIZE = 1000000;
@@ -113,12 +114,6 @@ function safeRakeGenerate(text: string, questionId: string): string[] {
     );
     return [];
   }
-}
-
-export interface RelatedQuestion {
-  id: string;
-  title: string;
-  similarity?: number;
 }
 
 function getCacheKeyForKeywords(): string {
@@ -363,7 +358,9 @@ function calculateJaccardSimilarity(setA: Set<string>, setB: Set<string>) {
   return intersection.size / union.size;
 }
 
-export async function updateRelatedQuestions(questionId: string) {
+export async function updateRelatedQuestions(
+  questionId: string,
+): Promise<RelatedQuestion[]> {
   // Fetch the specific question by questionId
   const questionDoc = await db
     .collection(getAnswersCollectionName())
@@ -385,7 +382,7 @@ export async function updateRelatedQuestions(questionId: string) {
       "updateRelatedQuestions: Can't process; error fetching keywords:",
       error,
     );
-    return;
+    throw error;
   }
 
   // Extract keywords from the specific question
@@ -404,16 +401,20 @@ export async function updateRelatedQuestions(questionId: string) {
     questionId,
     newQuestion.question,
   );
-  await db
-    .collection(getAnswersCollectionName())
-    .doc(questionId)
-    .update({
-      relatedQuestionsV2: relatedQuestions.slice(0, 5).map((q) => ({
-        id: q.id,
-        title: q.title,
-        similarity: q.similarity,
-      })),
-    });
+
+  const relatedQuestionsV2: RelatedQuestion[] = relatedQuestions
+    .slice(0, 5)
+    .map((q) => ({
+      id: q.id,
+      title: q.title,
+      similarity: q.similarity ?? 0, // Provide a default value if similarity is undefined
+    }));
+
+  await db.collection(getAnswersCollectionName()).doc(questionId).update({
+    relatedQuestionsV2,
+  });
+
+  return relatedQuestionsV2;
 }
 
 export async function findRelatedQuestionsUsingKeywords(

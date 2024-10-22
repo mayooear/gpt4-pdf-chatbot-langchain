@@ -28,6 +28,8 @@ import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { SiteConfig } from '@/types/siteConfig';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
+import { StreamingResponseData } from '@/types/StreamingResponseData';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -307,8 +309,10 @@ async function saveAnswerToFirestore(
   return docRef.id;
 }
 
-async function updateRelatedQuestions(docId: string) {
-  console.time('updateRelatedQuestions');
+async function callUpdateRelatedQuestions(
+  docId: string,
+): Promise<RelatedQuestion[]> {
+  let relatedQuestions: RelatedQuestion[] = [];
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/relatedQuestions`,
@@ -325,17 +329,19 @@ async function updateRelatedQuestions(docId: string) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    await response.json();
+    const data = await response.json();
+    relatedQuestions = data.relatedQuestions || [];
   } catch (error) {
     console.error('Error updating related questions:', error);
   }
-  console.timeEnd('updateRelatedQuestions');
+
+  return relatedQuestions;
 }
 
 // New function for error handling
 function handleError(
   error: unknown,
-  sendData: (data: { error: string }) => void,
+  sendData: (data: StreamingResponseData) => void,
 ) {
   console.error('Error in chat route:', error);
   if (error instanceof Error) {
@@ -403,13 +409,7 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       // Helper function to send data chunks
-      const sendData = (data: {
-        token?: string;
-        sourceDocs?: Document[];
-        done?: boolean;
-        error?: string;
-        docId?: string;
-      }) => {
+      const sendData = (data: StreamingResponseData) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
 
@@ -453,11 +453,15 @@ export async function POST(req: NextRequest) {
             clientIP,
           );
 
-          // Send the docId to the client
-          sendData({ docId });
-
-          // Update related questions asynchronously
-          updateRelatedQuestions(docId);
+          // Update related questions and get the result
+          try {
+            const relatedQuestions = await callUpdateRelatedQuestions(docId);
+            sendData({ docId, relatedQuestions });
+          } catch (error) {
+            console.error('Error updating related questions:', error);
+            // If updating related questions fails, still send the docId
+            sendData({ docId });
+          }
         }
 
         controller.close();

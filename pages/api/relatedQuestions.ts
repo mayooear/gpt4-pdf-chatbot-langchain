@@ -4,10 +4,15 @@ import {
   updateRelatedQuestions,
 } from '@/utils/server/relatedQuestionsUtils';
 import { withApiMiddleware } from '@/utils/server/apiMiddleware';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
 
 async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<{ message: string; error?: string }>,
+  res: NextApiResponse<{
+    message: string;
+    relatedQuestions?: RelatedQuestion[];
+    error?: string;
+  }>,
 ) {
   if (req.method === 'GET') {
     const { updateBatch } = req.query;
@@ -55,10 +60,11 @@ async function handler(
     console.log('Updating related questions for document:', docId);
 
     try {
-      await updateRelatedQuestions(docId);
-      return res
-        .status(200)
-        .json({ message: 'Related questions updated successfully' });
+      const relatedQuestions = await updateRelatedQuestions(docId);
+      return res.status(200).json({
+        message: 'Related questions updated successfully',
+        relatedQuestions,
+      });
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error

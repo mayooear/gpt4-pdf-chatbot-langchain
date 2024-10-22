@@ -9,6 +9,7 @@ import CopyButton from '@/components/CopyButton';
 import LikeButton from '@/components/LikeButton';
 import { SiteConfig } from '@/types/siteConfig';
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
 
 interface MessageItemProps {
   message: ExtendedAIMessage;
@@ -93,6 +94,44 @@ const MessageItem: React.FC<MessageItemProps> = ({
     className =
       loading && isLastMessage ? styles.usermessagewaiting : styles.usermessage;
   }
+
+  const renderRelatedQuestions = (
+    relatedQuestions: RelatedQuestion[] | undefined,
+  ) => {
+    if (!relatedQuestions || !Array.isArray(relatedQuestions)) {
+      console.error('relatedQuestions is not an array:', relatedQuestions);
+      return null;
+    }
+
+    const SIMILARITY_THRESHOLD = 0.15;
+    const filteredQuestions = relatedQuestions.filter(
+      (q) => q.similarity >= SIMILARITY_THRESHOLD,
+    );
+
+    if (filteredQuestions.length === 0) return null;
+
+    return (
+      <div className="bg-gray-200 pt-0.5 pb-3 px-3 rounded-lg mt-2 mb-2">
+        <h3 className="text-lg !font-bold mb-2">Related Questions</h3>
+        <ul className="list-disc pl-2">
+          {filteredQuestions.map((relatedQuestion) => (
+            <li key={relatedQuestion.id} className="ml-0">
+              <a
+                href={`/answers/${relatedQuestion.id}`}
+                className="text-blue-600 hover:underline"
+              >
+                {truncateTitle(relatedQuestion.title, 150)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  const truncateTitle = (title: string, maxLength: number) => {
+    return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
+  };
 
   return (
     <Fragment key={messageKey}>
@@ -200,6 +239,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   </>
                 )}
             </div>
+            {/* Related questions section */}
+            {message.type === 'apiMessage' &&
+              message.relatedQuestions &&
+              renderRelatedQuestions(message.relatedQuestions)}
           </div>
         </div>
       </div>
