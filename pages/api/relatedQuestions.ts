@@ -36,7 +36,7 @@ async function handler(
       await updateRelatedQuestionsBatch(batchSize);
       return res
         .status(200)
-        .json({ message: 'Related questions updated successfully' });
+        .json({ message: 'Related questions batch update successful' });
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
