@@ -410,10 +410,15 @@ export async function updateRelatedQuestions(
       similarity: q.similarity ?? 0, // Provide a default value if similarity is undefined
     }));
 
-  await db.collection(getAnswersCollectionName()).doc(questionId).update({
+  // Update the question with the new related questions, without waiting for the update to complete
+  db.collection(getAnswersCollectionName()).doc(questionId).update({
     relatedQuestionsV2,
   });
 
+  console.log(
+    'updateRelatedQuestions: returning relatedQuestionsV2:',
+    relatedQuestionsV2,
+  );
   return relatedQuestionsV2;
 }
 
