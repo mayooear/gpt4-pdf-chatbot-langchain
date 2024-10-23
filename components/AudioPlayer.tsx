@@ -1,3 +1,6 @@
+// This component renders an audio player with play/pause controls, a seek bar,
+// and time display. It supports lazy loading and handles audio playback states.
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAudioContext } from '@/contexts/AudioContext';
@@ -11,6 +14,7 @@ interface AudioPlayerProps {
   isExpanded?: boolean;
 }
 
+// Loading spinner component for visual feedback during audio loading
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -30,6 +34,7 @@ export function AudioPlayer({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [showSpinner, setShowSpinner] = useState(false);
 
+  // Custom hook for managing audio playback
   const {
     audioRef,
     isPlaying,
@@ -44,6 +49,7 @@ export function AudioPlayer({
     startTime,
   });
 
+  // Fetch the audio URL from the API
   const fetchAudioUrl = useCallback(async () => {
     try {
       if (!src) {
@@ -65,6 +71,7 @@ export function AudioPlayer({
     }
   }, [src]);
 
+  // Load audio when component mounts or when lazyLoad/isExpanded change
   useEffect(() => {
     if ((!lazyLoad || isExpanded) && !isLoaded) {
       fetchAudioUrl();
@@ -77,12 +84,14 @@ export function AudioPlayer({
     }
   }, [lazyLoad, isExpanded, isLoaded, fetchAudioUrl, error]);
 
+  // Pause this audio if another audio starts playing
   useEffect(() => {
     if (currentlyPlayingId && currentlyPlayingId !== audioId && isPlaying) {
       togglePlayPause();
     }
   }, [currentlyPlayingId, audioId, isPlaying, togglePlayPause]);
 
+  // Format time in HH:MM:SS or MM:SS format
   const formatTime = (time: number) => {
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
@@ -94,6 +103,7 @@ export function AudioPlayer({
       : `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Handle play/pause button click
   const handleTogglePlayPause = () => {
     if (!isLoaded) {
       setIsLoaded(true);
@@ -109,6 +119,7 @@ export function AudioPlayer({
     }
   };
 
+  // Handle seek bar change
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     setAudioTime(newTime);

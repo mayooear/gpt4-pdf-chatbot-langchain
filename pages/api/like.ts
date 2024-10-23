@@ -1,3 +1,7 @@
+// This file handles API requests for managing likes on answers, including adding/removing likes,
+// checking like statuses, and fetching like counts. It uses Firebase for data storage and implements
+// rate limiting and caching for improved performance.
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/services/firebase';
 import firebase from 'firebase-admin';
@@ -6,12 +10,12 @@ import { getEnvName } from '@/utils/env';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 
-// Create a cache object to store the fetched like statuses
+// Cache to store like statuses, improving response times for frequent requests
 const likeStatusCache: Record<string, Record<string, boolean>> = {};
 
 const envName = getEnvName();
 
-// New handler for GET request to check like statuses
+// Handler for GET requests to check like statuses
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   let answerIds = req.query.answerIds;
   const { uuid } = req.query;
@@ -58,7 +62,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// New handler for POST request to check like statuses
+// Handler for POST requests to check like statuses (with caching)
 async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
   const { answerIds, uuid } = req.body;
 
@@ -68,7 +72,7 @@ async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    // Create a key for the cache based on the user's UUID
+    // Create a cache key based on the user's UUID
     const cacheKey = `user_${uuid}`;
 
     // Check if the like statuses are already cached for the given user
@@ -122,7 +126,7 @@ async function handlePostCheck(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// fetch like counts from likes collection
+// Handler to fetch like counts for multiple answer IDs
 async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
   let answerIds = req.body.answerIds;
 
@@ -159,8 +163,9 @@ async function handlePostLikeCounts(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
+// Main handler function for all like-related API requests
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Apply rate limiting
+  // Apply rate limiting to prevent abuse
   const isAllowed = await genericRateLimiter(req, res, {
     windowMs: 60 * 1000 * 10, // 10 minutes
     max: 30, // 30 likes per 10 minutes
@@ -175,9 +180,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const action = req.query.action;
 
-  // DEBUG
-  // await checkLikeCountIntegrity();
-
+  // Route requests to appropriate handlers based on method and action
   if (req.method === 'GET') {
     return handleGet(req, res);
   } else if (req.method === 'POST' && action === 'check') {
@@ -188,8 +191,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // add a new Like
-
+  // Handle adding or removing a like
   const { answerId, like, uuid } = req.body;
   if (!answerId || typeof like !== 'boolean' || !uuid) {
     return res
@@ -201,14 +203,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const likesCollection = db.collection(`${envName}_likes`);
 
     if (like) {
-      // If like is true, add a new like document
+      // Add a new like document
       await likesCollection.add({
         uuid: uuid,
         answerId: answerId,
         timestamp: new Date(),
       });
 
-      // Update the like count in the chat logs
+      // Increment the like count in the chat logs
       const chatLogRef = db
         .collection(getAnswersCollectionName())
         .doc(answerId);
@@ -221,7 +223,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       res.status(200).json({ message: 'Like added' });
     } else {
-      // If like is false, find the like document and remove it
+      // Remove the like document if it exists
       const querySnapshot = await likesCollection
         .where('uuid', '==', uuid)
         .where('answerId', '==', answerId)
@@ -229,11 +231,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         .get();
 
       if (!querySnapshot.empty) {
-        // Assuming there's only one like per user per answer
+        // Delete the like document
         const docRef = querySnapshot.docs[0].ref;
         await docRef.delete();
 
-        // Update the like count in the chat logs
+        // Decrement the like count in the chat logs
         const chatLogRef = db
           .collection(getAnswersCollectionName())
           .doc(answerId);
@@ -254,9 +256,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       error instanceof Error ? error.message : 'Something went wrong';
     res.status(500).json({ error: errorMessage });
   }
-
-  // DEBUG
-  // await checkLikeCountIntegrity();
 }
 
 // async function checkLikeCountIntegrity() {
@@ -310,4 +309,5 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 //   }
 // }
 
+// Apply API middleware (e.g., error handling, authentication) to the handler
 export default withApiMiddleware(handler);

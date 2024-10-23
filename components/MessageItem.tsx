@@ -1,3 +1,6 @@
+// This component renders an individual message item in a chat-like interface,
+// supporting both user messages and AI responses with various interactive elements.
+
 import React, { Fragment, useState } from 'react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
@@ -54,6 +57,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const [likeError, setLikeError] = useState<string | null>(null);
 
+  // Handles the like button click, updating the like count and managing errors
   const onLikeButtonClick = (answerId: string, newLikeCount: number) => {
     try {
       handleLikeCountChange(answerId, newLikeCount > 0);
@@ -61,10 +65,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
       setLikeError(
         error instanceof Error ? error.message : 'An error occurred',
       );
+      // Clear the error message after 3 seconds
       setTimeout(() => setLikeError(null), 3000);
     }
   };
 
+  // Determine the appropriate icon and class based on the message type
   let icon;
   let className;
 
@@ -95,6 +101,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       loading && isLastMessage ? styles.usermessagewaiting : styles.usermessage;
   }
 
+  // Renders related questions if they meet the similarity threshold
   const renderRelatedQuestions = (
     relatedQuestions: RelatedQuestion[] | undefined,
   ) => {
@@ -129,12 +136,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
     );
   };
 
+  // Truncates a title to a specified maximum length
   const truncateTitle = (title: string, maxLength: number) => {
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
   };
 
   return (
     <Fragment key={messageKey}>
+      {/* Add a horizontal line between AI messages */}
       {message.type === 'apiMessage' && index > 0 && (
         <hr className="border-t border-gray-200 mb-0" />
       )}
@@ -143,9 +152,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
         ref={isLastMessage ? lastMessageRef : null}
       >
         <div className="flex items-start">
+          {/* Message icon */}
           <div className="flex-shrink-0 mr-2">{icon}</div>
           <div className="flex-grow">
             <div className="max-w-none">
+              {/* Render sources if available */}
               {message.sourceDocs && (
                 <div className="mb-2">
                   <SourcesList
@@ -158,6 +169,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   />
                 </div>
               )}
+              {/* Render message content */}
               <ReactMarkdown
                 remarkPlugins={[gfm]}
                 components={{
@@ -174,6 +186,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </div>
             {/* Action icons container */}
             <div className="mt-2 flex items-center space-x-2">
+              {/* Render action buttons for AI messages */}
               {message.type === 'apiMessage' && index !== 0 && (
                 <>
                   <CopyButton
@@ -185,10 +198,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   />
                 </>
               )}
+              {/* Render additional actions for non-private AI messages */}
               {!privateSession &&
                 message.type === 'apiMessage' &&
                 message.docId && (
                   <>
+                    {/* Copy link button */}
                     <button
                       onClick={() => handleCopyLink(message.docId ?? '')}
                       className="text-black-600 hover:underline flex items-center"
@@ -198,6 +213,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         {linkCopied === message.docId ? 'check' : 'link'}
                       </span>
                     </button>
+                    {/* Like button */}
                     <div className="flex items-center">
                       <LikeButton
                         answerId={message.docId ?? ''}
@@ -214,6 +230,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         </span>
                       )}
                     </div>
+                    {/* Downvote button */}
                     <div className="flex items-center">
                       <button
                         onClick={() => handleVote(message.docId ?? '', false)}

@@ -1,12 +1,17 @@
+// This component displays user engagement statistics, including questions with likes
+// and most popular questions over various time periods.
+
 import { SiteConfig } from '@/types/siteConfig';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/layout';
 
+// Structure for the statistics data
 interface StatsData {
   questionsWithLikes: Record<string, number>;
   mostPopularQuestion: Record<string, { question: string; likes: number }>;
 }
 
+// Formats a date string to a more readable format (Today, Yesterday, or MM/DD)
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString + 'T00:00:00');
   const today = new Date();
@@ -29,6 +34,7 @@ const Stats = ({ siteConfig }: StatsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch statistics data from the API when the component mounts
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -49,6 +55,7 @@ const Stats = ({ siteConfig }: StatsProps) => {
     fetchStats();
   }, []);
 
+  // Display loading, error, or no data messages if applicable
   if (isLoading)
     return (
       <Layout siteConfig={siteConfig}>
@@ -68,11 +75,13 @@ const Stats = ({ siteConfig }: StatsProps) => {
       </Layout>
     );
 
+  // Sort dates in descending order
   const dates = Object.keys(stats.questionsWithLikes);
   const sortedDates = dates.sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
+  // Calculate aggregate statistics for a given number of days
   const calculateAggregateStats = (days: number) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -100,6 +109,7 @@ const Stats = ({ siteConfig }: StatsProps) => {
     return { averageLikes, mostPopular };
   };
 
+  // Calculate statistics for different time periods
   const sevenDayStats = calculateAggregateStats(7);
   const thirtyDayStats = calculateAggregateStats(30);
   const ninetyDayStats = calculateAggregateStats(90);
@@ -119,6 +129,7 @@ const Stats = ({ siteConfig }: StatsProps) => {
             </tr>
           </thead>
           <tbody>
+            {/* Render rows for individual dates */}
             {sortedDates.map((date) => (
               <tr key={date}>
                 <td className="py-2 px-4 border-b">{formatDate(date)}</td>
@@ -131,6 +142,7 @@ const Stats = ({ siteConfig }: StatsProps) => {
                 </td>
               </tr>
             ))}
+            {/* Render aggregate statistics rows */}
             <tr>
               <td className="py-2 px-4 border-b font-bold">Last 7 Days</td>
               <td className="py-2 px-4 border-b text-center">

@@ -1,3 +1,6 @@
+// This component renders a contact form, handles form submission,
+// and displays success or error messages to the user.
+
 import { SiteConfig } from '@/types/siteConfig';
 import React, { useState } from 'react';
 import Layout from '@/components/layout';
@@ -9,12 +12,14 @@ interface ContactProps {
 }
 
 const Contact = ({ siteConfig }: ContactProps) => {
+  // State for form fields and submission status
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Validate form inputs
   const validateInputs = () => {
     if (!validator.isLength(name, { min: 1, max: 100 })) {
       setError('Name must be between 1 and 100 characters');
@@ -31,6 +36,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
     return true;
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -39,6 +45,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
       return;
     }
 
+    // Send form data to the API
     const res = await fetch('/api/contact', {
       method: 'POST',
       headers: {
@@ -58,6 +65,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto p-4">
         <h1 className="text-2xl mb-4">Contact Us</h1>
+        {/* Display error message if any */}
         {error && (
           <div
             className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
@@ -66,11 +74,13 @@ const Contact = ({ siteConfig }: ContactProps) => {
             <span className="block sm:inline">{error}</span>
           </div>
         )}
+        {/* Contact form */}
         <form
           onSubmit={handleSubmit}
           className={`space-y-4 ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}`}
         >
           <div className="flex space-x-4">
+            {/* Name input field */}
             <div className="w-1/2">
               <label className="block text-sm font-medium text-gray-700">
                 Name
@@ -85,6 +95,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
                 maxLength={100}
               />
             </div>
+            {/* Email input field */}
             <div className="w-1/2">
               <label className="block text-sm font-medium text-gray-700">
                 Email
@@ -99,6 +110,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
               />
             </div>
           </div>
+          {/* Message textarea */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Message
@@ -112,6 +124,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
               maxLength={1000}
             />
           </div>
+          {/* Submit button */}
           <button
             type="submit"
             className="bg-blue-500 text-white px-4 py-2 rounded-md"
@@ -120,6 +133,7 @@ const Contact = ({ siteConfig }: ContactProps) => {
             Send
           </button>
         </form>
+        {/* Success message and homepage link */}
         {isSubmitted && (
           <div className="mt-8 text-center">
             <h2 className="text-xl font-semibold text-green-600 mb-4">
