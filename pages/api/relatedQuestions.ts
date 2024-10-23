@@ -60,6 +60,10 @@ async function handler(
     console.log('Updating related questions for document:', docId);
 
     try {
+      console.log(
+        'Going to make call to updateRelatedQuestions for document:',
+        docId,
+      );
       const relatedQuestions = await updateRelatedQuestions(docId);
       console.log(
         'relatedQuestions from updateRelatedQuestions:',

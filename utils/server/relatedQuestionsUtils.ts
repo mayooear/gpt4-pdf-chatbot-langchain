@@ -361,6 +361,8 @@ function calculateJaccardSimilarity(setA: Set<string>, setB: Set<string>) {
 export async function updateRelatedQuestions(
   questionId: string,
 ): Promise<RelatedQuestion[]> {
+  console.log('updateRelatedQuestions: starting for questionId:', questionId);
+
   // Fetch the specific question by questionId
   const questionDoc = await db
     .collection(getAnswersCollectionName())
