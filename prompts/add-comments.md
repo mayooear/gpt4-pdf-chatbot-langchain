@@ -24,6 +24,7 @@ When adding comments, follow these guidelines:
 - Use single-line comments for brief explanations
 - Use multi-line comments for longer explanations or function/class descriptions
 - Do NOT remove any existing comments marked with TODO
+- Do not replace a more detailed comment with a less detailed one
 
 Your output should be the original code with your added comments. Make sure to preserve the original
 code's formatting and structure.

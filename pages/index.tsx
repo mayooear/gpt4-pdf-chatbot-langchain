@@ -1,4 +1,3 @@
-// This file implements the main chat interface for a Next.js application.
 // It includes features like real-time chat, collection selection, private sessions,
 // and media type filtering. The component manages chat state, handles user input,
 // and communicates with a backend API for chat responses.

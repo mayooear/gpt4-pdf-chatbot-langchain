@@ -1,3 +1,18 @@
+/**
+ * This component renders a paginated list of answers with sorting and filtering options.
+ * It handles fetching answers from the API, managing user interactions like liking and deleting answers,
+ * and preserving scroll position between page navigations.
+ *
+ * Key features:
+ * - Pagination with server-side rendering
+ * - Sorting answers by most recent or most popular
+ * - Like/unlike functionality with optimistic updates
+ * - Copy link to individual answers
+ * - Delete answers (for sudo users only)
+ * - Scroll position preservation
+ * - Debounced API calls to prevent excessive requests
+ */
+
 import Layout from '@/components/layout';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import debounce from 'lodash/debounce';
@@ -42,13 +57,12 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const { isSudoUser, checkSudoStatus } = useSudo();
 
   // Scroll position management functions
-  const saveScrollPosition = () => { 
+  const saveScrollPosition = () => {
+    const scrollY = window.scrollY;
 
-      const scrollY = window.scrollY;
-
-      if (scrollY > 0) {
-        sessionStorage.setItem('answersScrollPosition', scrollY.toString());
-      }
+    if (scrollY > 0) {
+      sessionStorage.setItem('answersScrollPosition', scrollY.toString());
+    }
   };
 
   const getSavedScrollPosition = () => {
@@ -61,16 +75,17 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
       top: 0,
       behavior: 'auto',
     });
-    // Force a reflow
+    // Force a reflow to ensure the scroll is applied immediately
     void document.body.offsetHeight;
   };
 
-  // Scroll position related effects
+  // Save scroll position periodically
   useEffect(() => {
     const intervalId = setInterval(saveScrollPosition, 1000);
     return () => clearInterval(intervalId);
   }, []);
 
+  // Save scroll position before unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       saveScrollPosition();
@@ -81,6 +96,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     };
   }, []);
 
+  // Handle popstate event for browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
       setIsRestoringScroll(true);
@@ -91,9 +107,9 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     };
   }, []);
 
+  // Restore scroll position when navigating back
   useEffect(() => {
     if (isRestoringScroll && !isLoading && initialLoadComplete) {
-
       const savedPosition = getSavedScrollPosition();
       setTimeout(() => {
         window.scrollTo({
@@ -106,8 +122,8 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   }, [isRestoringScroll, isLoading, initialLoadComplete]);
 
+  // Reset answers when sort order changes
   useEffect(() => {
-    // Reset answers when sortBy changes
     setAnswers([]);
     setTotalPages(1);
   }, [sortBy]);
@@ -116,6 +132,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   const hasInitiallyFetched = useRef(false);
   const hasFetchedLikeStatuses = useRef(false);
 
+  // Function to fetch answers from the API
   const fetchAnswers = useCallback(
     async (
       page: number,
@@ -161,6 +178,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     [],
   );
 
+  // Debounced version of fetchAnswers to prevent excessive API calls
   const debouncedFetch = useMemo(
     () =>
       debounce(
@@ -191,6 +209,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     [fetchAnswers],
   );
 
+  // Cancel debounced fetch on unmount
   useEffect(() => {
     return () => {
       if (debouncedFetch) {
@@ -199,6 +218,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     };
   }, [debouncedFetch]);
 
+  // Initial fetch when component mounts or URL parameters change
   useEffect(() => {
     if (router.isReady && debouncedFetch) {
       const pageFromUrl = Number(urlPage) || 1;
@@ -212,6 +232,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   }, [router.isReady, urlPage, urlSortBy, debouncedFetch]);
 
+  // Function to update URL with current page and sort order
   const updateUrl = useCallback(
     (page: number, sortBy: string) => {
       if (router.isReady) {
@@ -244,6 +265,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     [router],
   );
 
+  // Update URL when sort order changes
   useEffect(() => {
     if (router.isReady && isSortByInitialized) {
       const currentSortBy = router.query.sortBy as string | undefined;
@@ -260,6 +282,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     updateUrl,
   ]);
 
+  // Show delayed spinner for long-running loads
   useEffect(() => {
     // Set a timeout to show the spinner after 1.5 seconds
     const timer = setTimeout(() => {
@@ -272,6 +295,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
+  // Fetch like statuses for answers
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       if (hasFetchedLikeStatuses.current) return;
@@ -299,6 +323,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
 
   const [likeError, setLikeError] = useState<string | null>(null);
 
+  // Handle like count changes
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     try {
       setAnswers((prevAnswers) => {
@@ -319,6 +344,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   };
 
+  // Handle answer deletion (for sudo users only)
   const handleDelete = async (answerId: string) => {
     if (confirm('Are you sure you want to delete this answer?')) {
       try {
@@ -342,6 +368,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   };
 
+  // Handle sort order change
   const handleSortChange = (newSortBy: string) => {
     if (newSortBy !== sortBy) {
       scrollToTop(); // Scroll to top immediately
@@ -363,6 +390,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }
   };
 
+  // Handle copying answer link
   const handleCopyLink = (answerId: string) => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -375,6 +403,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   // Track if we're changing pages
   const [isChangingPage, setIsChangingPage] = useState(false);
 
+  // Handle page change
   const handlePageChange = (newPage: number) => {
     scrollToTop();
     setIsChangingPage(true);
@@ -394,12 +423,14 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
     }, 0);
   };
 
+  // Check sudo status on component mount
   useEffect(() => {
     checkSudoStatus();
   }, [checkSudoStatus]);
 
   return (
     <Layout siteConfig={siteConfig}>
+      {/* Sort dropdown */}
       <div className="flex justify-between items-center mb-4 px-4 sm:px-6 lg:px-8">
         <div></div>
         <div className="flex items-center mt-0.5">
@@ -418,6 +449,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
         </div>
       </div>
       <div className="mx-auto max-w-full sm:max-w-4xl px-2 sm:px-6 lg:px-8">
+        {/* Loading spinner */}
         {(isLoading && !initialLoadComplete) || isChangingPage ? (
           <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-600"></div>
@@ -425,6 +457,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
           </div>
         ) : (
           <div key={`${currentPage}-${sortBy}`}>
+            {/* List of answers */}
             <div>
               {answers.map((answer) => (
                 <AnswerItem
@@ -467,6 +500,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
           </div>
         )}
       </div>
+      {/* Error message display */}
       {likeError && (
         <div className="text-red-500 text-sm mt-2 text-center">{likeError}</div>
       )}
@@ -474,6 +508,7 @@ const AllAnswers = ({ siteConfig }: AllAnswersProps) => {
   );
 };
 
+// Server-side props to load site configuration and check permissions
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteId = process.env.SITE_ID || 'default';
   const siteConfig = await loadSiteConfig(siteId);
@@ -484,6 +519,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 
+  // Check if all answers page is allowed or if user has sudo access
   if (!siteConfig.allowAllAnswersPage) {
     const req = context.req as unknown as NextApiRequest;
     const res = context.res as unknown as NextApiResponse;

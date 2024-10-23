@@ -15,10 +15,12 @@ import {
 } from '@/utils/server/redisUtils';
 import { RelatedQuestion } from '@/types/RelatedQuestion';
 
-// in bytes. Upstash max is 1MB, so we stay well under that.
-const MAX_CHUNK_SIZE = 1000000;
+// Maximum size for cache chunks (in bytes)
+const MAX_CHUNK_SIZE = 1000000; // Upstash max is 1MB, so we stay well under that.
 
-// This function handles both chunked and non-chunked caching
+/**
+ * Safely store data in cache, handling large values by splitting into chunks as needed
+ */
 async function safeSetInCache(
   key: string,
   value: string | number | boolean | object | null,
@@ -63,7 +65,9 @@ async function safeSetInCache(
   }
 }
 
-// This function retrieves data from cache, handling both chunked and non-chunked data
+/**
+ * Safely retrieve data from cache, handling both chunked and non-chunked data
+ */
 async function safeGetFromCache<T>(key: string): Promise<T | null> {
   // First, try to get the value as if it's not chunked
   const value = await getFromCache<T>(key);
@@ -84,7 +88,9 @@ async function safeGetFromCache<T>(key: string): Promise<T | null> {
   return JSON.parse(serialized) as T;
 }
 
-// Add this function at the top of the file
+/**
+ * Generate keywords from text using RAKE algorithm, with error handling
+ */
 function safeRakeGenerate(text: string, questionId: string): string[] {
   try {
     // Remove all punctuation and non-alphanumeric characters except spaces
@@ -116,12 +122,18 @@ function safeRakeGenerate(text: string, questionId: string): string[] {
   }
 }
 
+/**
+ * Get the cache key for keywords based on environment and site ID
+ */
 function getCacheKeyForKeywords(): string {
   const envName = getEnvName();
   const siteId = process.env.SITE_ID;
   return `${envName}_${siteId}_keywords_cache_v2`;
 }
 
+/**
+ * Fetch related questions for a given question ID
+ */
 export async function getRelatedQuestions(
   questionId: string,
 ): Promise<Answer[]> {
@@ -143,6 +155,9 @@ export async function getRelatedQuestions(
   return relatedQuestions;
 }
 
+/**
+ * Fetch a batch of questions from the database
+ */
 async function getQuestionsBatch(
   envName: string,
   lastProcessedId: string | null,
@@ -177,6 +192,9 @@ async function getQuestionsBatch(
   return questions;
 }
 
+/**
+ * Update related questions for a batch of questions
+ */
 export async function updateRelatedQuestionsBatch(batchSize: number) {
   // We may not have a full set of keywords, but by the second full pass-through,
   // we should have a pretty good set of keywords.
@@ -265,6 +283,9 @@ function removeNonAscii(text: string): string {
   return text.replace(/[^\x00-\x7F]/g, '');
 }
 
+/**
+ * Extract keywords from questions and store them in Firestore and cache
+ */
 export async function extractAndStoreKeywords(questions: Answer[]) {
   const tfidf = new TfIdf();
   const batch = db.batch();
@@ -327,6 +348,9 @@ export async function extractAndStoreKeywords(questions: Answer[]) {
   await safeSetInCache(cacheKey, updatedCachedKeywords);
 }
 
+/**
+ * Fetch keywords from cache or Firestore
+ */
 export async function fetchKeywords(): Promise<
   { id: string; keywords: string[]; title: string }[]
 > {
@@ -352,12 +376,18 @@ export async function fetchKeywords(): Promise<
   return keywords;
 }
 
+/**
+ * Calculate Jaccard similarity between two sets of keywords
+ */
 function calculateJaccardSimilarity(setA: Set<string>, setB: Set<string>) {
   const intersection = new Set([...setA].filter((x) => setB.has(x)));
   const union = new Set([...setA, ...setB]);
   return intersection.size / union.size;
 }
 
+/**
+ * Update related questions for a specific question ID
+ */
 export async function updateRelatedQuestions(
   questionId: string,
 ): Promise<RelatedQuestion[]> {
@@ -418,6 +448,9 @@ export async function updateRelatedQuestions(
   return relatedQuestionsV2;
 }
 
+/**
+ * Find related questions using keyword similarity
+ */
 export async function findRelatedQuestionsUsingKeywords(
   newQuestionKeywords: string[],
   keywords: { id: string; keywords: string[]; title: string }[],

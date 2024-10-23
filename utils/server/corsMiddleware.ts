@@ -1,12 +1,15 @@
+// CORS middleware configuration
 import Cors from 'cors';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+// Configure CORS options
 const cors = Cors({
   methods: ['POST', 'GET', 'DELETE', 'OPTIONS'],
   origin: process.env.NEXT_PUBLIC_BASE_URL || '',
   credentials: true,
 });
 
+// Helper function to run middleware
 export function runMiddleware(
   req: NextApiRequest,
   res: NextApiResponse,

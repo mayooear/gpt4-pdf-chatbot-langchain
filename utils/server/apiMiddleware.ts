@@ -1,3 +1,4 @@
+// API middleware for handling POST requests and security checks
 import { NextApiRequest, NextApiResponse } from 'next';
 
 type ApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
@@ -9,13 +10,16 @@ export function withApiMiddleware(handler: ApiHandler): ApiHandler {
     const isVercelPreview = process.env.VERCEL_ENV === 'preview';
     const isDevelopment = process.env.NODE_ENV === 'development';
 
+    // Perform security checks for POST requests in non-development environments
     if (req.method === 'POST' && !isDevelopment) {
+      // Check for missing referer
       if (!referer) {
         console.info(
           `POST request to ${req.url} without referer. IP: ${req.socket.remoteAddress}`,
         );
         // You might want to allow this, or handle it differently based on your security requirements
       } else if (typeof referer === 'string') {
+        // Validate referer against base URL
         const refererUrl = new URL(referer);
         const baseUrlObj = new URL(baseUrl);
 

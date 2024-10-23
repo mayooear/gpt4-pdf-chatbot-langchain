@@ -1,3 +1,4 @@
+// Main layout component for the application
 import { useEffect, useState } from 'react';
 import { SiteConfig } from '@/types/siteConfig';
 import AnandaHeader from './Header/AnandaHeader';
@@ -21,17 +22,20 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
   const { errorMessage } = useSudo();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
 
+  // Set isClient to true and increment visit count on component mount
   useEffect(() => {
     setIsClient(true);
     setVisitCount((prevCount: number) => prevCount + 1);
   }, [setVisitCount]);
 
+  // Show error popup when errorMessage changes
   useEffect(() => {
     if (errorMessage) {
       setShowErrorPopup(true);
     }
   }, [errorMessage]);
 
+  // Render the appropriate header based on siteConfig
   const renderHeader = () => {
     if (!siteConfig) return null;
 
@@ -49,7 +53,8 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
     }
   };
 
-  if (!isClient) return null; // Prevent rendering until client-side
+  // Prevent rendering until client-side
+  if (!isClient) return null;
 
   return (
     <div className="h-screen flex flex-col app-container-wrap">
@@ -61,6 +66,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
         </div>
       </div>
       <Footer siteConfig={siteConfig} />
+      {/* Error popup */}
       {showErrorPopup && errorMessage && (
         <div className="fixed bottom-0 left-0 right-0 bg-red-100 text-red-700 py-2 px-4 flex items-center justify-between text-sm z-50">
           <div className="flex items-center">

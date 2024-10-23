@@ -1,5 +1,23 @@
-// This component renders a chat input interface with various options and controls
-// It handles user input, submission, and displays suggested queries and media type options
+/**
+ * ChatInput Component
+ *
+ * This component renders a chat input interface with various options and controls.
+ * It handles user input, submission, and displays suggested queries and media type options.
+ *
+ * Key features:
+ * - Text input area with auto-resizing
+ * - Submit button that toggles between send and stop based on loading state
+ * - Media type selection (text, audio, YouTube) if enabled
+ * - Collection selector for choosing different content sources
+ * - Private session toggle
+ * - Suggested queries with expand/collapse functionality
+ * - Mobile-responsive design with collapsible options
+ * - Input validation and sanitization
+ * - Analytics event logging for user interactions
+ *
+ * The component is highly configurable through props and site configuration,
+ * allowing for easy customization of features and behavior.
+ */
 
 import React, { useState, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
