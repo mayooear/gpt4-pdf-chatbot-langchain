@@ -340,11 +340,10 @@ export default function Home({
             }
           }
         }
-
-        if (isDone) {
-          setLoading(false);
-        }
       }
+
+      setLoading(false);
+
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(
