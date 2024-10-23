@@ -28,7 +28,6 @@ import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { SiteConfig } from '@/types/siteConfig';
-import { RelatedQuestion } from '@/types/RelatedQuestion';
 import { StreamingResponseData } from '@/types/StreamingResponseData';
 
 export const runtime = 'nodejs';
@@ -309,36 +308,6 @@ async function saveAnswerToFirestore(
   return docRef.id;
 }
 
-async function callUpdateRelatedQuestions(
-  docId: string,
-): Promise<RelatedQuestion[]> {
-  let relatedQuestions: RelatedQuestion[] = [];
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/relatedQuestions`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ docId }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Response from relatedQuestions API:', data);
-    relatedQuestions = data.relatedQuestions || [];
-  } catch (error) {
-    console.error('Error updating related questions:', error);
-  }
-  console.log('Returning relatedQuestions:', relatedQuestions);
-  return relatedQuestions;
-}
-
 // New function for error handling
 function handleError(
   error: unknown,
@@ -454,15 +423,7 @@ export async function POST(req: NextRequest) {
             clientIP,
           );
 
-          // Update related questions and get the result
-          try {
-            const relatedQuestions = await callUpdateRelatedQuestions(docId);
-            sendData({ docId, relatedQuestions });
-          } catch (error) {
-            console.error('Error updating related questions:', error);
-            // If updating related questions fails, still send the docId
-            sendData({ docId });
-          }
+          sendData({ docId });
         }
 
         controller.close();

@@ -38,6 +38,7 @@ import Cookies from 'js-cookie';
 
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
 import { StreamingResponseData } from '@/types/StreamingResponseData';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
 
 // Main component for the chat interface
 export default function Home({
@@ -261,6 +262,26 @@ export default function Home({
     [setMessageState, scrollToBottom],
   );
 
+  const fetchRelatedQuestions = useCallback(async (docId: string) => {
+    try {
+      const response = await fetch('/api/relatedQuestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch related questions');
+      }
+
+      const data = await response.json();
+      return data.relatedQuestions as RelatedQuestion[];
+    } catch (error) {
+      console.error('Error fetching related questions:', error);
+      return null;
+    }
+  }, []);
+
   const handleStreamingResponse = useCallback(
     (data: StreamingResponseData) => {
       if (data.token) {
@@ -295,21 +316,29 @@ export default function Home({
             messages: updatedMessages,
           };
         });
-      }
 
-      if (data.relatedQuestions && data.docId) {
-        setMessageState((prevState) => ({
-          ...prevState,
-          messages: prevState.messages.map((msg) =>
-            msg.docId === data.docId
-              ? { ...msg, relatedQuestions: data.relatedQuestions }
-              : msg,
-          ),
-        }));
-        setLastRelatedQuestionsUpdate(data.docId);
+        // Fetch related questions after receiving docId
+        fetchRelatedQuestions(data.docId).then((relatedQuestions) => {
+          if (relatedQuestions) {
+            setMessageState((prevState) => ({
+              ...prevState,
+              messages: prevState.messages.map((msg) =>
+                msg.docId === data.docId ? { ...msg, relatedQuestions } : msg,
+              ),
+            }));
+            setLastRelatedQuestionsUpdate(data.docId ?? null);
+          }
+        });
       }
     },
-    [updateMessageState, sourceDocs, setLoading, setError, setMessageState],
+    [
+      updateMessageState,
+      sourceDocs,
+      setLoading,
+      setError,
+      setMessageState,
+      fetchRelatedQuestions,
+    ],
   );
 
   // Effect to scroll to bottom after related questions are added
