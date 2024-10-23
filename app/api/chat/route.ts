@@ -340,8 +340,6 @@ function handleError(
 }
 
 export async function POST(req: NextRequest) {
-  console.log('Received POST request to /api/chat');
-
   const validationResult = await validateAndPreprocessInput(req);
   if (validationResult instanceof NextResponse) {
     return validationResult;
