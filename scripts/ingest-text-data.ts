@@ -4,6 +4,21 @@
  *
  * The script supports resuming ingestion from checkpoints and handles graceful shutdowns.
  *
+ * Key features:
+ * - Processes PDF files recursively from a given directory
+ * - Creates and manages a Pinecone index for storing document embeddings
+ * - Supports incremental updates with checkpointing
+ * - Handles graceful shutdowns and resumption of processing
+ * - Clears existing vectors for a given library name if requested
+ * - Uses OpenAI embeddings for vector representation
+ *
+ * Usage:
+ * Run the script with the following options:
+ * --file-path: Path to the directory containing PDF files
+ * --site: Site name for loading environment variables
+ * --library-name: Name of the library to process (default: "Default Library")
+ * --keep-data: Flag to keep existing data in the index (default: false)
+ *
  * Note: If you encounter a "Warning: TT: undefined function" message during execution,
  * it can be safely ignored. This is a known issue related to font recovery and does not
  * affect the overall functionality of the script.
@@ -72,6 +87,7 @@ async function createFolderSignature(directory: string): Promise<string> {
 
 /**
  * Saves the current ingestion progress and folder signature to a checkpoint file.
+ * This allows for resuming the ingestion process in case of interruptions.
  * @param processedDocs The number of documents processed so far
  * @param folderSignature The current folder signature
  */
@@ -84,6 +100,7 @@ async function saveCheckpoint(processedDocs: number, folderSignature: string) {
 
 /**
  * Loads the previous ingestion checkpoint, if it exists.
+ * This is used to resume processing from where it left off in a previous run.
  * @returns An object containing the number of processed documents and folder signature, or null if no checkpoint exists
  */
 async function loadCheckpoint(): Promise<{
@@ -98,6 +115,12 @@ async function loadCheckpoint(): Promise<{
   }
 }
 
+/**
+ * Clears existing vectors for a specific library from the Pinecone index.
+ * This is used when re-ingesting data for a library to avoid duplicates.
+ * @param pineconeIndex The Pinecone index to clear vectors from
+ * @param libraryName The name of the library whose vectors should be cleared
+ */
 async function clearAnandaLibraryTextVectors(
   pineconeIndex: Index,
   libraryName: string,
@@ -135,6 +158,14 @@ async function clearAnandaLibraryTextVectors(
   }
 }
 
+/**
+ * Processes a single document, splitting it into chunks and adding it to the vector store.
+ * This function handles the core logic of document ingestion.
+ * @param rawDoc The raw document to process
+ * @param vectorStore The PineconeStore instance to add vectors to
+ * @param index The index of the document in the overall processing queue
+ * @param libraryName The name of the library this document belongs to
+ */
 async function processDocument(
   rawDoc: Document,
   vectorStore: PineconeStore,
@@ -245,6 +276,7 @@ async function processDocument(
   }
 }
 
+// Set up graceful shutdown handling
 let isExiting = false;
 
 process.on('SIGINT', async () => {
@@ -259,6 +291,12 @@ process.on('SIGINT', async () => {
   }
 });
 
+/**
+ * Creates a Pinecone index if it doesn't already exist.
+ * This ensures that the necessary index is available for storing document vectors.
+ * @param pinecone The Pinecone client instance
+ * @param indexName The name of the index to create or check
+ */
 async function createPineconeIndexIfNotExists(
   pinecone: Pinecone,
   indexName: string,
@@ -299,6 +337,12 @@ async function createPineconeIndexIfNotExists(
   }
 }
 
+/**
+ * Main function to run the document ingestion process.
+ * This function orchestrates the entire ingestion workflow.
+ * @param keepData Whether to keep existing data in the index
+ * @param libraryName The name of the library being processed
+ */
 export const run = async (keepData: boolean, libraryName: string) => {
   console.log(`\nProcessing documents from ${filePath}`);
 
@@ -496,12 +540,18 @@ export const run = async (keepData: boolean, libraryName: string) => {
   }
 };
 
+/**
+ * Loads environment variables from a specific .env file based on the site name.
+ * This allows for different configurations for different deployment environments.
+ * @param site The name of the site/environment to load
+ */
 function loadEnv(site: string) {
   const envFile = path.join(process.cwd(), `.env.${site}`);
   config({ path: envFile });
   console.log(`Loaded environment from: ${envFile}`);
 }
 
+// Parse command-line arguments
 const { values } = parseArgs({
   options: {
     'file-path': { type: 'string' },
@@ -511,6 +561,7 @@ const { values } = parseArgs({
   },
 });
 
+// Validate and process command-line arguments
 const site = values['site'];
 if (!site) {
   console.error(
@@ -534,6 +585,7 @@ const theLibraryName = values['library-name'] || 'Default Library';
 
 const keepData = values['keep-data'] || false;
 
+// Execute the main function
 (async () => {
   await run(keepData, theLibraryName);
 })();

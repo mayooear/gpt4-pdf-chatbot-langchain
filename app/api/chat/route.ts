@@ -11,7 +11,6 @@
 //
 // TODO: wrap this in apiMiddleware
 //
-
 import { NextRequest, NextResponse } from 'next/server';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from '@langchain/openai';
@@ -28,6 +27,7 @@ import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { SiteConfig } from '@/types/siteConfig';
+import { StreamingResponseData } from '@/types/StreamingResponseData';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -232,6 +232,7 @@ async function setupVectorStoreAndRetriever(
   return { vectorStore, retriever, documentPromise };
 }
 
+// This function executes the language model chain and handles the streaming response
 async function setupAndExecuteLanguageModelChain(
   retriever: ReturnType<PineconeStore['asRetriever']>,
   sanitizedQuestion: string,
@@ -246,6 +247,8 @@ async function setupAndExecuteLanguageModelChain(
 ): Promise<string> {
   // Create language model chain
   const chain = await makeChain(retriever);
+
+  // Format chat history for the language model
   const pastMessages = history
     .map((message: [string, string]) => {
       return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join('\n');
@@ -263,10 +266,12 @@ async function setupAndExecuteLanguageModelChain(
     {
       callbacks: [
         {
+          // Callback for handling new tokens from the language model
           handleLLMNewToken(token: string) {
             fullResponse += token;
             sendData({ token });
           },
+          // Callback for handling the end of the chain execution
           handleChainEnd() {
             sendData({ done: true });
           },
@@ -281,6 +286,7 @@ async function setupAndExecuteLanguageModelChain(
   return fullResponse;
 }
 
+// Function to save the answer and related information to Firestore
 async function saveAnswerToFirestore(
   originalQuestion: string,
   fullResponse: string,
@@ -307,35 +313,10 @@ async function saveAnswerToFirestore(
   return docRef.id;
 }
 
-async function updateRelatedQuestions(docId: string) {
-  console.time('updateRelatedQuestions');
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/relatedQuestions`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ docId }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    await response.json();
-  } catch (error) {
-    console.error('Error updating related questions:', error);
-  }
-  console.timeEnd('updateRelatedQuestions');
-}
-
-// New function for error handling
+// Function for handling errors and sending appropriate error messages
 function handleError(
   error: unknown,
-  sendData: (data: { error: string }) => void,
+  sendData: (data: StreamingResponseData) => void,
 ) {
   console.error('Error in chat route:', error);
   if (error instanceof Error) {
@@ -347,6 +328,7 @@ function handleError(
           'The specified Pinecone index does not exist. Please notify your administrator.',
       });
     } else if (error.message.includes('429')) {
+      // Log the first 10 characters of the API key for debugging purposes
       console.log(
         'First 10 chars of OPENAI_API_KEY:',
         process.env.OPENAI_API_KEY?.substring(0, 10),
@@ -363,9 +345,9 @@ function handleError(
   }
 }
 
+// Main POST handler for the chat API
 export async function POST(req: NextRequest) {
-  console.log('Received POST request to /api/chat');
-
+  // Validate and preprocess the input
   const validationResult = await validateAndPreprocessInput(req);
   if (validationResult instanceof NextResponse) {
     return validationResult;
@@ -403,13 +385,7 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       // Helper function to send data chunks
-      const sendData = (data: {
-        token?: string;
-        sourceDocs?: Document[];
-        done?: boolean;
-        error?: string;
-        docId?: string;
-      }) => {
+      const sendData = (data: StreamingResponseData) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
 
@@ -453,11 +429,7 @@ export async function POST(req: NextRequest) {
             clientIP,
           );
 
-          // Send the docId to the client
           sendData({ docId });
-
-          // Update related questions asynchronously
-          updateRelatedQuestions(docId);
         }
 
         controller.close();

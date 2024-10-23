@@ -1,3 +1,6 @@
+// This component implements a Net Promoter Score (NPS) survey for collecting user feedback.
+// It handles survey display logic, user input, and submission of survey data to the server.
+
 import React, { useState, useEffect } from 'react';
 import { SiteConfig } from '@/types/siteConfig';
 import { getOrCreateUUID } from '@/utils/client/uuid';
@@ -15,6 +18,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
   siteConfig,
   forceSurvey = false,
 }) => {
+  // State variables for managing survey display and user input
   const [showSurvey, setShowSurvey] = useState(false);
   const [showFeedbackIcon, setShowFeedbackIcon] = useState(false);
   const [score, setScore] = useState<number | null>(null);
@@ -24,6 +28,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Logic to determine when to show the survey based on user interaction history
     if (forceSurvey) {
       setShowSurvey(true);
       setShowFeedbackIcon(false);
@@ -36,7 +41,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
     const currentTime = Date.now();
     const visitCount = parseInt(localStorage.getItem('visitCount') || '0');
 
-    // note that visitCount is really page load count
+    // Show survey if conditions are met (frequency, visit count, time since last interaction)
     if (surveyFrequency > 0 && visitCount >= 3) {
       const timeSinceCompleted = lastCompleted
         ? currentTime - parseInt(lastCompleted)
@@ -50,7 +55,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
         timeSinceCompleted >= frequencyInMs &&
         timeSinceDismissed >= frequencyInMs
       ) {
-        // Set a timer for 2 minutes in production, 15 seconds in development
+        // Set a timer to show the survey after a delay
         setTimeout(
           () => {
             setShowSurvey(true);
@@ -66,20 +71,22 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
     }
   }, [siteConfig.npsSurveyFrequencyDays, forceSurvey]);
 
+  // Function to handle survey dismissal
   const dismissSurvey = () => {
     logEvent('Dismiss', 'NPS_Survey', forceSurvey ? 'Forced' : 'Regular');
     if (forceSurvey) {
-      // Redirect to homepage
+      // Redirect to homepage if survey is forced
       window.location.href = '/';
     } else {
       setShowSurvey(false);
       setErrorMessage(null);
-      // Delay showing the feedback icon to allow for the swoosh animation
+      // Show feedback icon after a delay to allow for animation
       setTimeout(() => setShowFeedbackIcon(true), 500);
       localStorage.setItem('npsSurveyDismissed', Date.now().toString());
     }
   };
 
+  // Function to validate user input before submission
   const validateInput = () => {
     if (score === null) {
       setErrorMessage('Please select a score');
@@ -100,6 +107,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
     return true;
   };
 
+  // Function to submit the survey data to the server
   const submitSurvey = async () => {
     if (!validateInput()) {
       return;
@@ -125,6 +133,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
       const data = await response.json();
 
       if (response.ok) {
+        // Update local storage and UI state on successful submission
         localStorage.setItem('npsSurveyCompleted', Date.now().toString());
         localStorage.removeItem('npsSurveyDismissed');
         setShowSurvey(false);
@@ -133,7 +142,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
         setToastMessage('Thank you for your feedback!');
 
         if (forceSurvey) {
-          // Redirect to homepage after 3 seconds
+          // Redirect to homepage after a delay if survey was forced
           setTimeout(() => {
             window.location.href = '/';
           }, 3000);
@@ -147,12 +156,14 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
     }
   };
 
+  // Function to open the survey when feedback icon is clicked
   const openSurvey = () => {
     logEvent('Open', 'NPS_Survey', 'From Feedback Icon');
     setShowSurvey(true);
     setShowFeedbackIcon(false);
   };
 
+  // Render the survey component, feedback icon, and toast message
   return (
     <>
       <AnimatePresence>
@@ -170,10 +181,12 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             onClick={forceSurvey ? undefined : dismissSurvey}
           >
+            {/* Survey form content */}
             <div
               className="bg-white p-6 rounded-lg max-w-md w-full relative"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Close button */}
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                 onClick={dismissSurvey}
@@ -194,10 +207,12 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                   />
                 </svg>
               </button>
+              {/* Survey questions and input fields */}
               <h2 className="text-xl font-bold mb-4">
                 How likely are you to recommend the Ananda Chatbot to a
                 gurubhai?
               </h2>
+              {/* Score buttons */}
               <div className="flex justify-between mb-4">
                 {[...Array(11)].map((_, i) => (
                   <button
@@ -209,6 +224,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                   </button>
                 ))}
               </div>
+              {/* Feedback textarea */}
               <h3 className="text-lg font-semibold mb-2">
                 What&apos;s the main reason for the answer you just gave?
               </h3>
@@ -218,6 +234,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 onChange={(e) => setFeedback(e.target.value)}
                 maxLength={1000}
               />
+              {/* Additional comments textarea */}
               <h3 className="text-lg font-semibold mb-2">
                 Additional comments (optional)
               </h3>
@@ -227,9 +244,11 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 onChange={(e) => setAdditionalComments(e.target.value)}
                 maxLength={1000}
               />
+              {/* Error message display */}
               {errorMessage && (
                 <div className="text-red-500 mb-4">{errorMessage}</div>
               )}
+              {/* Submit button */}
               <div className="flex justify-end">
                 <button
                   className={`px-4 py-2 rounded ${score !== null ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
@@ -239,6 +258,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                   Submit
                 </button>
               </div>
+              {/* Privacy notice */}
               <p className="text-xs text-gray-500 mt-4">
                 This survey information is collected solely to improve our
                 service.
@@ -248,6 +268,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
         )}
       </AnimatePresence>
 
+      {/* Feedback icon */}
       <AnimatePresence>
         {showFeedbackIcon && (
           <motion.button
@@ -267,6 +288,7 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
         )}
       </AnimatePresence>
 
+      {/* Toast message */}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}

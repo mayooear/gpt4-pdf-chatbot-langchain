@@ -4,6 +4,7 @@ import { isTokenValid } from '@/utils/server/passwordUtils';
 import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
 
+// Log suspicious activity with details
 const logSuspiciousActivity = (req: NextRequest, reason: string) => {
   const clientIP = req.ip || 'unknown';
   const userAgent = req.headers.get('user-agent') || 'unknown';
@@ -14,6 +15,7 @@ const logSuspiciousActivity = (req: NextRequest, reason: string) => {
   );
 };
 
+// Perform various security checks on the incoming request
 const performSecurityChecks = (req: NextRequest, url: URL) => {
   if (url.pathname.includes('..') || url.pathname.includes('//')) {
     logSuspiciousActivity(req, 'Potential path traversal attempt');
@@ -117,6 +119,7 @@ const performSecurityChecks = (req: NextRequest, url: URL) => {
   }
 };
 
+// Main middleware function
 export function middleware(req: NextRequest) {
   const response = NextResponse.next();
   const url = req.nextUrl.clone();
@@ -130,12 +133,13 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url, { status: 308 }); // 308 is for permanent redirect
   }
 
-  // Redirect HTTP to HTTPS
+  // Redirect HTTP to HTTPS in production
   if (url.protocol === 'http:' && !isDevelopment()) {
     url.protocol = 'https:';
     return NextResponse.redirect(url);
   }
 
+  // Load site configuration
   const siteId = process.env.SITE_ID || 'default';
   const siteConfig = loadSiteConfigSync(siteId);
 
@@ -146,6 +150,7 @@ export function middleware(req: NextRequest) {
 
   const { requireLogin } = siteConfig;
 
+  // Define allowed paths that don't require authentication
   const allowed_paths_starts = [
     '/login',
     '/robots.txt',
@@ -156,6 +161,7 @@ export function middleware(req: NextRequest) {
     '/survey',
   ];
 
+  // Check if the current path requires authentication
   const pathname_is_private =
     !allowed_paths_starts.some((path) => url.pathname.startsWith(path)) &&
     !(url.pathname.startsWith('/answers/') && url.pathname !== '/answers/') &&
@@ -204,6 +210,7 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  // Set up CORS headers
   const allowedOrigins = [
     process.env.NEXT_PUBLIC_BASE_URL,
     'http://localhost:3000',
@@ -232,6 +239,7 @@ export function middleware(req: NextRequest) {
     // The browser will handle this correctly
   }
 
+  // Special handling for /api/chat route
   if (url.pathname === '/api/chat') {
     return NextResponse.next();
   }
@@ -271,6 +279,7 @@ export function middleware(req: NextRequest) {
   return response;
 }
 
+// Configure which routes the middleware should run on
 export const config = {
   matcher: [
     /*

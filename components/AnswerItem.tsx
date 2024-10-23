@@ -1,3 +1,6 @@
+// This component renders an individual answer item, including the question, answer content,
+// related questions, and interactive elements like likes and copy buttons.
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -44,6 +47,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
   const [expanded, setExpanded] = useState(isFullPage);
   const [likeError, setLikeError] = useState<string | null>(null);
 
+  // Renders a truncated version of the question with line breaks
   const renderTruncatedQuestion = (question: string, maxLength: number) => {
     if (!question) {
       console.error('renderTruncatedQuestion called with undefined question');
@@ -60,10 +64,12 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
       ));
   };
 
+  // Truncates a title to a specified maximum length
   const truncateTitle = (title: string, maxLength: number) => {
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
   };
 
+  // Handles the like button click, updating the like count and managing errors
   const onLikeButtonClick = (answerId: string, newLikeCount: number) => {
     try {
       handleLikeCountChange(answerId, newLikeCount);
@@ -71,6 +77,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
       setLikeError(
         error instanceof Error ? error.message : 'An error occurred',
       );
+      // Clear the error message after 3 seconds
       setTimeout(() => setLikeError(null), 3000);
     }
   };
@@ -81,6 +88,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
         isFullPage ? '' : 'mb-4'
       } rounded-lg shadow`}
     >
+      {/* Question section */}
       <div className="flex items-start">
         <span className="material-icons mt-1 mr-2 flex-shrink-0">
           question_answer
@@ -157,18 +165,25 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Answer section */}
       <div className="bg-gray-100 p-2 sm:p-2.5 rounded mt-2">
         <div className={`${markdownStyles.markdownanswer} overflow-x-auto`}>
+          {/* Render the answer content */}
           <TruncatedMarkdown
             markdown={answer.answer}
             maxCharacters={isFullPage ? 4000 : 600}
           />
+
+          {/* Render sources if available */}
           {answer.sources && (
             <SourcesList
               sources={answer.sources as Document<DocMetadata>[]}
               collectionName={hasMultipleCollections ? answer.collection : null}
             />
           )}
+
+          {/* Render related questions if available and above similarity threshold */}
           {answer.relatedQuestionsV2 &&
             answer.relatedQuestionsV2.filter(
               (q: { similarity: number }) =>
@@ -195,7 +210,10 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 </ul>
               </div>
             )}
+
+          {/* Action buttons section */}
           <div className="flex flex-wrap items-center mt-2">
+            {/* Copy button */}
             <CopyButton
               markdown={answer.answer}
               answerId={answer.id}
@@ -203,6 +221,8 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
               question={answer.question}
               siteConfig={siteConfig}
             />
+
+            {/* Copy link button */}
             <button
               onClick={() => handleCopyLink(answer.id)}
               className="ml-2 sm:ml-4 text-black-600 hover:underline flex items-center"
@@ -212,6 +232,8 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 {linkCopied === answer.id ? 'check' : 'link'}
               </span>
             </button>
+
+            {/* Like button */}
             <div className="ml-2 sm:ml-4">
               <LikeButton
                 answerId={answer.id}
@@ -223,15 +245,22 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
                 <span className="text-red-500 text-sm ml-2">{likeError}</span>
               )}
             </div>
+
+            {/* Admin-only actions */}
             {isSudoUser && (
               <>
+                {/* Delete button */}
                 <button
                   onClick={() => handleDelete && handleDelete(answer.id)}
                   className="ml-4 text-red-600"
                 >
                   <span className="material-icons">delete</span>
                 </button>
+
+                {/* Display IP address */}
                 <span className="ml-6">IP: ({answer.ip})</span>
+
+                {/* Display downvote indicator if applicable */}
                 {answer.vote === -1 && (
                   <button className="ml-4 text-red-600" title="Downvote">
                     <span className="material-icons">thumb_down</span>

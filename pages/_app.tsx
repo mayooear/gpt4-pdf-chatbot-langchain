@@ -1,3 +1,4 @@
+// Main application component for Next.js
 import '@/styles/base.css';
 import '@/styles/globals.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,17 +11,20 @@ import { SudoProvider } from '@/contexts/SudoContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { getCommonSiteConfigProps } from '@/utils/server/getCommonSiteConfigProps';
 
+// Configure Inter font
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 });
 
+// Extend AppProps to include custom pageProps
 interface CustomAppProps extends AppProps {
   pageProps: {
     siteConfig: SiteConfig | null;
   };
 }
 
+// Main App component
 function MyApp({ Component, pageProps }: CustomAppProps) {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -28,6 +32,7 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
     <SudoProvider>
       <AudioProvider>
         <main className={inter.className}>
+          {/* Only include Google Analytics in production */}
           {!isDevelopment && <GoogleAnalytics trackPageViews />}
           <Component {...pageProps} />
         </main>
@@ -37,11 +42,13 @@ function MyApp({ Component, pageProps }: CustomAppProps) {
   );
 }
 
+// Fetch initial props for the app
 MyApp.getInitialProps = async () => {
   const result = await getCommonSiteConfigProps();
   return { pageProps: result.props };
 };
 
+// Function to report web vitals metrics
 export function reportWebVitals(metric: NextWebVitalsMetric) {
   const { id, name, label, value } = metric;
   if (process.env.NODE_ENV === 'development') {
@@ -53,6 +60,7 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
       value,
     );
   } else {
+    // Log web vitals event in production
     event(name, {
       category: label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
       value: Math.round(name === 'CLS' ? value * 1000 : value), // values must be integers

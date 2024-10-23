@@ -1,3 +1,4 @@
+// Footer component for the application
 import React from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/types/siteConfig';
@@ -14,6 +15,7 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
 
   return (
     <>
+      {/* Admin section for sudo users */}
       {isSudoUser && (
         <div className="bg-gray-100 text-gray-700 py-2 border-t border-t-slate-200 mt-4">
           <div className="container mx-auto flex justify-center items-center">
@@ -41,9 +43,11 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
           </div>
         </div>
       )}
+      {/* Main footer section */}
       <footer className="bg-white text-gray-500 py-4 border-t border-t-slate-200">
         <div className="container mx-auto flex justify-center items-center">
           <div className="flex flex-wrap justify-center items-center">
+            {/* Render footer links */}
             {footerConfig.links.map((link, index) => {
               const content = (
                 <>
@@ -59,6 +63,7 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
                 </>
               );
 
+              // Render non-clickable text
               if (!link.url) {
                 return (
                   <span
@@ -73,6 +78,7 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
               const isExternal =
                 link.url.startsWith('http') || link.url.startsWith('//');
 
+              // Render external link
               if (isExternal) {
                 return (
                   <a
@@ -84,6 +90,7 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
                   </a>
                 );
               } else {
+                // Render internal link
                 return (
                   <Link
                     key={index}

@@ -1,3 +1,5 @@
+// This file sets up and configures the language model chain for processing chat requests
+
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import {
@@ -11,6 +13,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { BaseLanguageModel } from '@langchain/core/language_models/base';
 
+// Define types and interfaces for the chain input and configuration
 type AnswerChainInput = {
   question: string;
   chat_history: string;
@@ -28,6 +31,7 @@ interface SiteConfig {
   templates: Record<string, TemplateContent>;
 }
 
+// Helper function to load text from a file
 async function loadTextFile(filePath: string): Promise<string> {
   try {
     return await fs.readFile(filePath, 'utf8');
@@ -39,6 +43,7 @@ async function loadTextFile(filePath: string): Promise<string> {
   }
 }
 
+// Process a template by loading content from a file or using provided content
 async function processTemplate(
   template: TemplateContent,
   variables: Record<string, string>,
@@ -51,6 +56,7 @@ async function processTemplate(
   return substituteVariables(content, variables);
 }
 
+// Replace variables in a template string with their corresponding values
 function substituteVariables(
   template: string,
   variables: Record<string, string>,
@@ -61,6 +67,7 @@ function substituteVariables(
   );
 }
 
+// Load site-specific configuration or fall back to default
 async function loadSiteConfig(siteId: string): Promise<SiteConfig> {
   const promptsDir =
     process.env.SITE_PROMPTS_DIR ||
@@ -80,6 +87,7 @@ async function loadSiteConfig(siteId: string): Promise<SiteConfig> {
   }
 }
 
+// Process the site configuration, applying variables and loading templates
 async function processSiteConfig(
   config: SiteConfig,
   basePath: string,
@@ -96,6 +104,7 @@ async function processSiteConfig(
   return result;
 }
 
+// Get the full template for the chat prompt, including site-specific configurations
 const getFullTemplate = async (siteId: string) => {
   const promptsDir =
     process.env.SITE_PROMPTS_DIR ||
@@ -127,6 +136,7 @@ const CONDENSE_TEMPLATE = `Given the following conversation and a follow up ques
 Follow Up Input: {question}
 Standalone question:`;
 
+// Function to combine and serialize documents for the language model
 const combineDocumentsFn = (docs: Document[]) => {
   const serializedDocs = docs.map((doc) => ({
     content: doc.pageContent,
@@ -139,15 +149,16 @@ const combineDocumentsFn = (docs: Document[]) => {
   return JSON.stringify(serializedDocs);
 };
 
+// Main function to create the language model chain
 export const makeChain = async (retriever: VectorStoreRetriever) => {
   const siteId = process.env.SITE_ID || 'default';
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
 
-  // Get the full template
+  // Get the full template for the site
   const fullTemplate = await getFullTemplate(siteId);
 
-  // Replace only the dynamic variables
+  // Replace dynamic variables in the template
   const templateWithReplacedVars = fullTemplate.replace(
     /\${(context|chat_history|question)}/g,
     (match, key) => `{${key}}`,
@@ -157,6 +168,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     templateWithReplacedVars,
   );
 
+  // Initialize the language model
   const model = new ChatOpenAI({
     temperature: 0,
     modelName: 'gpt-4o',
@@ -171,7 +183,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     new StringOutputParser(),
   ]);
 
-  // Retrieve documents based on a query, then format them.
+  // Create a chain to retrieve and format documents based on a query
   const retrievalChain = retriever.pipe((docs: Document[]) => {
     if (docs.length === 0) {
       console.warn(`Warning: makeChain: No sources returned for query`);
@@ -206,8 +218,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     new StringOutputParser(),
   ]);
 
-  // First generate a standalone question, then answer it based on
-  // chat history and retrieved context documents.
+  // Combine all chains into the final conversational retrieval QA chain
   const conversationalRetrievalQAChain = RunnableSequence.from([
     {
       question: (input: AnswerChainInput) => {

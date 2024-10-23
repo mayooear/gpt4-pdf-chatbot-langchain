@@ -1,3 +1,23 @@
+/**
+ * SourcesList Component
+ *
+ * This component renders a list of sources used in generating a response.
+ * It supports various types of sources including text, audio, and YouTube videos.
+ *
+ * Key features:
+ * - Expandable/collapsible source items
+ * - Render different content types (text, audio player, YouTube embed)
+ * - Display source titles with links when available
+ * - Show library names with optional links
+ * - Expand/collapse all sources functionality
+ * - Mobile-responsive design
+ * - Markdown rendering for source content
+ * - Analytics event logging for user interactions
+ *
+ * The component is designed to handle various metadata formats and
+ * provide a consistent display across different source types.
+ */
+
 import React, { useState, useCallback } from 'react';
 import { Document } from 'langchain/document';
 import ReactMarkdown from 'react-markdown';
@@ -15,6 +35,7 @@ import {
 } from '@/utils/client/libraryMappings';
 import { DocMetadata } from '@/types/DocMetadata';
 
+// Helper function to extract the title from document metadata
 const extractTitle = (metadata: DocMetadata): string => {
   return metadata.title || metadata['pdf.info.Title'] || 'Unknown source';
 };
@@ -24,6 +45,7 @@ interface SourcesListProps {
   collectionName?: string | null;
 }
 
+// Function to transform YouTube URLs into embed URLs
 const transformYouTubeUrl = (url: string, startTime: number | undefined) => {
   const urlObj = new URL(url);
   let videoId = '';
@@ -46,10 +68,12 @@ const SourcesList: React.FC<SourcesListProps> = ({
   sources,
   collectionName = null,
 }) => {
+  // State to track expanded sources
   const [expandedSources, setExpandedSources] = useState<Set<number>>(
     new Set(),
   );
 
+  // Render audio player for audio sources
   const renderAudioPlayer = useCallback(
     (doc: Document<DocMetadata>, index: number, isExpanded: boolean) => {
       if (doc.metadata.type === 'audio') {
@@ -72,6 +96,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     [],
   );
 
+  // Render YouTube player for YouTube sources
   const renderYouTubePlayer = useCallback((doc: Document<DocMetadata>) => {
     if (doc.metadata.type === 'youtube') {
       if (!doc.metadata.url) {
@@ -111,6 +136,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     ? collectionsConfig[collectionName as CollectionKey]
     : '';
 
+  // Handle expanding/collapsing all sources
   const handleExpandAll = () => {
     if (expandedSources.size === sources.length) {
       setExpandedSources(new Set());
@@ -121,6 +147,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
   };
 
+  // Handle toggling individual source expansion
   const handleSourceToggle = (index: number) => {
     setExpandedSources((prev) => {
       const newSet = new Set(prev);
@@ -136,6 +163,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     });
   };
 
+  // Handle clicking on a source link
   const handleSourceClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     source: string,
@@ -145,6 +173,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     window.open(source, '_blank', 'noopener,noreferrer'); // Open link manually
   };
 
+  // Handle clicking on a library link
   const handleLibraryClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     library: string,
@@ -157,6 +186,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
   };
 
+  // Get the appropriate icon for each source type
   const getSourceIcon = (doc: Document<DocMetadata>) => {
     switch (doc.metadata.type) {
       case 'audio':
@@ -168,6 +198,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     }
   };
 
+  // Render the title of a source, including a link if available
   const renderSourceTitle = (doc: Document<DocMetadata>) => {
     // Extract the title using the helper function
     let sourceTitle = formatTitle(extractTitle(doc.metadata));
@@ -202,6 +233,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
     );
   };
 
+  // Render the library name, including a link if available
   const renderLibraryName = (doc: Document<DocMetadata>) => {
     const libraryName = getMappedLibraryName(doc.metadata.library);
     const libraryUrl = getLibraryUrl(doc.metadata.library);
@@ -223,6 +255,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
 
   return (
     <div className="bg-white sourcesContainer pb-4">
+      {/* Render sources header if there are sources */}
       {sources.length > 0 && (
         <div className="flex justify-between items-center w-full border-b border-gray-200 px-3 py-1">
           <div className="flex items-baseline">
@@ -248,6 +281,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
         </div>
       )}
       <div className="px-3">
+        {/* Render each source as an expandable details element */}
         {sources.map((doc, index) => {
           const isExpanded = expandedSources.has(index);
           const isLastSource = index === sources.length - 1;
@@ -259,6 +293,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
               } group`}
               open={isExpanded}
             >
+              {/* Source summary (always visible) */}
               <summary
                 onClick={(e) => {
                   e.preventDefault();
@@ -296,9 +331,11 @@ const SourcesList: React.FC<SourcesListProps> = ({
                   </div>
                 </div>
               </summary>
+              {/* Expanded source content */}
               <div className="pl-5 pb-1">
                 {isExpanded && (
                   <>
+                    {/* Render audio or YouTube player if applicable */}
                     {doc.metadata &&
                       doc.metadata.type === 'audio' &&
                       renderAudioPlayer(doc, index, isExpanded)}
@@ -307,6 +344,7 @@ const SourcesList: React.FC<SourcesListProps> = ({
                       renderYouTubePlayer(doc)}
                   </>
                 )}
+                {/* Render source content as markdown */}
                 <ReactMarkdown
                   remarkPlugins={[gfm]}
                   components={{

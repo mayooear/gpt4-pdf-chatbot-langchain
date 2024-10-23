@@ -1,4 +1,3 @@
-// This file implements the main chat interface for a Next.js application.
 // It includes features like real-time chat, collection selection, private sessions,
 // and media type filtering. The component manages chat state, handles user input,
 // and communicates with a backend API for chat responses.
@@ -37,6 +36,8 @@ import { Document } from 'langchain/document';
 import Cookies from 'js-cookie';
 
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
+import { StreamingResponseData } from '@/types/StreamingResponseData';
+import { RelatedQuestion } from '@/types/RelatedQuestion';
 
 // Main component for the chat interface
 export default function Home({
@@ -220,6 +221,133 @@ export default function Home({
     }
   }, [abortController, setLoading, setAbortController]);
 
+  const [sourceDocs, setSourceDocs] = useState<Document[] | null>(null);
+  const [lastRelatedQuestionsUpdate, setLastRelatedQuestionsUpdate] = useState<
+    string | null
+  >(null);
+
+  const accumulatedResponseRef = useRef('');
+
+  const updateMessageState = useCallback(
+    (newResponse: string, newSourceDocs: Document[] | null) => {
+      setMessageState((prevState) => {
+        const updatedMessages = [...prevState.messages];
+        const lastMessage = updatedMessages[updatedMessages.length - 1];
+        if (lastMessage.type === 'apiMessage') {
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            message: newResponse,
+            sourceDocs: newSourceDocs,
+          };
+        } else {
+          updatedMessages.push({
+            type: 'apiMessage',
+            message: newResponse,
+            sourceDocs: newSourceDocs,
+          } as ExtendedAIMessage);
+        }
+        return {
+          ...prevState,
+          messages: updatedMessages,
+          history: [
+            ...prevState.history.slice(0, -1),
+            [prevState.history[prevState.history.length - 1][0], newResponse],
+          ],
+        };
+      });
+
+      scrollToBottom();
+    },
+    [setMessageState, scrollToBottom],
+  );
+
+  const fetchRelatedQuestions = useCallback(async (docId: string) => {
+    try {
+      const response = await fetch('/api/relatedQuestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch related questions');
+      }
+
+      const data = await response.json();
+      return data.relatedQuestions as RelatedQuestion[];
+    } catch (error) {
+      console.error('Error fetching related questions:', error);
+      return null;
+    }
+  }, []);
+
+  const handleStreamingResponse = useCallback(
+    (data: StreamingResponseData) => {
+      if (data.token) {
+        accumulatedResponseRef.current += data.token;
+        updateMessageState(accumulatedResponseRef.current, sourceDocs);
+      }
+
+      if (data.sourceDocs) {
+        setSourceDocs(data.sourceDocs);
+      }
+
+      if (data.done) {
+        setLoading(false);
+      }
+
+      if (data.error) {
+        setError(data.error);
+      }
+
+      if (data.docId) {
+        setMessageState((prevState) => {
+          const updatedMessages = [...prevState.messages];
+          const lastMessage = updatedMessages[updatedMessages.length - 1];
+          if (lastMessage.type === 'apiMessage') {
+            updatedMessages[updatedMessages.length - 1] = {
+              ...lastMessage,
+              docId: data.docId,
+            };
+          }
+          return {
+            ...prevState,
+            messages: updatedMessages,
+          };
+        });
+
+        // Fetch related questions after receiving docId
+        fetchRelatedQuestions(data.docId).then((relatedQuestions) => {
+          if (relatedQuestions) {
+            setMessageState((prevState) => ({
+              ...prevState,
+              messages: prevState.messages.map((msg) =>
+                msg.docId === data.docId ? { ...msg, relatedQuestions } : msg,
+              ),
+            }));
+            setLastRelatedQuestionsUpdate(data.docId ?? null);
+          }
+        });
+      }
+    },
+    [
+      updateMessageState,
+      sourceDocs,
+      setLoading,
+      setError,
+      setMessageState,
+      fetchRelatedQuestions,
+    ],
+  );
+
+  // Effect to scroll to bottom after related questions are added
+  useEffect(() => {
+    if (lastRelatedQuestionsUpdate) {
+      scrollToBottom();
+      setLastRelatedQuestionsUpdate(null);
+    }
+  }, [lastRelatedQuestionsUpdate, scrollToBottom]);
+
   // Main function to handle chat submission
   const handleSubmit = async (e: React.FormEvent, submittedQuery: string) => {
     e.preventDefault();
@@ -290,9 +418,6 @@ export default function Home({
 
       const reader = data.getReader();
       const decoder = new TextDecoder();
-      let accumulatedResponse = '';
-      let sourceDocs: Document[] | null = null;
-      let isDone = false;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -306,35 +431,10 @@ export default function Home({
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const jsonData = JSON.parse(line.slice(5));
-
-              if (jsonData.token) {
-                accumulatedResponse += jsonData.token;
-                updateMessageState(accumulatedResponse, sourceDocs);
-              } else if (jsonData.sourceDocs) {
-                sourceDocs = jsonData.sourceDocs;
-              } else if (jsonData.done) {
-                isDone = true;
-              } else if (jsonData.error) {
-                throw new Error(jsonData.error);
-              } else if (jsonData.docId) {
-                // Update the last message with the docId
-                setMessageState((prevState) => {
-                  const updatedMessages = [...prevState.messages];
-                  const lastMessage =
-                    updatedMessages[updatedMessages.length - 1];
-                  if (lastMessage.type === 'apiMessage') {
-                    updatedMessages[updatedMessages.length - 1] = {
-                      ...lastMessage,
-                      docId: jsonData.docId,
-                    };
-                  }
-                  return {
-                    ...prevState,
-                    messages: updatedMessages,
-                  };
-                });
-              }
+              const jsonData = JSON.parse(
+                line.slice(5),
+              ) as StreamingResponseData;
+              handleStreamingResponse(jsonData);
             } catch (parseError) {
               console.error('Error parsing JSON:', parseError);
             }
@@ -353,44 +453,6 @@ export default function Home({
       );
       setLoading(false);
     }
-  };
-
-  // Function to update message state with incoming API response
-  const updateMessageState = (
-    accumulatedResponse: string,
-    sourceDocs: Document[] | null,
-  ) => {
-    setMessageState((prevState) => {
-      const updatedMessages = [...prevState.messages];
-      const lastMessage = updatedMessages[updatedMessages.length - 1];
-
-      if (lastMessage.type === 'apiMessage') {
-        updatedMessages[updatedMessages.length - 1] = {
-          ...lastMessage,
-          message: accumulatedResponse,
-          sourceDocs: sourceDocs,
-        };
-      } else {
-        updatedMessages.push({
-          type: 'apiMessage',
-          message: accumulatedResponse,
-          sourceDocs: sourceDocs,
-        } as ExtendedAIMessage);
-      }
-
-      return {
-        ...prevState,
-        messages: updatedMessages,
-        history: [
-          ...prevState.history.slice(0, -1),
-          [
-            prevState.history[prevState.history.length - 1][0],
-            accumulatedResponse,
-          ],
-        ],
-      };
-    });
-    scrollToBottom();
   };
 
   // Function to handle 'Enter' key press in the input field

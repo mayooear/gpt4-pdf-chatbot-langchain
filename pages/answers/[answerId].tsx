@@ -1,3 +1,6 @@
+// This component renders a single answer page, fetching and displaying the answer details,
+// handling likes, and providing admin functionality for deletion.
+
 import { SiteConfig } from '@/types/siteConfig';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -25,6 +28,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
   const { isSudoUser } = useSudo();
   const [likeError, setLikeError] = useState<string | null>(null);
 
+  // Fetch the answer data when the component mounts or answerId changes
   useEffect(() => {
     const fetchAnswer = async () => {
       const response = await fetch(`/api/answers?answerIds=${answerId}`);
@@ -41,6 +45,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     }
   }, [answerId]);
 
+  // Fetch like statuses for the answer when it's loaded
   useEffect(() => {
     const fetchLikeStatuses = async (answerIds: string[]) => {
       try {
@@ -63,6 +68,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     }
   }, [answer]);
 
+  // Handle like count changes
   const handleLikeCountChange = (answerId: string, newLikeCount: number) => {
     try {
       if (answer) {
@@ -80,6 +86,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     }
   };
 
+  // Handle copying the answer link to clipboard
   const handleCopyLink = () => {
     const url = `${window.location.origin}/answers/${answerId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -89,6 +96,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     });
   };
 
+  // Handle answer deletion (admin functionality)
   const handleDelete = async (answerId: string) => {
     if (confirm('Are you sure you want to delete this answer?')) {
       try {
@@ -110,6 +118,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     }
   };
 
+  // Render "not found" message if the answer doesn't exist
   if (notFound) {
     return (
       <Layout siteConfig={siteConfig}>
@@ -120,6 +129,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     );
   }
 
+  // Render loading spinner while fetching the answer
   if (!answer) {
     return (
       <Layout siteConfig={siteConfig}>
@@ -131,6 +141,7 @@ const SingleAnswer = ({ siteConfig }: SingleAnswerProps) => {
     );
   }
 
+  // Render the answer details
   return (
     <Layout siteConfig={siteConfig}>
       <Head>
