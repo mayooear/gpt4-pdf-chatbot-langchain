@@ -157,7 +157,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <div className="flex-grow">
             <div className="max-w-none">
               {/* Render sources if available */}
-              {message.sourceDocs && (
+              {message.sourceDocs && message.sourceDocs.length > 0 && (
                 <div className="mb-2">
                   <SourcesList
                     sources={message.sourceDocs}
