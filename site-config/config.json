@@ -165,10 +165,10 @@
     "queriesPerUserPerDay": 100
   },
   "crystal": {
-    "name": "The Crystal Clarity Chatbot",
-    "shortname": "Crystal Clarity Chatbot",
+    "name": "Crystal Clarity Library Magic",
+    "shortname": "Library Magic",
     "tagline": "Explore the Crystal Clarity Library",
-    "greeting": "What can I answer for you using our library?",
+    "greeting": "What can Library Magic answer for you?",
     "welcome_popup_heading": "Welcome!",
     "other_visitors_reference": "other visitors",
     "chatPlaceholder": "Recommendations for developing healthy relationships?",
