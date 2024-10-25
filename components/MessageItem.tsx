@@ -33,6 +33,7 @@ interface MessageItemProps {
   lastMessageRef: React.RefObject<HTMLDivElement> | null;
   messageKey: string;
   voteError: string | null;
+  allowAllAnswersPage: boolean;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -54,6 +55,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   lastMessageRef,
   messageKey,
   voteError,
+  allowAllAnswersPage,
 }) => {
   const [likeError, setLikeError] = useState<string | null>(null);
 
@@ -105,8 +107,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const renderRelatedQuestions = (
     relatedQuestions: RelatedQuestion[] | undefined,
   ) => {
+    if (!allowAllAnswersPage) {
+      return null;
+    }
     if (!relatedQuestions || !Array.isArray(relatedQuestions)) {
-      console.error('relatedQuestions is not an array:', relatedQuestions);
+      console.error(
+        'relatedQuestions is empty or not an array:',
+        relatedQuestions,
+      );
       return null;
     }
 

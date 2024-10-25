@@ -679,6 +679,7 @@ export default function Home({
                   handleVote={handleVote}
                   lastMessageRef={lastMessageRef}
                   voteError={voteError}
+                  allowAllAnswersPage={siteConfig?.allowAllAnswersPage ?? false}
                 />
               ))}
               <div ref={bottomOfListRef} style={{ height: '1px' }} />

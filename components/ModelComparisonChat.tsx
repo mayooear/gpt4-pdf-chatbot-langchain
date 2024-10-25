@@ -195,6 +195,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                     messageKey={`model${modelKey}-${index}`}
                     voteError={null}
                     privateSession={false}
+                    allowAllAnswersPage={false}
                   />
                 ),
               )}
