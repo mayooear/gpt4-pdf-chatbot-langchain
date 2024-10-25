@@ -65,7 +65,7 @@ export default function BaseHeader({
                     isActive(item.path) ? 'text-slate-800 font-bold' : ''
                   }`}
                 >
-                  {item.label}
+                  <span dangerouslySetInnerHTML={{ __html: item.label }} />
                 </Link>
               ))}
             </div>

@@ -40,7 +40,7 @@
       "logo": "ananda-logo.png",
       "navItems": [
         { "label": "Ask", "path": "/" },
-        { "label": "All Answers", "path": "/answers" }
+        { "label": "All&nbsp;Answers", "path": "/answers" }
       ]
     },
     "footer": {
@@ -98,7 +98,7 @@
       "logo": "ananda-logo.png",
       "navItems": [
         { "label": "Ask", "path": "/" },
-        { "label": "All Answers", "path": "/answers" }
+        { "label": "All&nbsp;Answers", "path": "/answers" }
       ]
     },
     "footer": {
