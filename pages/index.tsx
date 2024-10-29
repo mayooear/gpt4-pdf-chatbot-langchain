@@ -579,12 +579,14 @@ export default function Home({
   // Effect to set initial collection and focus input on component mount
   useEffect(() => {
     
+    // Retrieve and set the collection from the cookie
+    // TODO: This is a hack for jairam site test
     const savedCollection =
       Cookies.get('selectedCollection') ||
       (process.env.SITE_ID === 'jairam' ? 'whole_library' : 'master_swami');
     setCollection(savedCollection);
 
-    if (!isLoadingQueries) {
+    if (!isLoadingQueries && window.innerWidth > 768) {
       textAreaRef.current?.focus();
     }
   }, [isLoadingQueries]);
