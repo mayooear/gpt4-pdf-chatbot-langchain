@@ -237,7 +237,7 @@ export default function Home({
           updatedMessages[updatedMessages.length - 1] = {
             ...lastMessage,
             message: newResponse,
-            sourceDocs: newSourceDocs,
+            sourceDocs: newSourceDocs || lastMessage.sourceDocs, // Use new source docs if available
           };
         } else {
           updatedMessages.push({
@@ -290,6 +290,8 @@ export default function Home({
 
       if (data.sourceDocs) {
         setSourceDocs(data.sourceDocs);
+        // Update the message state with the new source docs
+        updateMessageState(accumulatedResponseRef.current, data.sourceDocs);
       }
 
       if (data.done) {
@@ -680,6 +682,7 @@ export default function Home({
                   handleVote={handleVote}
                   lastMessageRef={lastMessageRef}
                   voteError={voteError}
+                  allowAllAnswersPage={siteConfig?.allowAllAnswersPage ?? false}
                 />
               ))}
               <div ref={bottomOfListRef} style={{ height: '1px' }} />

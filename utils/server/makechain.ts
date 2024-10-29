@@ -150,7 +150,10 @@ const combineDocumentsFn = (docs: Document[]) => {
 };
 
 // Main function to create the language model chain
-export const makeChain = async (retriever: VectorStoreRetriever) => {
+export const makeChain = async (
+  retriever: VectorStoreRetriever,
+  model: string = 'gpt-4o',
+) => {
   const siteId = process.env.SITE_ID || 'default';
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
@@ -168,10 +171,10 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
     templateWithReplacedVars,
   );
 
-  // Initialize the language model
-  const model = new ChatOpenAI({
+  // Initialize the language model with the specified model
+  const languageModel = new ChatOpenAI({
     temperature: 0,
-    modelName: 'gpt-4o',
+    modelName: model,
     streaming: true,
   }) as BaseLanguageModel;
 
@@ -179,7 +182,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
   // the chat history to allow effective vectorstore querying.
   const standaloneQuestionChain = RunnableSequence.from([
     condenseQuestionPrompt,
-    model,
+    languageModel,
     new StringOutputParser(),
   ]);
 
@@ -214,7 +217,7 @@ export const makeChain = async (retriever: VectorStoreRetriever) => {
       ]),
     },
     answerPrompt,
-    model,
+    languageModel,
     new StringOutputParser(),
   ]);
 

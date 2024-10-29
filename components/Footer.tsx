@@ -40,6 +40,12 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
             >
               Manage Blessing
             </Link>
+            <Link
+              href="/admin/model-comparison"
+              className="text-sm hover:text-slate-600 cursor-pointer mx-2"
+            >
+              Model Comparison
+            </Link>
           </div>
         </div>
       )}

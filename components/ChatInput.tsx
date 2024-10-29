@@ -66,6 +66,7 @@ interface ChatInputProps {
   isNearBottom: boolean;
   setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
   isLoadingQueries: boolean;
+  showPrivateSessionOptions?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -91,6 +92,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setQuery,
   setIsNearBottom,
   isLoadingQueries,
+  showPrivateSessionOptions = true,
 }) => {
   // State variables for managing component behavior
   const [, setLocalQuery] = useState<string>('');
@@ -339,18 +341,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   />
                 </div>
               )}
-              {!privateSession && siteConfig?.allowPrivateSessions && (
-                <button
-                  type="button"
-                  onClick={handlePrivateSessionChange}
-                  className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
-                >
-                  <span className="material-icons text-sm mr-1 align-middle">
-                    lock
-                  </span>
-                  <span className="align-middle">Start Private Session</span>
-                </button>
-              )}
+              {showPrivateSessionOptions &&
+                !privateSession &&
+                siteConfig?.allowPrivateSessions && (
+                  <button
+                    type="button"
+                    onClick={handlePrivateSessionChange}
+                    className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
+                  >
+                    <span className="material-icons text-sm mr-1 align-middle">
+                      lock
+                    </span>
+                    <span className="align-middle">Start Private Session</span>
+                  </button>
+                )}
             </div>
           )}
 
