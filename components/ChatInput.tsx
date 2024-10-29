@@ -19,7 +19,7 @@
  * allowing for easy customization of features and behavior.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import validator from 'validator';
 import styles from '@/styles/Home.module.css';
