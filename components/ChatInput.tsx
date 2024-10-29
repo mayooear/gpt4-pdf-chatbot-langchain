@@ -101,7 +101,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState(false);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  //const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Effect to set initial suggestions expanded state based on visit count
   useEffect(() => {
@@ -153,8 +153,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // Function to focus on the input field
   const focusInput = () => {
     setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
+      if (textAreaRef.current) {
+        textAreaRef.current.focus();
       }
     }, 0);
   };
@@ -249,7 +249,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onKeyDown={onEnter}
               onChange={handleInputChange}
               value={input}
-              ref={inputRef}
+              ref={textAreaRef}
               autoFocus={false}
               rows={1}
               maxLength={4000}

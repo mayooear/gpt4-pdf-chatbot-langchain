@@ -294,9 +294,6 @@ export default function Home({
         updateMessageState(accumulatedResponseRef.current, data.sourceDocs);
       }
 
-      if (data.done) {
-        setLoading(false);
-      }
 
       if (data.error) {
         setError(data.error);
@@ -443,6 +440,9 @@ export default function Home({
           }
         }
       }
+
+      setLoading(false);
+
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(
@@ -578,19 +578,16 @@ export default function Home({
 
   // Effect to set initial collection and focus input on component mount
   useEffect(() => {
-    // Retrieve and set the collection from the cookie
-    // TODO: This is a hack for jairam site test
+    
     const savedCollection =
       Cookies.get('selectedCollection') ||
       (process.env.SITE_ID === 'jairam' ? 'whole_library' : 'master_swami');
     setCollection(savedCollection);
 
-    // Focus the text area only on the client side after the component has mounted.
-    // Check if the device is not mobile (e.g., width greater than 768px for iPad)
-    if (window.innerWidth > 768) {
+    if (!isLoadingQueries) {
       textAreaRef.current?.focus();
     }
-  }, []);
+  }, [isLoadingQueries]);
 
   // Custom hook to check if multiple collections are available
   const hasMultipleCollections = useMultipleCollections(
