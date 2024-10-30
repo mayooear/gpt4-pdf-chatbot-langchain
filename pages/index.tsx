@@ -294,9 +294,6 @@ export default function Home({
         updateMessageState(accumulatedResponseRef.current, data.sourceDocs);
       }
 
-      if (data.done) {
-        setLoading(false);
-      }
 
       if (data.error) {
         setError(data.error);
@@ -443,6 +440,9 @@ export default function Home({
           }
         }
       }
+
+      setLoading(false);
+
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(
