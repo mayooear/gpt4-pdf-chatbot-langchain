@@ -26,7 +26,15 @@ export default async function handler(
   }
 
   try {
-    const { query, modelA, modelB, mediaTypes, collection } = req.body;
+    const {
+      query,
+      modelA,
+      modelB,
+      temperatureA,
+      temperatureB,
+      mediaTypes,
+      collection,
+    } = req.body;
 
     const pinecone = await getPineconeClient();
     const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME || '');
@@ -94,8 +102,8 @@ export default async function handler(
     const setupA = await setupRetrieverAndDocumentPromise();
     const setupB = await setupRetrieverAndDocumentPromise();
 
-    const chainA = await makeChain(setupA.retriever, modelA);
-    const chainB = await makeChain(setupB.retriever, modelB);
+    const chainA = await makeChain(setupA.retriever, modelA, temperatureA);
+    const chainB = await makeChain(setupB.retriever, modelB, temperatureB);
 
     const [responseA, responseB, docsA, docsB] = await Promise.all([
       chainA.invoke({ question: query, chat_history: '' }),

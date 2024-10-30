@@ -34,6 +34,7 @@ interface MessageItemProps {
   messageKey: string;
   voteError: string | null;
   allowAllAnswersPage: boolean;
+  showSourcesBelow?: boolean;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -56,6 +57,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   messageKey,
   voteError,
   allowAllAnswersPage,
+  showSourcesBelow = false, // Default to showing sources above
 }) => {
   const [likeError, setLikeError] = useState<string | null>(null);
 
@@ -149,6 +151,24 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
   };
 
+  const renderSources = () => {
+    if (message.sourceDocs && message.sourceDocs.length > 0) {
+      return (
+        <div className={showSourcesBelow ? 'mt-2' : 'mb-2'}>
+          <SourcesList
+            sources={message.sourceDocs}
+            collectionName={
+              collectionChanged && hasMultipleCollections
+                ? message.collection
+                : null
+            }
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Fragment key={messageKey}>
       {/* Add a horizontal line between AI messages */}
@@ -164,19 +184,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <div className="flex-shrink-0 mr-2">{icon}</div>
           <div className="flex-grow">
             <div className="max-w-none">
-              {/* Render sources if available */}
-              {message.sourceDocs && message.sourceDocs.length > 0 && (
-                <div className="mb-2">
-                  <SourcesList
-                    sources={message.sourceDocs}
-                    collectionName={
-                      collectionChanged && hasMultipleCollections
-                        ? message.collection
-                        : null
-                    }
-                  />
-                </div>
-              )}
+              {/* Render sources above if not showSourcesBelow */}
+              {!showSourcesBelow && renderSources()}
+
               {/* Render message content */}
               <ReactMarkdown
                 remarkPlugins={[gfm]}
@@ -191,6 +201,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   .replace(/\n/g, '  \n')
                   .replace(/\n\n/g, '\n\n')}
               </ReactMarkdown>
+
+              {/* Render sources below if showSourcesBelow */}
+              {showSourcesBelow && renderSources()}
             </div>
             {/* Action icons container */}
             <div className="mt-2 flex items-center space-x-2">

@@ -20,6 +20,8 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const [modelB, setModelB] = useState(
     () => localStorage.getItem('modelB') || 'gpt-3.5-turbo',
   );
+  const [temperatureA, setTemperatureA] = useState(0);
+  const [temperatureB, setTemperatureB] = useState(0);
   const [messagesA, setMessagesA] = useState<ExtendedAIMessage[]>([]);
   const [messagesB, setMessagesB] = useState<ExtendedAIMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,21 +40,21 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     localStorage.setItem('modelA', modelA);
     localStorage.setItem('modelB', modelB);
 
-    if (modelA === modelB) {
+    if (modelA === modelB && temperatureA === temperatureB) {
       setModelError(
-        'Both models are the same. Please select different models for comparison.',
+        'Both models and temperatures are the same. Please select different models or temperatures for comparison.',
       );
     } else {
       setModelError(null);
     }
-  }, [modelA, modelB]);
+  }, [modelA, modelB, temperatureA, temperatureB]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent, query: string) => {
       e.preventDefault();
-      if (modelA === modelB) {
+      if (modelA === modelB && temperatureA === temperatureB) {
         setError(
-          'Cannot compare identical models. Please select different models.',
+          'Cannot compare identical models with the same temperature. Please select different models or temperatures.',
         );
         return;
       }
@@ -75,6 +77,8 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             query,
             modelA,
             modelB,
+            temperatureA,
+            temperatureB,
             mediaTypes,
             collection,
           }),
@@ -115,7 +119,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         setInput(''); // Clear input after response is received
       }
     },
-    [modelA, modelB, mediaTypes, collection],
+    [modelA, modelB, temperatureA, temperatureB, mediaTypes, collection],
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -146,21 +150,42 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             <h2 className="text-xl font-semibold mb-2">
               Model {modelKey}: {modelKey === 'A' ? modelA : modelB}
             </h2>
-            <select
-              value={modelKey === 'A' ? modelA : modelB}
-              onChange={(e) =>
-                modelKey === 'A'
-                  ? setModelA(e.target.value)
-                  : setModelB(e.target.value)
-              }
-              className="w-full p-2 border rounded"
-            >
-              {modelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2">
+              <select
+                value={modelKey === 'A' ? modelA : modelB}
+                onChange={(e) =>
+                  modelKey === 'A'
+                    ? setModelA(e.target.value)
+                    : setModelB(e.target.value)
+                }
+                className="w-full p-2 border rounded"
+              >
+                {modelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Temperature:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={modelKey === 'A' ? temperatureA : temperatureB}
+                  onChange={(e) =>
+                    modelKey === 'A'
+                      ? setTemperatureA(parseFloat(e.target.value))
+                      : setTemperatureB(parseFloat(e.target.value))
+                  }
+                  className="flex-grow"
+                />
+                <span className="text-sm">
+                  {modelKey === 'A' ? temperatureA : temperatureB}
+                </span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -196,6 +221,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                     voteError={null}
                     privateSession={false}
                     allowAllAnswersPage={false}
+                    showSourcesBelow={true}
                   />
                 ),
               )}
