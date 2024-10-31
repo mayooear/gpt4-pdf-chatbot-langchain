@@ -24,7 +24,15 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
   }
 
   if (!isSudoUser) {
-    return <div>Access denied. Admin privileges required.</div>;
+    return (
+      <Layout siteConfig={siteConfig}>
+        <div className="flex justify-center items-center h-screen">
+          <p className="text-lg text-gray-600">
+            Access denied. Admin privileges required.
+          </p>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -42,7 +50,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await loadSiteConfig(siteId);
 
   if (!siteConfig) {
-    return { notFound: true };
+    return {
+      redirect: {
+        destination: '/404',
+        permanent: false,
+      },
+    };
   }
 
   const { req, res } = context;
@@ -52,7 +65,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   );
 
   if (!sudoStatus.sudoCookieValue) {
-    return { notFound: true };
+    return {
+      redirect: {
+        destination: '/404',
+        permanent: false,
+      },
+    };
   }
 
   return { props: { siteConfig } };
