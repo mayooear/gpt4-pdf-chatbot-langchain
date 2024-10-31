@@ -237,7 +237,7 @@ export default function Home({
           updatedMessages[updatedMessages.length - 1] = {
             ...lastMessage,
             message: newResponse,
-            sourceDocs: newSourceDocs || lastMessage.sourceDocs, // Use new source docs if available
+            sourceDocs: newSourceDocs || lastMessage.sourceDocs,
           };
         } else {
           updatedMessages.push({
@@ -294,6 +294,11 @@ export default function Home({
         updateMessageState(accumulatedResponseRef.current, data.sourceDocs);
       }
 
+      if (data.done) {
+        // Reset accumulated response when done
+        accumulatedResponseRef.current = '';
+        setLoading(false);
+      }
 
       if (data.error) {
         setError(data.error);
@@ -365,6 +370,9 @@ export default function Home({
     setIsNearBottom(true);
     setLoading(true);
     setError(null);
+
+    // Reset accumulated response at the start of each new query
+    accumulatedResponseRef.current = '';
 
     // Add user message to the state
     setMessageState((prevState) => ({
@@ -442,7 +450,6 @@ export default function Home({
       }
 
       setLoading(false);
-
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(
