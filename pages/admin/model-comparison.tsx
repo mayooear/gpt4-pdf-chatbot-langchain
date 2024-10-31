@@ -5,7 +5,10 @@ import { useSudo } from '@/contexts/SudoContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
-import ModelComparisonChat from '@/components/ModelComparisonChat';
+import ModelComparisonChat, {
+  SavedState,
+} from '@/components/ModelComparisonChat';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface ModelComparisonProps {
   siteConfig: SiteConfig | null;
@@ -14,6 +17,21 @@ interface ModelComparisonProps {
 const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
   const { isSudoUser, checkSudoStatus } = useSudo();
   const [isLoading, setIsLoading] = useState(true);
+  const [savedState, setSavedState] = useLocalStorage<SavedState>(
+    'modelComparisonState',
+    {
+      modelA: 'gpt-4o',
+      modelB: 'gpt-3.5-turbo',
+      temperatureA: 0,
+      temperatureB: 0,
+      mediaTypes: {
+        text: true,
+        audio: true,
+        youtube: true,
+      },
+      collection: 'master_swami',
+    },
+  );
 
   useEffect(() => {
     checkSudoStatus().then(() => setIsLoading(false));
@@ -39,7 +57,11 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Model Comparison</h1>
-        <ModelComparisonChat siteConfig={siteConfig} />
+        <ModelComparisonChat
+          siteConfig={siteConfig}
+          savedState={savedState}
+          onStateChange={setSavedState}
+        />
       </div>
     </Layout>
   );
