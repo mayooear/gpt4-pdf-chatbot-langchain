@@ -7,19 +7,34 @@ import { StreamingResponseData } from '@/types/StreamingResponseData';
 import { Document } from 'langchain/document';
 import { DocMetadata } from '@/types/DocMetadata';
 
+export interface SavedState {
+  modelA: string;
+  modelB: string;
+  temperatureA: number;
+  temperatureB: number;
+  mediaTypes: {
+    text: boolean;
+    audio: boolean;
+    youtube: boolean;
+  };
+  collection: string;
+}
+
 interface ModelComparisonChatProps {
   siteConfig: SiteConfig | null;
+  savedState: SavedState;
+  onStateChange: (state: SavedState) => void;
 }
 
 const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   siteConfig,
+  savedState,
+  onStateChange,
 }) => {
-  const [modelA, setModelA] = useState(
-    () => localStorage.getItem('modelA') || 'gpt-4o',
-  );
-  const [modelB, setModelB] = useState(
-    () => localStorage.getItem('modelB') || 'gpt-3.5-turbo',
-  );
+  const [modelA, setModelA] = useState(savedState.modelA);
+  const [modelB, setModelB] = useState(savedState.modelB);
+  const [temperatureA, setTemperatureA] = useState(savedState.temperatureA);
+  const [temperatureB, setTemperatureB] = useState(savedState.temperatureB);
   const [messagesA, setMessagesA] = useState<ExtendedAIMessage[]>([]);
   const [messagesB, setMessagesB] = useState<ExtendedAIMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,32 +42,44 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const [modelError, setModelError] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const [mediaTypes, setMediaTypes] = useState({
-    text: true,
-    audio: true,
-    youtube: true,
-  });
-  const [collection, setCollection] = useState('master_swami');
+  const [mediaTypes, setMediaTypes] = useState(savedState.mediaTypes);
+  const [collection, setCollection] = useState(savedState.collection);
 
   useEffect(() => {
-    localStorage.setItem('modelA', modelA);
-    localStorage.setItem('modelB', modelB);
-
-    if (modelA === modelB) {
+    if (modelA === modelB && temperatureA === temperatureB) {
       setModelError(
-        'Both models are the same. Please select different models for comparison.',
+        'Both models and temperatures are the same. Please select different models or temperatures for comparison.',
       );
     } else {
       setModelError(null);
     }
-  }, [modelA, modelB]);
+  }, [modelA, modelB, temperatureA, temperatureB]);
+
+  useEffect(() => {
+    onStateChange({
+      modelA,
+      modelB,
+      temperatureA,
+      temperatureB,
+      mediaTypes,
+      collection,
+    });
+  }, [
+    modelA,
+    modelB,
+    temperatureA,
+    temperatureB,
+    mediaTypes,
+    collection,
+    onStateChange,
+  ]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent, query: string) => {
       e.preventDefault();
-      if (modelA === modelB) {
+      if (modelA === modelB && temperatureA === temperatureB) {
         setError(
-          'Cannot compare identical models. Please select different models.',
+          'Cannot compare identical models with the same temperature. Please select different models or temperatures.',
         );
         return;
       }
@@ -64,8 +91,8 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         type: 'userMessage',
         message: query,
       };
-      setMessagesA((prev) => [...prev, userMessage]);
-      setMessagesB((prev) => [...prev, userMessage]);
+      setMessagesA((prev: ExtendedAIMessage[]) => [...prev, userMessage]);
+      setMessagesB((prev: ExtendedAIMessage[]) => [...prev, userMessage]);
 
       try {
         const response = await fetch('/api/model-comparison', {
@@ -75,6 +102,8 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             query,
             modelA,
             modelB,
+            temperatureA,
+            temperatureB,
             mediaTypes,
             collection,
           }),
@@ -88,7 +117,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         const responseA: StreamingResponseData = data.responseA;
         const responseB: StreamingResponseData = data.responseB;
 
-        setMessagesA((prev) => [
+        setMessagesA((prev: ExtendedAIMessage[]) => [
           ...prev,
           {
             type: 'apiMessage',
@@ -98,7 +127,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
               | undefined,
           },
         ]);
-        setMessagesB((prev) => [
+        setMessagesB((prev: ExtendedAIMessage[]) => [
           ...prev,
           {
             type: 'apiMessage',
@@ -115,7 +144,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         setInput(''); // Clear input after response is received
       }
     },
-    [modelA, modelB, mediaTypes, collection],
+    [modelA, modelB, temperatureA, temperatureB, mediaTypes, collection],
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -123,7 +152,10 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   };
 
   const handleMediaTypeChange = (type: 'text' | 'audio' | 'youtube') => {
-    setMediaTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+    setMediaTypes((prev: SavedState['mediaTypes']) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
   };
 
   const handleCollectionChange = (newCollection: string) => {
@@ -146,21 +178,42 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             <h2 className="text-xl font-semibold mb-2">
               Model {modelKey}: {modelKey === 'A' ? modelA : modelB}
             </h2>
-            <select
-              value={modelKey === 'A' ? modelA : modelB}
-              onChange={(e) =>
-                modelKey === 'A'
-                  ? setModelA(e.target.value)
-                  : setModelB(e.target.value)
-              }
-              className="w-full p-2 border rounded"
-            >
-              {modelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2">
+              <select
+                value={modelKey === 'A' ? modelA : modelB}
+                onChange={(e) =>
+                  modelKey === 'A'
+                    ? setModelA(e.target.value)
+                    : setModelB(e.target.value)
+                }
+                className="w-full p-2 border rounded"
+              >
+                {modelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Temperature:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={modelKey === 'A' ? temperatureA : temperatureB}
+                  onChange={(e) =>
+                    modelKey === 'A'
+                      ? setTemperatureA(parseFloat(e.target.value))
+                      : setTemperatureB(parseFloat(e.target.value))
+                  }
+                  className="flex-grow"
+                />
+                <span className="text-sm">
+                  {modelKey === 'A' ? temperatureA : temperatureB}
+                </span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -172,7 +225,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
           <div key={modelKey} className="flex-1">
             <div className="border rounded p-4 min-h-[300px] relative">
               {(modelKey === 'A' ? messagesA : messagesB).map(
-                (message, index) => (
+                (message: ExtendedAIMessage, index: number) => (
                   <MessageItem
                     key={index}
                     message={message}
@@ -196,6 +249,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                     voteError={null}
                     privateSession={false}
                     allowAllAnswersPage={false}
+                    showSourcesBelow={true}
                   />
                 ),
               )}

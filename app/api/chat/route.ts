@@ -237,13 +237,7 @@ async function setupAndExecuteLanguageModelChain(
   retriever: ReturnType<PineconeStore['asRetriever']>,
   sanitizedQuestion: string,
   history: [string, string][],
-  sendData: (data: {
-    token?: string;
-    sourceDocs?: Document[];
-    done?: boolean;
-    error?: string;
-    docId?: string;
-  }) => void,
+  sendData: (data: StreamingResponseData) => void,
 ): Promise<string> {
   // Create language model chain
   const chain = await makeChain(retriever);

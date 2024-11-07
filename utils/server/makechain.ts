@@ -153,6 +153,7 @@ const combineDocumentsFn = (docs: Document[]) => {
 export const makeChain = async (
   retriever: VectorStoreRetriever,
   model: string = 'gpt-4o',
+  temperature: number = 0,
 ) => {
   const siteId = process.env.SITE_ID || 'default';
   const condenseQuestionPrompt =
@@ -171,12 +172,13 @@ export const makeChain = async (
     templateWithReplacedVars,
   );
 
-  // Initialize the language model with the specified model
+  // Initialize the language model with the specified model and temperature
   const languageModel = new ChatOpenAI({
-    temperature: 0,
+    temperature: temperature,
     modelName: model,
     streaming: true,
   }) as BaseLanguageModel;
+  console.log('temperature', temperature);
 
   // Rephrase the initial question into a dereferenced standalone question based on
   // the chat history to allow effective vectorstore querying.
