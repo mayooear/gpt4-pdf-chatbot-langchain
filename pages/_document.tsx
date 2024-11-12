@@ -10,6 +10,12 @@ export default function Document() {
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
+        {/* Add Apple Touch Icon */}
+        <link 
+          rel="apple-touch-icon" 
+          sizes="180x180" 
+          href="/apple-touch-icon.png"
+        />
       </Head>
       <body>
         {/* Main content will be injected here */}
