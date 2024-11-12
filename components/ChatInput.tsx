@@ -114,7 +114,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (!loading && hasInteracted) {
       setLocalQuery('');
       if (textAreaRef.current) {
+        // 1. Reset to auto - now textarea temporarily collapses to fit content
         textAreaRef.current.style.height = 'auto';
+        // 2. Now we can get the true height needed
+        textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
       }
     }
   }, [loading, hasInteracted, textAreaRef]);
@@ -238,6 +241,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const placeholderText = getChatPlaceholder(siteConfig) || 'Ask a question...';
 
+  // Function to adjust textarea height
+  const adjustTextAreaHeight = () => {
+    if (textAreaRef.current) {
+      // 1. Reset to auto - now textarea temporarily collapses to fit content
+      textAreaRef.current.style.height = 'auto';
+      // 2. Now we can get the true height needed
+      textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
+    }
+  };
+
   // Render the chat input interface
   return (
     <div className={`${styles.center} w-full mt-4 px-2 md:px-0`}>
@@ -247,7 +260,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center space-x-2 mb-4">
             <textarea
               onKeyDown={onEnter}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                adjustTextAreaHeight();
+              }}
               value={input}
               ref={textAreaRef}
               autoFocus={false}
@@ -256,7 +272,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               id="userInput"
               name="userInput"
               placeholder={hasInteracted ? '' : placeholderText}
-              className="flex-grow p-2 border border-gray-300 rounded-md resize-none focus:outline-none"
+              className="flex-grow p-2 border border-gray-300 rounded-md resize-none focus:outline-none min-h-[40px] overflow-hidden"
+              style={{ height: 'auto' }}
             />
             <button
               type="submit"
