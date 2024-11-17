@@ -249,12 +249,17 @@ export function middleware(req: NextRequest) {
     'Content-Security-Policy': `
       default-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL};
       script-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://*.googletagmanager.com;
-      connect-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com;
+      connect-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://*.google-analytics.com;
       style-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} 'unsafe-inline' https://fonts.googleapis.com https://www.googletagmanager.com;
       font-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://fonts.gstatic.com data:;
-      img-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://www.googletagmanager.com https://fonts.gstatic.com data:;
+      img-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.google-analytics.com https://www.googletagmanager.com https://fonts.gstatic.com data: blob:;
       media-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://ananda-chatbot.s3.us-west-1.amazonaws.com blob:;
       frame-src 'self' ${process.env.NEXT_PUBLIC_BASE_URL} https://www.youtube.com https://www.youtube-nocookie.com https://youtu.be;
+      worker-src 'self' blob:;
+      manifest-src 'self';
+      base-uri 'self';
+      form-action 'self';
+      object-src 'none';
     `
       .replace(/\s{2,}/g, ' ')
       .trim(),
