@@ -1,4 +1,24 @@
 #!/usr/bin/env python
+"""
+Media Processing and Ingestion Pipeline
+
+This script handles the end-to-end process of transcribing audio/video content and ingesting it into a searchable database:
+- Processes both local audio files and YouTube videos
+- Transcribes media using OpenAI's Whisper model
+- Chunks transcriptions into meaningful segments
+- Creates embeddings and stores them in Pinecone for semantic search
+- Uploads original media files to S3
+- Handles parallel processing with a worker pool
+- Provides progress tracking and detailed reporting
+
+Key Features:
+- Fault tolerance with retry logic and graceful error handling
+- Caching of transcriptions to avoid redundant processing
+- Rate limiting protection
+- Progress bars and detailed logging
+- Graceful shutdown handling
+"""
+
 import argparse
 import os
 import sys
@@ -63,6 +83,19 @@ def process_file(
     youtube_data=None,
     s3_key=None,
 ):
+    """
+    Core processing pipeline for a single media file or YouTube video.
+    
+    Flow:
+    1. Check for existing transcription in cache
+    2. If needed, generate new transcription
+    3. Chunk the transcription into segments
+    4. Create embeddings for chunks
+    5. Store in Pinecone with metadata
+    6. Upload original to S3 (non-YouTube only)
+    
+    Returns a report dictionary with processing statistics and any errors
+    """
     logger.debug(
         f"process_file called with params: file_path={file_path}, index={pinecone_index}, " +
         f"client={client}, force={force}, dryrun={dryrun}, default_author={default_author}, " +
@@ -70,16 +103,18 @@ def process_file(
         f"s3_key={s3_key}"
     )
 
+    # Track processing statistics and errors for this file
     local_report = {
-        "processed": 0,
-        "skipped": 0,
-        "errors": 0,
-        "error_details": [],
+        "processed": 0,  # Successfully transcribed files
+        "skipped": 0,    # Files with existing transcriptions
+        "errors": 0,     # Failed processing attempts
+        "error_details": [], 
         "warnings": [],
-        "fully_indexed": 0,
-        "chunk_lengths": [],
+        "fully_indexed": 0,  # Files that completed the full pipeline
+        "chunk_lengths": [], # Track chunk sizes for quality metrics
     }
 
+    # Handle different file naming based on source type
     if is_youtube_video:
         youtube_id = youtube_data["youtube_id"]
         file_name = f"YouTube_{youtube_id}"
@@ -87,6 +122,7 @@ def process_file(
         youtube_id = None
         file_name = os.path.basename(file_path) if file_path else "Unknown_File"
 
+    # Check cache first to avoid redundant processing
     existing_transcription = get_saved_transcription(
         file_path, is_youtube_video, youtube_id
     )
@@ -98,12 +134,14 @@ def process_file(
         logger.info(
             f"\nTranscribing {'YouTube video' if is_youtube_video else 'audio'} for {file_name}"
         )
+        # Core transcription logic with comprehensive error handling
         try:
             transcription = transcribe_media(
                 file_path, force, is_youtube_video, youtube_id
             )
             if transcription:
                 local_report["processed"] += 1
+                # Cache YouTube transcriptions for future use
                 if is_youtube_video:
                     save_youtube_transcription(youtube_data, file_path, transcription)
             else:
@@ -113,12 +151,14 @@ def process_file(
                 local_report["error_details"].append(error_msg)
                 return local_report
         except RetryError as e:
+            # Failed after multiple retry attempts - likely a persistent issue
             error_msg = f"Failed to transcribe {file_name} after multiple retries: {str(e)}"
             logger.error(error_msg)
             local_report["errors"] += 1
             local_report["error_details"].append(error_msg)
             return local_report
         except RateLimitError:
+            # API rate limit hit - need to stop processing to avoid penalties
             error_msg = f"Rate limit exceeded while transcribing {file_name}. Terminating process."
             logger.error(error_msg)
             local_report["errors"] += 1
@@ -225,21 +265,34 @@ def process_file(
 
 
 def worker(task_queue, result_queue, args, stop_event):
+    """
+    Worker process that handles media processing tasks from the queue.
+    
+    Maintains its own OpenAI client and Pinecone connection to avoid
+    sharing resources between processes. Continues processing until
+    stop_event is set or queue is empty.
+    """
+    # Each worker maintains isolated OpenAI/Pinecone connections
+    # to avoid resource sharing issues between processes
     configure_logging(args.debug)
     client = OpenAI()
     index = load_pinecone()
 
     while not stop_event.is_set():
         try:
+            # 1 second timeout prevents workers from hanging indefinitely
             item = task_queue.get(timeout=1)
             if item is None:
+                # Poison pill received - worker should terminate
                 break
 
             logging.debug(f"Worker processing item: {item}")
+            # Process item and report results back to main thread
             item_id, report = process_item(item, args, client, index)
             logging.debug(f"Worker processed item: {item_id}, report: {report}")
             result_queue.put((item_id, report))
         except Empty:
+            # No work available - keep checking until stop_event is set
             continue
         except Exception as e:
             logging.error(f"Worker error: {str(e)}")
@@ -252,7 +305,13 @@ def worker(task_queue, result_queue, args, stop_event):
 
 
 def process_item(item, args, client, index):
-    """Process a media item (audio file or YouTube video) in a separate process"""
+    """
+    Processes a single media item with timing metrics and cleanup.
+    
+    Handles both audio files and YouTube videos, tracking processing time
+    for future estimates. Ensures cleanup of temporary files for YouTube
+    content.
+    """
     logger.debug(f"Processing item: {item}")
 
     error_report = {
@@ -328,6 +387,15 @@ def initialize_environment(args):
 
 
 def preprocess_youtube_video(url, logger):
+    """
+    Prepares YouTube video for processing by:
+    1. Extracting video ID
+    2. Checking for cached transcription
+    3. Downloading audio if needed
+    
+    Returns tuple of (youtube_data, youtube_id) where youtube_data contains
+    metadata and local audio path
+    """
     youtube_id = extract_youtube_id(url)
     youtube_data_map = load_youtube_data_map()
     existing_youtube_data = youtube_data_map.get(youtube_id)
@@ -370,6 +438,10 @@ def print_report(report):
 
 
 def merge_reports(reports):
+    """
+    Combines multiple processing reports into a single aggregate report.
+    Accumulates counts and concatenates error/warning lists.
+    """
     combined_report = {
         "processed": 0,
         "skipped": 0,
@@ -389,6 +461,13 @@ def merge_reports(reports):
 
 
 def graceful_shutdown(pool, queue, items_to_process, overall_report, _signum, _frame):
+    """
+    Signal handler for graceful termination:
+    - Stops worker pool
+    - Updates status of in-progress items
+    - Prints final report
+    - Resets terminal state
+    """
     logger.info("\nReceived interrupt signal. Shutting down gracefully...")
     pool.terminate()
     pool.join()
@@ -400,6 +479,14 @@ def graceful_shutdown(pool, queue, items_to_process, overall_report, _signum, _f
 
 
 def main():
+    """
+    Main execution flow:
+    1. Parse arguments and initialize environment
+    2. Set up worker pool and queues
+    3. Process items in parallel with progress tracking
+    4. Handle graceful shutdown on interrupts
+    5. Generate final processing report
+    """
     parser = argparse.ArgumentParser(
         description="Audio and video transcription and indexing script"
     )
@@ -457,18 +544,19 @@ def main():
         "chunk_lengths": [],
     }
 
+    # Initialize multiprocessing resources
     task_queue = Queue()
     result_queue = Queue()
     stop_event = Event()
-    items_to_process = []  # Initialize the list to track items being processed
+    items_to_process = []  # Track active items for cleanup on shutdown
 
+    # Limit processes to prevent resource exhaustion
     num_processes = min(4, cpu_count())
-    with Pool(
-        processes=num_processes,
-        initializer=worker,
-        initargs=(task_queue, result_queue, args, stop_event),
-    ) as pool:
+    with Pool(processes=num_processes,
+             initializer=worker,
+             initargs=(task_queue, result_queue, args, stop_event)) as pool:
 
+        # Set up graceful shutdown handlers for clean termination
         def graceful_shutdown(_signum, _frame):
             logging.info("\nReceived interrupt signal. Shutting down gracefully...")
             stop_event.set()
@@ -489,48 +577,47 @@ def main():
         items_processed = 0
 
         try:
-            # Initially fill the task queue with the number of processes
+            # Pre-fill task queue to match worker count for optimal startup
             for _ in range(num_processes):
                 item = ingest_queue.get_next_item()
                 if not item:
                     break
                 task_queue.put(item)
-                items_to_process.append(item)  # Track the item being processed
-                total_items += 1  # Increment the count for each item added
+                items_to_process.append(item)
+                total_items += 1
 
+            # Main processing loop with progress tracking
             with tqdm(total=total_items, desc="Processing items") as pbar:
                 while items_processed < total_items:
                     try:
+                        # 5 minute timeout for result processing
                         item_id, report = result_queue.get(timeout=300)
+                        
+                        # Update item status and tracking
                         if item_id is not None:
                             ingest_queue.update_item_status(
                                 item_id,
                                 "completed" if report["errors"] == 0 else "error",
                             )
-                            items_to_process = [
-                                item
-                                for item in items_to_process
-                                if item["id"] != item_id
-                            ]  # Remove processed item
+                            # Remove completed item from active tracking
+                            items_to_process = [item for item in items_to_process 
+                                              if item["id"] != item_id]
+
+                        # Aggregate results and update progress
                         overall_report = merge_reports([overall_report, report])
                         items_processed += 1
                         pbar.update(1)
 
-                        # Fetch and add a new item to the task queue
+                        # Keep task queue filled by adding new items as others complete
                         item = ingest_queue.get_next_item()
                         if item:
                             task_queue.put(item)
-                            items_to_process.append(
-                                item
-                            )  # Track the new item being processed
-                            total_items += (
-                                1  # Increment the count for each new item added
-                            )
+                            items_to_process.append(item)
+                            total_items += 1
 
                     except Empty:
-                        logging.info(
-                            "Main loop: Timeout while waiting for results. Continuing..."
-                        )
+                        # Log timeout but continue - workers may still be processing
+                        logging.info("Main loop: Timeout while waiting for results. Continuing...")
 
         except Exception as e:
             logging.error(f"Error processing items: {str(e)}")

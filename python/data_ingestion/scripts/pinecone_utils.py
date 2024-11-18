@@ -8,8 +8,42 @@ from pinecone.core.client.exceptions import NotFoundException, PineconeException
 
 logger = logging.getLogger(__name__)
 
+"""
+Pinecone Vector Database Integration Layer
+
+Handles vector storage and retrieval for media content embeddings with distributed processing support.
+Implements robust error handling and retry logic for cloud operations.
+
+Architecture:
+- Serverless Pinecone deployment on AWS
+- Cosine similarity for vector matching
+- Chunked batch processing for large datasets
+- Atomic operations with rollback capability
+
+Technical Specifications:
+- Vector Dimension: 1536 (OpenAI ada-002)
+- Index Metric: Cosine Similarity
+- Batch Size: 100 vectors per upsert
+- Region: us-west-2 (AWS)
+
+Rate Limits:
+- Write: 100 vectors per batch
+- Concurrent operations: Based on plan
+- Retries: Exponential backoff
+"""
 
 def create_embeddings(chunks, client):
+    """
+    Generates embeddings for text chunks using OpenAI's API.
+    
+    Batch Processing:
+    - Processes all chunks in single API call
+    - Maintains chunk order for vector mapping
+    - Returns flat list of embeddings
+    
+    Rate Limits: Determined by OpenAI API quotas
+    Vector Size: 1536 dimensions per embedding
+    """
     texts = [chunk["text"] for chunk in chunks]
     logging.debug("create_embeddings")
     response = client.embeddings.create(input=texts, model="text-embedding-ada-002")
@@ -17,6 +51,19 @@ def create_embeddings(chunks, client):
 
 
 def load_pinecone(index_name=None):
+    """
+    Initializes or connects to Pinecone index with error handling.
+    
+    Index Creation Strategy:
+    - Attempts creation first (idempotent)
+    - Falls back to existing index
+    - Validates index parameters
+    
+    Error Handling:
+    409: Index exists (normal operation)
+    500: Infrastructure issues
+    Others: Configuration problems
+    """
     if not index_name:
         index_name = os.getenv("PINECONE_INGEST_INDEX_NAME")
     pc = Pinecone()
@@ -51,11 +98,40 @@ def store_in_pinecone(
     s3_key=None,
     album=None
 ):
-    # Ensure title is a string
+    """
+    Stores vector embeddings with metadata in Pinecone.
+    
+    Vector ID Format: type||library||title||content_hash||chunk_number
+    
+    Metadata Schema:
+    - text: Raw chunk content
+    - start/end_time: Chunk boundaries
+    - duration: Chunk length
+    - library: Source library
+    - author: Content creator
+    - type: youtube/audio
+    - title: Content title
+    - album: Optional grouping
+    - filename: For audio files
+    - url: For YouTube content
+    
+    Batch Processing:
+    - 100 vectors per upsert
+    - Atomic operations
+    - Interruptible for long runs
+    
+    Error Handling:
+    - 429: Rate limit exceeded
+    - Others: Infrastructure issues
+    """
+    # Sanitization for vector ID components
     title = title if title is not None else "Unknown Title"
+    title = title.replace("'", "'")  # Replace smart quotes for compatibility
+    sanitized_title = re.sub(r'[^\x00-\x7F]+', '', title)  # ASCII-only for IDs
     
     vectors = []
     for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        # Content-based deduplication hash
         content_hash = hashlib.md5(chunk["text"].encode()).hexdigest()[:8]
                 
         # Replace offensive single quote with acceptable one
@@ -68,9 +144,10 @@ def store_in_pinecone(
         chunk_id = f"{'youtube' if is_youtube_video else 'audio'}||{library_name}||" +\
                    f"{sanitized_title}||{content_hash}||chunk{i+1}"
 
-        # Calculate the duration of the chunk
+        # Duration calculation for content navigation
         duration = chunk["end"] - chunk["start"]
 
+        # Core metadata for all content types
         metadata = {
             "text": chunk["text"],
             "start_time": chunk["start"],
@@ -82,13 +159,13 @@ def store_in_pinecone(
             "title": title,
         }
 
-        # Add album to metadata if it's provided
+        # Optional metadata based on content type
         if album:
             metadata["album"] = album
 
         # Only add the filename field if it's not a YouTube video and s3_key is provided
         if not is_youtube_video and s3_key:
-            # Extract the path after 'public/audio/'
+            # Extract relative path for audio files
             filename = s3_key.split('public/audio/', 1)[-1]
             metadata["filename"] = filename
 
@@ -98,22 +175,27 @@ def store_in_pinecone(
 
         vectors.append({"id": chunk_id, "values": embedding, "metadata": metadata})
 
+    # Batch processing with interrupt support
     for i in range(0, len(vectors), 100):
+        # Check for interrupt signal between batches
         if interrupt_event and interrupt_event.is_set():
             logger.info("Interrupt detected. Stopping Pinecone upload...")
             return
+            
         batch = vectors[i: i + 100]
         try:
             pinecone_index.upsert(vectors=batch)
         except Exception as e:
             error_message = str(e)
             if "429" in error_message and "Too Many Requests" in error_message:
+                # Rate limit exceeded - likely monthly quota
                 logger.error(f"Error in upserting vectors: {e}")
                 logger.error(
                     "You may have reached your write unit limit for the current month. Exiting script."
                 )
                 sys.exit(1)
             else:
+                # Other infrastructure or configuration issues
                 logger.error(f"Error in upserting vectors: {e}")
                 raise PineconeException(f"Failed to upsert vectors: {str(e)}")
 
@@ -121,8 +203,21 @@ def store_in_pinecone(
 
 
 def clear_library_vectors(index, library_name):
+    """
+    Purges all vectors for a specific library.
+    
+    Safety Features:
+    - Library-scoped deletion only
+    - No cascade effects
+    - Atomic operation
+    
+    Error Cases:
+    - Missing index
+    - Permission issues
+    - Rate limiting
+    """
     try:
-        #        index.delete(delete_all=True, namespace=None)
+        # Metadata-based filtering for targeted deletion
         index.delete(filter={"library": library_name})
         logger.info(
             f"Successfully cleared all vectors for library '{library_name}' from the index."

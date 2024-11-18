@@ -1,4 +1,59 @@
 #!/usr/bin/env python
+"""
+Media Ingestion Queue Manager
+
+A robust CLI tool for managing distributed media ingestion workflows. Handles queuing and status 
+tracking for audio files and YouTube content across multiple processing environments.
+
+Technical Specifications:
+- Queue Backend: DynamoDB for distributed state management
+- Storage: AWS S3 with configurable bucket paths
+- Processing: Parallel queue support via isolated queue directories
+- Monitoring: Real-time status tracking and ETA calculations
+
+Supported Media Types:
+- Audio: MP3, WAV, FLAC (with metadata preservation)
+- Video: YouTube single videos and playlists
+- Bulk Imports: Directory scanning with duplicate detection
+- Structured Imports: Excel-based playlist processing
+
+Key Operations:
+add:
+  - Single media (--video URL, --audio path)
+  - Bulk import (--directory path)
+  - Playlist import (--playlist URL, --playlists-file path)
+
+manage:
+  - List queue (--list)
+  - Clear queue (--clear)
+  - Reset failed (--reset)
+  - Remove completed (--remove-completed)
+  - Process status (--status)
+
+Configuration:
+  Required:
+  - library_config.json: Defines target libraries and S3 paths
+  - --site: Environment identifier (dev/staging/prod)
+  
+  Optional:
+  - --queue: Alternate queue name for parallel processing
+  - --debug: Enhanced logging output
+
+Example Usage:
+  Add content:
+    ./manage_queue.py --video URL --default-author "Name" --library "LibraryName" --site dev
+    ./manage_queue.py --directory /path/to/files --default-author "Name" --library "LibraryName" --site dev
+
+  Monitor:
+    ./manage_queue.py --list --site dev
+    ./manage_queue.py --status --site dev
+
+Dependencies:
+  AWS: S3, DynamoDB
+  APIs: YouTube Data API v3
+  Python: >=3.7
+"""
+
 import argparse
 from datetime import timedelta
 import os
@@ -24,11 +79,23 @@ logger = logging.getLogger(__name__)
 
 
 def initialize_environment(args):
+    """
+    Sets up the runtime environment based on deployment site (dev/staging/prod).
+    Configures logging verbosity and loads appropriate AWS credentials.
+    """
     load_env(args.site)
     configure_logging(args.debug)
 
 
 def get_unique_files(directory_path):
+    """
+    Recursively scans directory for media files and deduplicates using file hashes.
+    
+    Performance Note: For large directories, this performs I/O-intensive hash calculations.
+    Memory Usage: Stores only file paths and hashes, not file contents.
+    
+    Returns: List of unique file paths, preserving the first occurrence of duplicate content
+    """
     unique_files = {}
     files_to_check = []
 
@@ -38,7 +105,7 @@ def get_unique_files(directory_path):
             if file.lower().endswith((".mp3", ".wav", ".flac", ".mp4", ".avi", ".mov")):
                 files_to_check.append(os.path.join(root, file))
 
-    # Process files with tqdm
+    # Process files with progress bar for long-running operations
     for file_path in tqdm(files_to_check, desc="Checking for unique files", ncols=100):
         file_hash = get_file_hash(file_path)
         if file_hash not in unique_files:
@@ -48,6 +115,16 @@ def get_unique_files(directory_path):
 
 
 def process_audio_input(input_path, queue, default_author, library):
+    """
+    Routes audio processing based on input type (single file vs directory).
+    
+    Validation:
+    - Verifies library exists in config
+    - Checks file extensions
+    - Ensures input path exists
+    
+    S3 Path Structure: public/audio/{library_name}/{relative_path}
+    """
     # Check if the library is in the config file
     if library not in LIBRARY_CONFIG:
         error_msg = f"Error: Library '{library}' not found in library_config.json. Please use a valid library name."
@@ -56,8 +133,7 @@ def process_audio_input(input_path, queue, default_author, library):
 
     if os.path.isfile(input_path):
         if input_path.lower().endswith((".mp3", ".wav", ".flac")):
-            s3_folder = library.lower()  # Use the simple name as S3 folder
-            # For individual files, we'll just use the filename
+            s3_folder = library.lower()  
             s3_key = f"public/audio/{s3_folder}/{os.path.basename(input_path)}"
             item_id = queue.add_item(
                 "audio_file",
@@ -122,6 +198,11 @@ def process_directory(directory_path, queue, default_author, library):
 
 
 def add_to_queue(args, queue, source=None):
+    """
+    Central routing function for all queue additions. Handles YouTube videos, playlists, and audio files.
+    
+    source: Optional playlist URL for tracking video origins in bulk imports
+    """
     if args.video:
         youtube_id = extract_youtube_id(args.video)
         if youtube_id:
@@ -132,7 +213,7 @@ def add_to_queue(args, queue, source=None):
                     "youtube_id": youtube_id,
                     "author": args.default_author,
                     "library": args.library,
-                    "source": source,
+                    "source": source,  # Tracks origin playlist for duplicate detection
                 },
             )
             if item_id:
@@ -143,6 +224,7 @@ def add_to_queue(args, queue, source=None):
             logger.error("Invalid YouTube video URL")
 
     elif args.playlist:
+        # Bulk process all videos in playlist while preserving order
         videos = get_playlist_videos(args.playlist)
         for video in videos:
             logger.debug(f"Video to add: {video}")
@@ -174,12 +256,24 @@ def add_to_queue(args, queue, source=None):
 
 
 def truncate_path(file_path, num_dirs=3):
-    """Return the last `num_dirs` directories of a file path."""
+    """
+    Shortens file paths for display while preserving meaningful context.
+    Example: /very/long/path/to/file.mp3 -> .../path/to/file.mp3
+    
+    num_dirs: Number of trailing directories to preserve
+    """
     parts = file_path.split(os.sep)
     return os.sep.join(parts[-num_dirs - 1 :]) if len(parts) > num_dirs else file_path
 
 
 def list_queue_items(queue):
+    """
+    Displays queue contents in a formatted table with dynamic column widths.
+    Converts timestamps to PST and truncates long paths for readability.
+    
+    Output format:
+    ID  Type  Status  URL/File  Last Updated
+    """
     items = queue.get_all_items()
     if not items:
         print("The queue is empty.")
@@ -216,7 +310,7 @@ def list_queue_items(queue):
         (len(item.get("last_updated", "Unknown time")) for item in items), default=20
     )
 
-    # Print the header with dynamic lengths and 2 spaces between columns
+    # Print header with consistent spacing
     print(
         f"{'ID'.ljust(max_id_len)}  {'Type'.ljust(max_type_len)}  {'Status'.ljust(max_status_len)}  {'URL/File'.ljust(max(max_url_len, max_file_path_len))}  {'Last Updated'.ljust(max_updated_len)}"
     )
@@ -237,6 +331,7 @@ def list_queue_items(queue):
             debug_message = f"Last updated: {last_updated}"
             logger.debug(debug_message)
 
+        # Format output based on item type
         if item_type == "youtube_video":
             print(
                 f"{item_id.ljust(max_id_len)}  {item_type.ljust(max_type_len)}  {item_status.ljust(max_status_len)}  {item_data.get('url', '').ljust(max(max_url_len, max_file_path_len))}  {last_updated.ljust(max_updated_len)}"
@@ -296,33 +391,47 @@ def remove_item(queue, item_id):
 
 
 def process_playlists_file(args, queue):
+    """
+    Processes an Excel file containing playlist information for bulk imports.
+    
+    Expected Excel format:
+    Title | Default Author | Library | Playlist URL
+    
+    Features:
+    - Deduplicates videos across playlists
+    - Tracks source playlists for duplicate videos
+    - Maintains original playlist metadata
+    """
     workbook = load_workbook(filename=args.playlists_file, read_only=True)
     sheet = workbook.active
     
     all_videos = []
-    video_sources = defaultdict(list)
+    video_sources = defaultdict(list)  # Tracks which playlists contain each video
     processed_playlists = 0
 
+    # Skip header row and process each playlist
     for row in sheet.iter_rows(min_row=2, values_only=True):
         title, default_author, library, playlist_url = row
         videos = get_playlist_videos(playlist_url)
         processed_playlists += 1
         
+        # Track video sources for duplicate reporting
         for video in videos:
             all_videos.append(video)
             video_sources[video['url']].append(title)
 
+    # Deduplicate videos while preserving first occurrence
     unique_videos = {v['url']: v for v in all_videos}.values()
     duplicates_removed = len(all_videos) - len(unique_videos)
 
+    # Add unique videos to queue with original metadata
     for video in unique_videos:
-        # Modify args for each video
         args.video = video['url']
         args.default_author = default_author
         args.library = library
-        
         add_to_queue(args, queue, source=playlist_url)
 
+    # Log processing summary and duplicates
     logger.info(f"Processed {processed_playlists} playlists")
     logger.info(f"Total videos found: {len(all_videos)}")
     logger.info(f"Unique videos added to queue: {len(unique_videos)}")
@@ -356,6 +465,19 @@ def print_queue_status(queue, items=None):
 
 
 def main():
+    """
+    Main CLI entry point with comprehensive argument parsing and operation routing.
+    
+    Operation Groups:
+    1. Queue Management (clear, reset, remove)
+    2. Content Addition (video, audio, playlists)
+    3. Status/Monitoring (list, status)
+    
+    Environment Setup:
+    - Requires site parameter for AWS credential configuration
+    - Optional debug mode for enhanced logging
+    - Supports parallel queues via --queue parameter
+    """
     parser = argparse.ArgumentParser(description="Manage the ingest queue")
 
     # Add operation arguments
@@ -400,14 +522,14 @@ def main():
     parser.add_argument('--site', required=True, help='Site ID for environment variables')
     args = parser.parse_args()
 
+    # Initialize environment and create queue instance
     initialize_environment(args)
-    
-    # Create the IngestQueue instance with the specified queue name
     queue = IngestQueue(queue_dir=args.queue) if args.queue else IngestQueue()
 
     if args.queue:
         logger.info(f"Using queue: {args.queue}")
 
+    # Route to appropriate operation handler
     if args.status:
         print_queue_status(queue)
     elif args.remove:
@@ -439,6 +561,7 @@ def main():
         parser.print_help()
         return
 
+    # Display final queue status
     queue_status = queue.get_queue_status()
     print(f"Queue status: {queue_status}")
 
