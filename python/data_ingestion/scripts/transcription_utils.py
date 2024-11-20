@@ -188,12 +188,7 @@ def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
     return None
 
 
-def save_transcription(file_path, transcripts):
-    """
-    Save transcription using the hybrid approach:
-    1. Store the raw transcription data in a gzipped JSON file.
-    2. Save the file's metadata and location in the SQLite database for quick indexing.
-    """
+def save_transcription(file_path, transcripts, youtube_id=None):
     file_hash = get_file_hash(file_path)
     json_file = f"{file_hash}.json.gz"
     full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
@@ -201,10 +196,21 @@ def save_transcription(file_path, transcripts):
     # Ensure the transcriptions directory exists
     os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
 
-    # Add file_path to transcripts
+    # Add file_path and media_type to transcripts
     transcripts['file_path'] = file_path
+    transcripts['media_type'] = 'video' if youtube_id else 'audio'
     
-    # Save the transcription data as a gzipped JSON file
+    # Add YouTube metadata if available
+    if youtube_id:
+        youtube_data_map = load_youtube_data_map()
+        if youtube_id in youtube_data_map and 'media_metadata' in youtube_data_map[youtube_id]:
+            metadata = youtube_data_map[youtube_id]['media_metadata']
+            transcripts['youtube_metadata'] = {
+                'title': metadata.get('title'),
+                'url': metadata.get('url')
+            }
+    
+    # Save the transcription data
     with gzip.open(full_json_path, "wt", encoding="utf-8") as f:
         json.dump(transcripts, f, ensure_ascii=False, indent=2)
 
@@ -291,7 +297,7 @@ def transcribe_media(
             return None
 
         if transcripts:
-            save_transcription(file_path, transcripts)
+            save_transcription(file_path, transcripts, youtube_id if is_youtube_video else None)
             return transcripts
 
         logger.error(f"No transcripts generated for {file_name}")
