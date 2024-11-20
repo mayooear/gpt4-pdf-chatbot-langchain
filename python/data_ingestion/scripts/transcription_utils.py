@@ -181,16 +181,8 @@ def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
         # Ensure we're using the full path to the JSON file
         full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
         if os.path.exists(full_json_path):
-            # Load the transcription from the gzipped JSON file
             with gzip.open(full_json_path, "rt", encoding="utf-8") as f:
-                transcriptions = json.load(f)
-                # old format saved was an array of transcriptions and new format
-                # is a single transcription
-                if isinstance(transcriptions, list):
-                    combined_transcription = combine_transcriptions(transcriptions) 
-                    return combined_transcription
-                else:
-                    return transcriptions
+                return json.load(f)
         else:
             logger.warning(f"JSON file not found at {full_json_path}")
     return None
@@ -209,6 +201,9 @@ def save_transcription(file_path, transcripts):
     # Ensure the transcriptions directory exists
     os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
 
+    # Add file_path to transcripts
+    transcripts['file_path'] = file_path
+    
     # Save the transcription data as a gzipped JSON file
     with gzip.open(full_json_path, "wt", encoding="utf-8") as f:
         json.dump(transcripts, f, ensure_ascii=False, indent=2)
@@ -222,34 +217,6 @@ def save_transcription(file_path, transcripts):
     )
     conn.commit()
     conn.close()
-
-def combine_transcriptions(transcriptions):
-    """
-    Combine an array of transcriptions into a single transcription.
-
-    This function takes a list of transcription dictionaries and combines them into a single
-    transcription dictionary. The combined transcription will have concatenated text and merged
-    metadata, including words and duration.
-
-    Args:
-        transcriptions (list): A list of transcription dictionaries to combine.
-
-    Returns:
-        dict: A single combined transcription dictionary.
-    """
-    if not transcriptions:
-        return {}
-
-    combined_transcription = {
-        "text": "",
-        "words": [],
-    }
-
-    for transcription in transcriptions:
-        combined_transcription["text"] += " " + transcription["text"] + " "
-        combined_transcription["words"].extend(transcription["words"])
-
-    return combined_transcription
 
 def transcribe_media(
     file_path,
@@ -324,9 +291,8 @@ def transcribe_media(
             return None
 
         if transcripts:
-            combined_transcription = combine_transcriptions(transcripts)    
-            save_transcription(file_path, combined_transcription)
-            return combined_transcription
+            save_transcription(file_path, transcripts)
+            return transcripts
 
         logger.error(f"No transcripts generated for {file_name}")
         return None
