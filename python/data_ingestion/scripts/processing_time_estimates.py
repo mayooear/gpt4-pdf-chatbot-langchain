@@ -70,17 +70,24 @@ def estimate_total_processing_time(items):
     num_processes = 4  # assume 4 processes for now
     estimates = load_estimates()
     total_time = 0
+    
     for item in items:
         if item["status"] != "completed":
             if item["type"] in ["audio_file", "youtube_video"]:
                 estimate = estimates.get(item["type"])
-                if estimate:
+                if estimate and estimate["time"] is not None and estimate["size"] is not None:
                     file_size = item.get("file_size")
                     if file_size is None:
-                        # If file_size is not available, use the average size from estimates
                         file_size = estimate["size"]
                     # Use the simple moving average
                     avg_time = estimate["time"]
                     avg_size = estimate["size"]
                     total_time += (avg_time / avg_size) * file_size
+                else:
+                    # Use default estimates when no data available
+                    if item["type"] == "audio_file":
+                        total_time += 300  # 5 minutes default for audio
+                    else:
+                        total_time += 600  # 10 minutes default for video
+                        
     return timedelta(seconds=int(total_time/num_processes))

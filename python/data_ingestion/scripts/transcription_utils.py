@@ -18,6 +18,7 @@ import re
 import signal
 from data_ingestion.scripts.media_utils import get_file_hash, split_audio, get_media_metadata
 from data_ingestion.scripts.youtube_utils import load_youtube_data_map, save_youtube_data_map
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -189,40 +190,68 @@ def get_saved_transcription(file_path, is_youtube_video=False, youtube_id=None):
 
 
 def save_transcription(file_path, transcripts, youtube_id=None):
-    file_hash = get_file_hash(file_path)
-    json_file = f"{file_hash}.json.gz"
-    full_json_path = os.path.join(TRANSCRIPTIONS_DIR, json_file)
-
-    # Ensure the transcriptions directory exists
-    os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
-
-    # Add file_path and media_type to transcripts
-    transcripts['file_path'] = file_path
-    transcripts['media_type'] = 'video' if youtube_id else 'audio'
+    """
+    Save transcription to gzipped JSON file and update database.
     
-    # Add YouTube metadata if available
+    Args:
+        file_path: Path to original audio file (or None for YouTube)
+        transcripts: List of transcription segments or dict with transcription data
+        youtube_id: YouTube video ID if applicable
+    """
+    # Convert list of transcripts to expected format if needed
+    if isinstance(transcripts, list):
+        transcription_data = {
+            'file_path': file_path,
+            'youtube_id': youtube_id,
+            'text': ' '.join(segment.get('text', '') for segment in transcripts),
+            'words': [word for segment in transcripts for word in segment.get('words', [])],
+            'timestamp': datetime.utcnow().isoformat(),
+            'media_type': 'video' if youtube_id else 'audio'
+        }
+    else:
+        transcription_data = transcripts
+        transcription_data['file_path'] = file_path
+        transcription_data['timestamp'] = datetime.utcnow().isoformat()
+        transcription_data['media_type'] = 'video' if youtube_id else 'audio'
+        if youtube_id:
+            transcription_data['youtube_id'] = youtube_id
+
     if youtube_id:
         youtube_data_map = load_youtube_data_map()
         if youtube_id in youtube_data_map and 'media_metadata' in youtube_data_map[youtube_id]:
             metadata = youtube_data_map[youtube_id]['media_metadata']
-            transcripts['youtube_metadata'] = {
+            transcription_data['youtube_metadata'] = {
                 'title': metadata.get('title'),
                 'url': metadata.get('url')
             }
-    
-    # Save the transcription data
-    with gzip.open(full_json_path, "wt", encoding="utf-8") as f:
-        json.dump(transcripts, f, ensure_ascii=False, indent=2)
 
-    # Update the SQLite database with the file's metadata and transcription location
-    conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
-    c = conn.cursor()
-    c.execute(
-        "INSERT OR REPLACE INTO transcriptions (file_hash, file_path, timestamp, json_file) VALUES (?, ?, ?, ?)",
-        (file_hash, file_path, time.time(), json_file),
-    )
-    conn.commit()
-    conn.close()
+    # Generate unique filename based on content
+    file_hash = get_file_hash(file_path)
+    
+    json_filename = f"{file_hash}.json.gz"
+    json_filepath = os.path.join(TRANSCRIPTIONS_DIR, json_filename)
+
+    # Ensure transcriptions directory exists
+    os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
+
+    # Save to gzipped JSON file
+    with gzip.open(json_filepath, 'wt', encoding='utf-8') as f:
+        json.dump(transcription_data, f)
+
+    # Update database
+    try:
+        conn = sqlite3.connect(TRANSCRIPTIONS_DB_PATH)
+        c = conn.cursor()
+        c.execute(
+            "INSERT OR REPLACE INTO transcriptions (file_hash, json_file, file_path, timestamp) VALUES (?, ?, ?, ?)",
+            (file_hash, json_filename, file_path, transcription_data['timestamp'])
+        )
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        logger.error(f"Database error: {e}")
+        raise
+
 
 def transcribe_media(
     file_path,
@@ -351,10 +380,25 @@ def timeout_handler(signum, frame):
 def chunk_transcription(transcript, target_chunk_size=150, overlap=75):
     global chunk_lengths  # Ensure we are using the global list
     chunks = []
+    
+    # Handle case where transcript is a list of transcripts
+    # michaelo 11/22/24: I'm guessing this is what happened when I got a string instead of a transcript object
+    if isinstance(transcript, list):
+        # Combine all words from the transcripts
+        all_words = []
+        full_text = ""
+        for t in transcript:
+            all_words.extend(t.get("words", []))
+            full_text += " " + t.get("text", "")
+        transcript = {
+            "words": all_words,
+            "text": full_text.strip()
+        }
+    
     words = transcript["words"]
     original_text = transcript["text"]
     total_words = len(words)
-
+    
     logger.debug(f"Starting chunk_transcription with {total_words} words.")
 
     if not words or not original_text.strip():
@@ -481,7 +525,8 @@ def split_large_chunks(chunks, target_size):
 
 
 def save_youtube_transcription(youtube_data, file_path, transcripts):
-    save_transcription(file_path, transcripts)
+    """Save transcription and update youtube data map with metadata"""
+    # Don't call save_transcription here since it's already called in transcribe_media
     file_hash = get_file_hash(file_path)
     youtube_data_map = load_youtube_data_map()
     

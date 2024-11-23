@@ -31,7 +31,13 @@ from yt_dlp.utils import DownloadError
 # Set up logging
 logger = logging.getLogger(__name__)
 
-YOUTUBE_DATA_MAP_PATH = "media/youtube_data_map.json"
+# Update the path to be relative to the project root
+YOUTUBE_DATA_MAP_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "data_ingestion",
+    "media",
+    "youtube_data_map.json"
+)
 
 
 def extract_youtube_id(url: str) -> str:
@@ -68,6 +74,8 @@ def download_youtube_audio(url: str, output_path: str = "."):
             "preferredquality": "192",  # Balanced quality vs size
         }],
         "outtmpl": os.path.join(output_path, f"{random_filename}.%(ext)s"),
+        "noplaylist": True,
+        "extract_flat": False,
     }
 
     max_retries = 3
@@ -105,7 +113,16 @@ def download_youtube_audio(url: str, output_path: str = "."):
                 "file_size": file_size,
             }
         except DownloadError as e:
-            if "HTTP Error 403: Forbidden" in str(e):
+            error_msg = str(e)
+            if "Private video" in error_msg:
+                logger.error(f"Cannot access private video: {url}")
+                return {
+                    "error": "private_video",
+                    "message": "This video is private and cannot be accessed",
+                    "youtube_id": youtube_id,
+                    "url": url
+                }
+            elif "HTTP Error 403: Forbidden" in error_msg:
                 # Rate limit hit - implement backoff unless final attempt
                 if attempt < max_retries - 1:
                     sleep_time = 30 * (2**attempt)  # 30, 60, 120 seconds base
@@ -117,7 +134,7 @@ def download_youtube_audio(url: str, output_path: str = "."):
                     logger.error("Max retries reached. Unable to download due to 403 Forbidden error.")
                     return None
             else:
-                logger.error(f"An error occurred while downloading YouTube audio: {e}")
+                logger.error(f"YouTube download error: {error_msg}")
                 return None
         except Exception as e:
             logger.error(f"An error occurred while downloading YouTube audio: {e}")

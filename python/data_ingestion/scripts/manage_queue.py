@@ -16,17 +16,19 @@ Supported Media Types:
 - Video: YouTube single videos and playlists
 - Bulk Imports: Directory scanning with duplicate detection
 - Structured Imports: Excel-based playlist processing
+- Text File Imports: List of YouTube URLs (one per line)
 
 Key Operations:
 add:
   - Single media (--video URL, --audio path)
   - Bulk import (--directory path)
   - Playlist import (--playlist URL, --playlists-file path)
+  - URL list import (--urls-file path)
 
 manage:
   - List queue (--list)
   - Clear queue (--clear)
-  - Reset failed (--reset)
+  - Reset failed (--reset-failed)
   - Remove completed (--remove-completed)
   - Process status (--status)
 
@@ -43,6 +45,7 @@ Example Usage:
   Add content:
     ./manage_queue.py --video URL --default-author "Name" --library "LibraryName" --site dev
     ./manage_queue.py --directory /path/to/files --default-author "Name" --library "LibraryName" --site dev
+    ./manage_queue.py --urls-file youtube_urls.txt --default-author "Name" --library "LibraryName" --site dev
 
   Monitor:
     ./manage_queue.py --list --site dev
@@ -66,7 +69,11 @@ from datetime import datetime
 import json
 from data_ingestion.scripts.IngestQueue import IngestQueue
 from data_ingestion.scripts.logging_utils import configure_logging
-from data_ingestion.scripts.youtube_utils import extract_youtube_id, get_playlist_videos
+from data_ingestion.scripts.youtube_utils import (
+    extract_youtube_id, 
+    get_playlist_videos,
+    load_youtube_data_map
+)
 from data_ingestion.scripts.media_utils import get_file_hash
 from data_ingestion.scripts.processing_time_estimates import get_estimate, estimate_total_processing_time
 from util.env_utils import load_env
@@ -464,6 +471,61 @@ def print_queue_status(queue, items=None):
         print("No data available for YouTube video processing times.")
 
 
+def process_urls_file(args, queue):
+    """
+    Process a text file containing YouTube URLs (one per line).
+    Skips duplicates and already processed videos.
+    """
+    if not os.path.exists(args.urls_file):
+        logger.error(f"URLs file not found: {args.urls_file}")
+        logger.error("Please provide the correct path to your YouTube URLs file")
+        logger.error("Example file format (one URL per line):")
+        logger.error("https://youtu.be/VIDEO_ID1")
+        logger.error("https://youtu.be/VIDEO_ID2")
+        return
+    
+    with open(args.urls_file, 'r') as f:
+        urls = [line.strip() for line in f if line.strip()]
+    
+    if not urls:
+        logger.error(f"No valid URLs found in {args.urls_file}")
+        return
+        
+    processed = 0
+    skipped = 0
+    
+    for url in urls:
+        youtube_id = extract_youtube_id(url)
+        if not youtube_id:
+            logger.error(f"Invalid YouTube URL: {url}")
+            continue
+            
+        # Check if already processed via youtube_data_map
+        youtube_data_map = load_youtube_data_map()
+        if youtube_id in youtube_data_map:
+            logger.info(f"Skipping already processed video: {url}")
+            skipped += 1
+            continue
+            
+        item_id = queue.add_item(
+            "youtube_video",
+            {
+                "url": url,
+                "youtube_id": youtube_id,
+                "author": args.default_author,
+                "library": args.library,
+            },
+        )
+        if item_id:
+            processed += 1
+            logger.info(f"Added YouTube video to queue: {item_id} - {url}")
+        else:
+            logger.error(f"Failed to add YouTube video to queue: {url}")
+    
+    logger.info(f"Processed {processed} videos")
+    logger.info(f"Skipped {skipped} already processed videos")
+
+
 def main():
     """
     Main CLI entry point with comprehensive argument parsing and operation routing.
@@ -494,9 +556,9 @@ def main():
         "--clear", action="store_true", help="Clear all items from the queue"
     )
     parser.add_argument(
-        "--reset",
-        action="store_true",
-        help="Reset items in error or interrupted state to pending",
+        "--reset-failed",
+        action="store_true", 
+        help="Reset items in error or interrupted state back to pending"
     )
     parser.add_argument(
         "--remove-completed",
@@ -520,6 +582,10 @@ def main():
     parser.add_argument("--remove", help="Remove a specific item from the queue by ID")
     parser.add_argument("--status", action="store_true", help="Print the queue status")
     parser.add_argument('--site', required=True, help='Site ID for environment variables')
+    parser.add_argument(
+        "--urls-file", 
+        help="Path to text file containing YouTube URLs (one per line)"
+    )
     args = parser.parse_args()
 
     # Initialize environment and create queue instance
@@ -544,12 +610,18 @@ def main():
         list_queue_items(queue)
     elif args.clear:
         clear_queue(queue)
-    elif args.reset:
+    elif args.reset_failed:
         reset_stuck_items(queue)
     elif args.reset_processing_items:
         reset_processing_items(queue)
     elif args.remove_completed:
         remove_completed_items(queue)
+    elif args.urls_file:
+        if not args.default_author or not args.library:
+            logger.error("For adding items, you must specify both --default-author and --library")
+            parser.print_help()
+            return
+        process_urls_file(args, queue)
     elif any([args.video, args.playlist, args.audio, args.directory]):
         if not args.default_author or not args.library:
             logger.error("For adding items, you must specify both --default-author and --library")

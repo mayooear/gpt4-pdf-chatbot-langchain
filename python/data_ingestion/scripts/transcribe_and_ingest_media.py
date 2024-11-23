@@ -112,7 +112,13 @@ def process_file(
         "warnings": [],
         "fully_indexed": 0,  # Files that completed the full pipeline
         "chunk_lengths": [], # Track chunk sizes for quality metrics
+        "private_videos": 0  # New counter
     }
+
+    if is_youtube_video and youtube_data.get("error") == "private_video":
+        local_report["private_videos"] += 1
+        local_report["error_details"].append(f"Private video (inaccessible): {youtube_data['url']}")
+        return local_report
 
     # Handle different file naming based on source type
     if is_youtube_video:

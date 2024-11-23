@@ -113,9 +113,12 @@ def get_file_hash(file_path):
     """
     Generates content-based file identifier.
     Uses chunked reading for memory efficiency.
-    
+        
     Chunk Size: 4KB balances memory usage vs. I/O operations
     """
+    if not file_path or not os.path.exists(file_path):
+        raise ValueError(f"File not found: {file_path}")
+        
     hasher = hashlib.md5()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
