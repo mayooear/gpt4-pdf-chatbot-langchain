@@ -54,6 +54,10 @@
           "url": "/contact"
         },
         {
+          "label": "Compare AI Models",
+          "url": "/compare-models"
+        },
+        {
           "label": "Open Source",
           "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
         }
