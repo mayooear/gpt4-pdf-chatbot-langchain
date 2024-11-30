@@ -68,7 +68,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
       <Footer siteConfig={siteConfig} />
       {/* Error popup */}
       {showErrorPopup && errorMessage && (
-        <div className="fixed bottom-0 left-0 right-0 bg-red-100 text-red-700 py-2 px-4 flex items-center justify-between text-sm z-50">
+        <div className="fixed bottom-4 right-4 bg-red-100 text-red-700 py-2 px-4 rounded-lg shadow-md flex items-center justify-between text-sm z-50 max-w-md">
           <div className="flex items-center">
             <p className="mr-4">{errorMessage}</p>
             {errorMessage ===
@@ -82,7 +82,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
           </div>
           <button
             onClick={() => setShowErrorPopup(false)}
-            className="text-red-700 hover:text-red-800"
+            className="text-red-700 hover:text-red-800 ml-4"
           >
             ✕
           </button>
