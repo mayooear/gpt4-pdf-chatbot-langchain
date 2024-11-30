@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import Layout from '@/components/layout';
-import { useSudo } from '@/contexts/SudoContext';
 import { SiteConfig } from '@/types/siteConfig';
 import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import ModelComparisonChat, {
