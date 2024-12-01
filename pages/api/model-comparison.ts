@@ -102,8 +102,16 @@ export default async function handler(
     const setupA = await setupRetrieverAndDocumentPromise();
     const setupB = await setupRetrieverAndDocumentPromise();
 
-    const chainA = await makeChain(setupA.retriever, modelA, temperatureA);
-    const chainB = await makeChain(setupB.retriever, modelB, temperatureB);
+    const chainA = await makeChain(setupA.retriever, {
+      model: modelA,
+      temperature: temperatureA,
+      label: 'A',
+    });
+    const chainB = await makeChain(setupB.retriever, {
+      model: modelB,
+      temperature: temperatureB,
+      label: 'B',
+    });
 
     const [responseA, responseB, docsA, docsB] = await Promise.all([
       chainA.invoke({ question: query, chat_history: '' }),
