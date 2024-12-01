@@ -65,6 +65,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState<'A' | 'B' | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [isSudoAdmin, setIsSudoAdmin] = useState(false);
 
   useEffect(() => {
     if (modelA === modelB && temperatureA === temperatureB) {
@@ -94,6 +95,20 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     collection,
     onStateChange,
   ]);
+
+  useEffect(() => {
+    const checkSudoStatus = async () => {
+      try {
+        const response = await fetch('/api/sudoCookie');
+        const data = await response.json();
+        setIsSudoAdmin(data.sudoCookieValue);
+      } catch (error) {
+        console.error('Failed to check sudo status:', error);
+        setIsSudoAdmin(false);
+      }
+    };
+    checkSudoStatus();
+  }, []);
 
   const handleReset = () => {
     setConversationStarted(false);
@@ -329,6 +344,60 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/model-comparison-export');
+      if (response.status === 403) {
+        setError('Unauthorized: Sudo access required');
+        return;
+      }
+      if (!response.ok) throw new Error('Export failed');
+
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename =
+        contentDisposition?.split('filename=')[1]?.replace(/"/g, '') ||
+        'model-comparison-votes.csv';
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setError('Failed to export data');
+    }
+  };
+
+  const handleRandomize = () => {
+    const getRandomModel = () =>
+      modelOptions[Math.floor(Math.random() * modelOptions.length)].value;
+    const getRandomTemp = () => Number((Math.random() * 1).toFixed(1)); // 0.0 to 1.0
+
+    // Get first random selections
+    const firstModel = getRandomModel();
+    const firstTemp = getRandomTemp();
+
+    // Get second selections, ensuring at least one is different
+    let secondModel = getRandomModel();
+    let secondTemp = getRandomTemp();
+
+    // Keep trying until either model or temperature is different
+    while (firstModel === secondModel && firstTemp === secondTemp) {
+      secondModel = getRandomModel();
+      secondTemp = getRandomTemp();
+    }
+
+    setModelA(firstModel);
+    setModelB(secondModel);
+    setTemperatureA(firstTemp);
+    setTemperatureB(secondTemp);
+  };
+
   const chatInputProps = {
     loading,
     handleSubmit,
@@ -373,7 +442,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between mb-4">
         {conversationStarted && (
           <button
             onClick={handleReset}
@@ -382,6 +451,15 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             Reset Conversation
           </button>
         )}
+        <button
+          onClick={handleRandomize}
+          disabled={conversationStarted}
+          className={`px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 ${
+            conversationStarted ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          Random Models
+        </button>
       </div>
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         {['A', 'B'].map((modelKey) => (
@@ -467,6 +545,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                       privateSession={false}
                       allowAllAnswersPage={false}
                       showSourcesBelow={false}
+                      previousMessage={messagesA[messagesA.length - 2]}
                     />
                     {message.type === 'apiMessage' &&
                       index ===
@@ -509,6 +588,16 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
           {voteError}
         </div>
       )}
+      {isSudoAdmin && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Export Data
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -523,6 +612,21 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, onSubmit }) => {
   });
   const [comments, setComments] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setReasons({
+        moreAccurate: false,
+        betterWritten: false,
+        moreHelpful: false,
+        betterReasoning: false,
+        betterSourceUse: false,
+      });
+      setComments('');
+      setValidationError(null);
+    }
+  }, [isOpen]);
 
   const handleSubmit = () => {
     const hasCheckedReason = Object.values(reasons).some((value) => value);

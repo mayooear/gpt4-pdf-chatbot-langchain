@@ -46,4 +46,5 @@ export interface SiteConfig {
   queriesPerUserPerDay: number;
   includedLibraries?: string[];
   enabledMediaTypes?: ('text' | 'audio' | 'youtube')[];
+  enableModelComparison?: boolean;
 }

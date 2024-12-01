@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import Layout from '@/components/layout';
 import { SiteConfig } from '@/types/siteConfig';
@@ -11,15 +10,30 @@ interface ModelComparisonProps {
   siteConfig: SiteConfig | null;
 }
 
+export const getServerSideProps: GetServerSideProps = async () => {
+  const siteConfig = await loadSiteConfig();
+
+  if (!siteConfig?.enableModelComparison) {
+    return {
+      notFound: true, // This will show the default Next.js 404 page
+    };
+  }
+
+  return {
+    props: {
+      siteConfig,
+    },
+  };
+};
+
 const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
-  const [isLoading, setIsLoading] = useState(true);
   const [savedState, setSavedState] = useLocalStorage<SavedState>(
     'modelComparisonState',
     {
-      modelA: 'gpt-4o',
+      modelA: 'gpt-4',
       modelB: 'gpt-3.5-turbo',
       temperatureA: 0,
-      temperatureB: 0,
+      temperatureB: 0.7,
       mediaTypes: {
         text: true,
         audio: true,
@@ -29,42 +43,18 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
     },
   );
 
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Compare AI Models</h1>
         <ModelComparisonChat
-          siteConfig={siteConfig!}
+          siteConfig={siteConfig}
           savedState={savedState}
           onStateChange={setSavedState}
         />
       </div>
     </Layout>
   );
-};
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  const siteId = process.env.SITE_ID || 'default';
-  const siteConfig = await loadSiteConfig(siteId);
-
-  if (!siteConfig) {
-    return {
-      redirect: {
-        destination: '/404',
-        permanent: false,
-      },
-    };
-  }
-
-  return { props: { siteConfig } };
 };
 
 export default ModelComparison;

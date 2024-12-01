@@ -29,6 +29,7 @@ function parseSiteConfig(siteId: string = 'default'): SiteConfig | null {
       footer: siteConfig.footer || { links: [] },
       name: siteConfig.shortname || siteConfig.name,
       includedLibraries: siteConfig.includedLibraries || null,
+      enableModelComparison: siteConfig.enableModelComparison || false,
     } as SiteConfig;
   } catch (error) {
     console.error('Error parsing site config:', error);
