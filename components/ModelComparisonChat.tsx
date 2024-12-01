@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SiteConfig } from '@/types/siteConfig';
 import { ChatInput } from '@/components/ChatInput';
 import MessageItem from '@/components/MessageItem';
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
-import { StreamingResponseData } from '@/types/StreamingResponseData';
-import { Document } from 'langchain/document';
-import { DocMetadata } from '@/types/DocMetadata';
+import { Dialog } from '@headlessui/react';
+import { getOrCreateUUID } from '@/utils/client/uuid';
 
 export interface SavedState {
   modelA: string;
@@ -26,6 +25,20 @@ interface ModelComparisonChatProps {
   onStateChange: (state: SavedState) => void;
 }
 
+interface VoteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (reasons: VoteReasons, comments: string) => void;
+}
+
+interface VoteReasons {
+  moreAccurate: boolean;
+  betterWritten: boolean;
+  moreHelpful: boolean;
+  betterReasoning: boolean;
+  betterSourceUse: boolean;
+}
+
 const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   siteConfig,
   savedState,
@@ -44,6 +57,14 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [mediaTypes, setMediaTypes] = useState(savedState.mediaTypes);
   const [collection, setCollection] = useState(savedState.collection);
+  const accumulatedResponseA = useRef('');
+  const accumulatedResponseB = useRef('');
+  const [copiedMessageA, setCopiedMessageA] = useState<string | null>(null);
+  const [copiedMessageB, setCopiedMessageB] = useState<string | null>(null);
+  const [conversationStarted, setConversationStarted] = useState(false);
+  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState<'A' | 'B' | null>(null);
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (modelA === modelB && temperatureA === temperatureB) {
@@ -74,78 +95,158 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     onStateChange,
   ]);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent, query: string) => {
-      e.preventDefault();
-      if (modelA === modelB && temperatureA === temperatureB) {
-        setError(
-          'Cannot compare identical models with the same temperature. Please select different models or temperatures.',
-        );
-        return;
-      }
-      setLoading(true);
-      setError(null);
+  const handleReset = () => {
+    setConversationStarted(false);
+    setMessagesA([]);
+    setMessagesB([]);
+    setError(null);
+    setModelError(null);
+    accumulatedResponseA.current = '';
+    accumulatedResponseB.current = '';
+  };
 
-      // Add user message immediately
-      const userMessage: ExtendedAIMessage = {
-        type: 'userMessage',
-        message: query,
-      };
-      setMessagesA((prev: ExtendedAIMessage[]) => [...prev, userMessage]);
-      setMessagesB((prev: ExtendedAIMessage[]) => [...prev, userMessage]);
+  const handleSubmit = async (e: React.FormEvent, query: string) => {
+    e.preventDefault();
+    if (!conversationStarted) {
+      setConversationStarted(true);
+    }
+    if (modelA === modelB && temperatureA === temperatureB) {
+      setError(
+        'Cannot compare identical models with the same temperature. Please select different models or temperatures.',
+      );
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    accumulatedResponseA.current = '';
+    accumulatedResponseB.current = '';
+
+    // Add user message immediately
+    const userMessage: ExtendedAIMessage = {
+      type: 'userMessage',
+      message: query,
+    };
+    setMessagesA((prev) => [...prev, userMessage]);
+    setMessagesB((prev) => [...prev, userMessage]);
+
+    try {
+      // Changed to /api/chat endpoint
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: query,
+          modelA,
+          modelB,
+          temperatureA,
+          temperatureB,
+          mediaTypes,
+          collection,
+          history: [], // Empty for comparison mode
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      // Add initial API messages
+      setMessagesA((prev) => [...prev, { type: 'apiMessage', message: '' }]);
+      setMessagesB((prev) => [...prev, { type: 'apiMessage', message: '' }]);
 
       try {
-        const response = await fetch('/api/model-comparison', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query,
-            modelA,
-            modelB,
-            temperatureA,
-            temperatureB,
-            mediaTypes,
-            collection,
-          }),
-        });
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch comparison results');
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(5));
+                console.log('Received data:', data); // Debug log
+
+                if (data.error) {
+                  setError(data.error);
+                  break;
+                }
+
+                if (data.token) {
+                  if (data.model === 'A') {
+                    accumulatedResponseA.current += data.token;
+                    setMessagesA((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage?.type === 'apiMessage') {
+                        lastMessage.message = accumulatedResponseA.current;
+                      }
+                      return newMessages;
+                    });
+                  } else if (data.model === 'B') {
+                    accumulatedResponseB.current += data.token;
+                    setMessagesB((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage?.type === 'apiMessage') {
+                        lastMessage.message = accumulatedResponseB.current;
+                      }
+                      return newMessages;
+                    });
+                  }
+                }
+
+                if (data.done) {
+                  setLoading(false);
+                }
+
+                if (data.sourceDocs) {
+                  if (data.model === 'A') {
+                    setMessagesA((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage?.type === 'apiMessage') {
+                        lastMessage.sourceDocs = data.sourceDocs;
+                      }
+                      return newMessages;
+                    });
+                  } else if (data.model === 'B') {
+                    setMessagesB((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage?.type === 'apiMessage') {
+                        lastMessage.sourceDocs = data.sourceDocs;
+                      }
+                      return newMessages;
+                    });
+                  }
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
+              }
+            }
+          }
         }
-
-        const data = await response.json();
-        const responseA: StreamingResponseData = data.responseA;
-        const responseB: StreamingResponseData = data.responseB;
-
-        setMessagesA((prev: ExtendedAIMessage[]) => [
-          ...prev,
-          {
-            type: 'apiMessage',
-            message: responseA.token || '',
-            sourceDocs: responseA.sourceDocs as
-              | Document<DocMetadata>[]
-              | undefined,
-          },
-        ]);
-        setMessagesB((prev: ExtendedAIMessage[]) => [
-          ...prev,
-          {
-            type: 'apiMessage',
-            message: responseB.token || '',
-            sourceDocs: responseB.sourceDocs as
-              | Document<DocMetadata>[]
-              | undefined,
-          },
-        ]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-        setInput(''); // Clear input after response is received
+      } catch (e) {
+        console.error('Error reading stream:', e);
+        throw e;
       }
-    },
-    [modelA, modelB, temperatureA, temperatureB, mediaTypes, collection],
-  );
+    } catch (err) {
+      console.error('Error in handleSubmit:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+      setInput('');
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -170,8 +271,118 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
   ];
 
+  const handleCopyLinkA = (messageKey: string) => {
+    setCopiedMessageA(messageKey);
+    setTimeout(() => setCopiedMessageA(null), 2000);
+  };
+
+  const handleCopyLinkB = (messageKey: string) => {
+    setCopiedMessageB(messageKey);
+    setTimeout(() => setCopiedMessageB(null), 2000);
+  };
+
+  const handleVoteClick = async (winner: 'A' | 'B') => {
+    if (!conversationStarted) return;
+    setSelectedWinner(winner);
+    setIsVoteModalOpen(true);
+  };
+
+  const handleVoteSubmit = async (reasons: VoteReasons, comments: string) => {
+    if (!selectedWinner) return;
+
+    try {
+      const response = await fetch('/api/model-comparison-vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: getOrCreateUUID(),
+          winner: selectedWinner,
+          modelAConfig: {
+            model: modelA,
+            temperature: temperatureA,
+            response: messagesA[messagesA.length - 1]?.message || '',
+          },
+          modelBConfig: {
+            model: modelB,
+            temperature: temperatureB,
+            response: messagesB[messagesB.length - 1]?.message || '',
+          },
+          question: messagesA[messagesA.length - 2]?.message || '', // Get the last user message
+          reasons,
+          userComments: comments,
+          collection,
+          mediaTypes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit vote');
+      }
+
+      setIsVoteModalOpen(false);
+      setVoteError(null);
+    } catch (error) {
+      setVoteError(
+        error instanceof Error ? error.message : 'Failed to submit vote',
+      );
+      setTimeout(() => setVoteError(null), 3000);
+    }
+  };
+
+  const chatInputProps = {
+    loading,
+    handleSubmit,
+    handleStop: () => setLoading(false),
+    handleEnter: (
+      e: React.KeyboardEvent<HTMLTextAreaElement>,
+      query: string,
+    ) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e, query);
+      }
+    },
+    handleClick: (query: string) => {
+      const syntheticEvent = {
+        preventDefault: () => {},
+        // Add other FormEvent properties as needed
+      } as React.FormEvent;
+      handleSubmit(syntheticEvent, query);
+    },
+    handleCollectionChange,
+    handlePrivateSessionChange: () => {},
+    collection,
+    privateSession: false,
+    error,
+    setError,
+    randomQueries: [],
+    shuffleQueries: () => {},
+    textAreaRef,
+    mediaTypes,
+    handleMediaTypeChange,
+    siteConfig,
+    input,
+    handleInputChange,
+    setQuery: setInput,
+    setShouldAutoScroll: () => {},
+    isNearBottom: true,
+    setIsNearBottom: () => {},
+    isLoadingQueries: false,
+    showPrivateSessionOptions: false,
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end mb-4">
+        {conversationStarted && (
+          <button
+            onClick={handleReset}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Reset Conversation
+          </button>
+        )}
+      </div>
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         {['A', 'B'].map((modelKey) => (
           <div key={modelKey} className="flex-1">
@@ -187,6 +398,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                     : setModelB(e.target.value)
                 }
                 className="w-full p-2 border rounded"
+                disabled={conversationStarted}
               >
                 {modelOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -208,6 +420,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                       : setTemperatureB(parseFloat(e.target.value))
                   }
                   className="flex-grow"
+                  disabled={conversationStarted}
                 />
                 <span className="text-sm">
                   {modelKey === 'A' ? temperatureA : temperatureB}
@@ -226,31 +439,52 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             <div className="border rounded p-4 min-h-[300px] relative">
               {(modelKey === 'A' ? messagesA : messagesB).map(
                 (message: ExtendedAIMessage, index: number) => (
-                  <MessageItem
-                    key={index}
-                    message={message}
-                    index={index}
-                    isLastMessage={
+                  <div key={index} className="relative">
+                    <MessageItem
+                      message={message}
+                      index={index}
+                      isLastMessage={
+                        index ===
+                        (modelKey === 'A' ? messagesA : messagesB).length - 1
+                      }
+                      loading={loading}
+                      collectionChanged={false}
+                      hasMultipleCollections={false}
+                      likeStatuses={{}}
+                      linkCopied={
+                        modelKey === 'A' ? copiedMessageA : copiedMessageB
+                      }
+                      votes={{}}
+                      siteConfig={siteConfig}
+                      handleLikeCountChange={() => {}}
+                      handleCopyLink={
+                        modelKey === 'A' ? handleCopyLinkA : handleCopyLinkB
+                      }
+                      handleVote={() => {}}
+                      lastMessageRef={null}
+                      messageKey={`model${modelKey}-${index}`}
+                      voteError={null}
+                      privateSession={false}
+                      allowAllAnswersPage={false}
+                      showSourcesBelow={false}
+                    />
+                    {message.type === 'apiMessage' &&
                       index ===
-                      (modelKey === 'A' ? messagesA : messagesB).length - 1
-                    }
-                    loading={loading}
-                    collectionChanged={false}
-                    hasMultipleCollections={false}
-                    likeStatuses={{}}
-                    linkCopied={null}
-                    votes={{}}
-                    siteConfig={siteConfig}
-                    handleLikeCountChange={() => {}}
-                    handleCopyLink={() => {}}
-                    handleVote={() => {}}
-                    lastMessageRef={null}
-                    messageKey={`model${modelKey}-${index}`}
-                    voteError={null}
-                    privateSession={false}
-                    allowAllAnswersPage={false}
-                    showSourcesBelow={true}
-                  />
+                        (modelKey === 'A' ? messagesA : messagesB).length - 1 &&
+                      conversationStarted && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              handleVoteClick(modelKey as 'A' | 'B')
+                            }
+                            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            <span className="material-icons">thumb_up</span>
+                            Vote
+                          </button>
+                        </div>
+                      )}
+                  </div>
                 ),
               )}
               {loading && (
@@ -263,40 +497,107 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         ))}
       </div>
       <div className="mt-4">
-        <ChatInput
-          loading={loading}
-          handleSubmit={handleSubmit}
-          handleEnter={(e, query) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit(e, query);
-            }
-          }}
-          handleClick={() => {}}
-          handleCollectionChange={handleCollectionChange}
-          collection={collection}
-          error={error}
-          setError={setError}
-          randomQueries={[]}
-          shuffleQueries={() => {}}
-          textAreaRef={textAreaRef}
-          mediaTypes={mediaTypes}
-          handleMediaTypeChange={handleMediaTypeChange}
-          siteConfig={siteConfig}
-          input={input}
-          handleInputChange={handleInputChange}
-          setQuery={setInput}
-          setShouldAutoScroll={() => {}}
-          handleStop={() => {}}
-          isNearBottom={true}
-          setIsNearBottom={() => {}}
-          isLoadingQueries={false}
-          privateSession={false}
-          handlePrivateSessionChange={() => {}}
-          showPrivateSessionOptions={false}
-        />
+        <ChatInput {...chatInputProps} />
       </div>
+      <VoteModal
+        isOpen={isVoteModalOpen}
+        onClose={() => setIsVoteModalOpen(false)}
+        onSubmit={handleVoteSubmit}
+      />
+      {voteError && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow">
+          {voteError}
+        </div>
+      )}
     </div>
+  );
+};
+
+const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [reasons, setReasons] = useState<VoteReasons>({
+    moreAccurate: false,
+    betterWritten: false,
+    moreHelpful: false,
+    betterReasoning: false,
+    betterSourceUse: false,
+  });
+  const [comments, setComments] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleSubmit = () => {
+    const hasCheckedReason = Object.values(reasons).some((value) => value);
+    if (!hasCheckedReason && !comments.trim()) {
+      setValidationError(
+        'Please select at least one reason or provide a comment',
+      );
+      return;
+    }
+    setValidationError(null);
+    onSubmit(reasons, comments);
+  };
+
+  return (
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Dialog.Panel className="mx-auto max-w-sm rounded bg-white p-6">
+          <Dialog.Title className="text-lg font-medium mb-4">
+            Why was this response better?
+          </Dialog.Title>
+          <div className="space-y-4">
+            {Object.entries(reasons).map(([key, value]) => (
+              <label key={key} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(e) =>
+                    setReasons((prev) => ({
+                      ...prev,
+                      [key]: e.target.checked,
+                    }))
+                  }
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm">
+                  {key
+                    .replace(/([A-Z])/g, ' $1')
+                    .toLowerCase()
+                    .replace(/^\w/, (c) => c.toUpperCase())}
+                </span>
+              </label>
+            ))}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Additional Comments
+              </label>
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                rows={3}
+              />
+            </div>
+            {validationError && (
+              <p className="text-red-500 text-sm">{validationError}</p>
+            )}
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </Dialog.Panel>
+      </div>
+    </Dialog>
   );
 };
 

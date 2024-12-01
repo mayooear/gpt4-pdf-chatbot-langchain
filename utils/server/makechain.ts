@@ -149,12 +149,37 @@ const combineDocumentsFn = (docs: Document[]) => {
   return JSON.stringify(serializedDocs);
 };
 
+// Add new interface for model config
+interface ModelConfig {
+  model: string;
+  temperature: number;
+  label?: string; // For identifying which model in streaming responses
+}
+
 // Main function to create the language model chain
 export const makeChain = async (
   retriever: VectorStoreRetriever,
-  model: string = 'gpt-4o',
-  temperature: number = 0,
+  modelConfig: ModelConfig = { model: 'gpt-4o', temperature: 0 },
 ) => {
+  const { model, temperature, label } = modelConfig;
+
+  // Initialize the language model with error handling
+  let languageModel: BaseLanguageModel;
+  try {
+    languageModel = new ChatOpenAI({
+      temperature,
+      modelName: model,
+      streaming: true,
+    }) as BaseLanguageModel;
+
+    console.log(
+      `Initialized model ${label || model} with temperature ${temperature}`,
+    );
+  } catch (error) {
+    console.error(`Failed to initialize model ${model}:`, error);
+    throw new Error(`Model initialization failed for ${label || model}`);
+  }
+
   const siteId = process.env.SITE_ID || 'default';
   const condenseQuestionPrompt =
     ChatPromptTemplate.fromTemplate(CONDENSE_TEMPLATE);
@@ -171,14 +196,6 @@ export const makeChain = async (
   const answerPrompt = ChatPromptTemplate.fromTemplate(
     templateWithReplacedVars,
   );
-
-  // Initialize the language model with the specified model and temperature
-  const languageModel = new ChatOpenAI({
-    temperature: temperature,
-    modelName: model,
-    streaming: true,
-  }) as BaseLanguageModel;
-  console.log('temperature', temperature);
 
   // Rephrase the initial question into a dereferenced standalone question based on
   // the chat history to allow effective vectorstore querying.
@@ -233,13 +250,14 @@ export const makeChain = async (
         return standaloneQuestionChain.invoke(input);
       },
       chat_history: (input: AnswerChainInput) => input.chat_history,
+      modelInfo: () => ({ label, model, temperature }), // Pass model info through
     },
     answerChain,
     (result: string) => {
-      // not sure this string is reliable
+      // Add warning logs with model identification
       if (result.includes("I don't have any specific information")) {
         console.warn(
-          `Warning: AI response indicates no relevant information found`,
+          `Warning: AI response indicates no relevant information found (${label || model})`,
         );
       }
       return result;
@@ -247,4 +265,23 @@ export const makeChain = async (
   ]);
 
   return conversationalRetrievalQAChain;
+};
+
+// Add a helper function for creating comparison chains
+export const makeComparisonChains = async (
+  retriever: VectorStoreRetriever,
+  modelA: ModelConfig,
+  modelB: ModelConfig,
+) => {
+  try {
+    const [chainA, chainB] = await Promise.all([
+      makeChain(retriever, { ...modelA, label: 'A' }),
+      makeChain(retriever, { ...modelB, label: 'B' }),
+    ]);
+
+    return { chainA, chainB };
+  } catch (error) {
+    console.error('Failed to create comparison chains:', error);
+    throw new Error('Failed to initialize one or both models for comparison');
+  }
 };

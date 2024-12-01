@@ -1,5 +1,9 @@
+// import { isDevelopment } from '@/utils/env';
 import * as fbadmin from 'firebase-admin';
 import { initializeFirestore } from 'firebase-admin/firestore';
+
+// Export the Firestore database
+let db: fbadmin.firestore.Firestore;
 
 // Initialize the Firebase admin SDK
 if (!fbadmin.apps.length) {
@@ -24,8 +28,8 @@ if (!fbadmin.apps.length) {
 
   // Initialize Firestore with preferRest to improve cold start times
   initializeFirestore(app, { preferRest: true });
+  db = fbadmin.firestore();
 
-  // Remove the emulator settings
   // if (isDevelopment()) {
   //   db.settings({
   //     host: 'localhost:8080',
@@ -33,7 +37,8 @@ if (!fbadmin.apps.length) {
   //   });
   // }
   console.log('Firestore initialized');
+} else {
+  db = fbadmin.firestore();
 }
 
-// Export the Firestore database
-export const db = fbadmin.firestore();
+export { db };

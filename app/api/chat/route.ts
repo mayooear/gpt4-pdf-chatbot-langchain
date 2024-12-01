@@ -40,6 +40,13 @@ interface ChatRequestBody {
   mediaTypes: Record<string, boolean>;
 }
 
+interface ComparisonRequestBody extends ChatRequestBody {
+  modelA: string;
+  modelB: string;
+  temperatureA: number;
+  temperatureB: number;
+}
+
 async function validateAndPreprocessInput(req: NextRequest): Promise<
   | {
       sanitizedInput: ChatRequestBody;
@@ -339,7 +346,120 @@ function handleError(
   }
 }
 
-// Main POST handler for the chat API
+// Add new function near other handlers
+async function handleComparisonRequest(
+  req: NextRequest,
+  requestBody: ComparisonRequestBody,
+  siteConfig: SiteConfig,
+) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendData = (data: StreamingResponseData & { model?: string }) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      };
+
+      try {
+        // Set up Pinecone and retriever using existing functions
+        const { index, filter } = await setupPineconeAndFilter(
+          requestBody.collection,
+          requestBody.mediaTypes,
+          siteConfig,
+        );
+
+        const { retriever, documentPromise } =
+          await setupVectorStoreAndRetriever(index, filter, (data) => {
+            if (data.sourceDocs) {
+              sendData({ ...data, model: 'A' });
+              sendData({ ...data, model: 'B' });
+            }
+          });
+
+        // Create chains for both models
+        const chainA = await makeChain(retriever, {
+          model: requestBody.modelA,
+          temperature: requestBody.temperatureA,
+          label: 'A',
+        });
+        const chainB = await makeChain(retriever, {
+          model: requestBody.modelB,
+          temperature: requestBody.temperatureB,
+          label: 'B',
+        });
+
+        // Format chat history
+        const pastMessages = requestBody.history
+          .map((message: [string, string]) => {
+            return [`Human: ${message[0]}`, `Assistant: ${message[1]}`].join(
+              '\n',
+            );
+          })
+          .join('\n');
+
+        // Run both chains concurrently
+        await Promise.all([
+          chainA.invoke(
+            {
+              question: requestBody.question,
+              chat_history: pastMessages,
+            },
+            {
+              callbacks: [
+                {
+                  handleLLMNewToken(token: string) {
+                    // Only send the token if it's not empty or just whitespace
+                    if (token.trim()) {
+                      sendData({ token, model: 'A' });
+                    }
+                  },
+                } as Partial<BaseCallbackHandler>,
+              ],
+            },
+          ),
+          chainB.invoke(
+            {
+              question: requestBody.question,
+              chat_history: pastMessages,
+            },
+            {
+              callbacks: [
+                {
+                  handleLLMNewToken(token: string) {
+                    // Only send the token if it's not empty or just whitespace
+                    if (token.trim()) {
+                      sendData({ token, model: 'B' });
+                    }
+                  },
+                } as Partial<BaseCallbackHandler>,
+              ],
+            },
+          ),
+        ]);
+
+        // Send source documents once at the end
+        const sourceDocs = await documentPromise;
+        sendData({ sourceDocs });
+
+        // Signal completion
+        sendData({ done: true });
+        controller.close();
+      } catch (error) {
+        handleError(error, sendData);
+        controller.close();
+      }
+    },
+  });
+
+  return new NextResponse(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
+// main POST handler
 export async function POST(req: NextRequest) {
   // Validate and preprocess the input
   const validationResult = await validateAndPreprocessInput(req);
@@ -355,6 +475,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Failed to load site configuration' },
       { status: 500 },
+    );
+  }
+
+  // Check if this is a comparison request
+  const isComparison = 'modelA' in sanitizedInput;
+  if (isComparison) {
+    return handleComparisonRequest(
+      req,
+      sanitizedInput as ComparisonRequestBody,
+      siteConfig,
     );
   }
 

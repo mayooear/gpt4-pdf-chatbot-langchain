@@ -3,9 +3,8 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/layout';
 import { SiteConfig } from '@/types/siteConfig';
 import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
-import ModelComparisonChat, {
-  SavedState,
-} from '@/components/ModelComparisonChat';
+import ModelComparisonChat from '@/components/ModelComparisonChat';
+import { SavedState } from '@/components/ModelComparisonChat';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface ModelComparisonProps {
@@ -43,7 +42,7 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Compare AI Models</h1>
         <ModelComparisonChat
-          siteConfig={siteConfig}
+          siteConfig={siteConfig!}
           savedState={savedState}
           onStateChange={setSavedState}
         />
