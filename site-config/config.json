@@ -47,19 +47,23 @@
       "links": [
         {
           "label": "Help",
-          "url": "https://www.anandalibrary.org/content/ai-chatbot-intro/"
+          "url": "https://www.anandalibrary.org/content/ai-chatbot-intro/",
+          "icon": "help_outline"
         },
         {
           "label": "Contact",
-          "url": "/contact"
+          "url": "/contact",
+          "icon": "mail_outline"
         },
         {
           "label": "Compare AI Models",
-          "url": "/compare-models"
+          "url": "/compare-models",
+          "icon": "compare"
         },
         {
           "label": "Open Source",
-          "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
+          "url": "https://github.com/anandaworldwide/ananda-library-chatbot",
+          "icon": "code"
         }
       ]
     },
@@ -110,15 +114,18 @@
       "links": [
         {
           "label": "Help",
-          "url": "https://www.ananda.org/ai-chatbot-help/"
+          "url": "https://www.ananda.org/ai-chatbot-help/",
+          "icon": "help_outline"
         },
         {
           "label": "Contact",
-          "url": "/contact"
+          "url": "/contact",
+          "icon": "mail_outline"
         },
         {
           "label": "Open Source",
-          "url": "https://github.com/anandaworldwide/ananda-library-chatbot"
+          "url": "https://github.com/anandaworldwide/ananda-library-chatbot",
+          "icon": "code"
         }
       ]
     },
@@ -163,7 +170,8 @@
         },
         {
           "label": "Contact",
-          "url": "/contact"
+          "url": "/contact",
+          "icon": "mail_outline"
         }
       ]
     },

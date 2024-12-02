@@ -83,43 +83,69 @@ async function setSudoCookie(
   }
 }
 
-function getSudoCookie(req: NextApiRequest, res: NextApiResponse) {
+function getSudoCookie(req: NextApiRequest, res?: NextApiResponse) {
   const isSecure =
     req.headers['x-forwarded-proto'] === 'https' || !isDevelopment();
-  const cookies = new Cookies(req, res, { secure: isSecure });
-  const sudoCookieName = 'blessed';
-  const userIp = getClientIp(req);
-  const encryptedToken = cookies.get(sudoCookieName);
 
-  if (encryptedToken) {
-    try {
-      const textParts = encryptedToken.split(':');
-      if (textParts.length !== 2) {
-        console.error('Invalid token format');
-        return { sudoCookieValue: false, message: 'Invalid token format' };
-      }
-      const decryptedToken = decrypt(encryptedToken);
-      const tokenIndex = decryptedToken.indexOf(':');
-      const ip = decryptedToken.slice(tokenIndex + 1);
-      if (ip === userIp) {
-        return { sudoCookieValue: true };
-      } else {
-        console.error(
-          'GetSudoCookie: IP mismatch: Extracted IP does not match User IP',
-        );
-        return {
-          sudoCookieValue: false,
-          message: 'IP mismatch: Extracted IP does not match User IP',
-          ipMismatch: true,
-        };
-      }
-    } catch (error) {
-      console.error('Token validation error:', error);
-      return { sudoCookieValue: false, message: 'Token validation error' };
-    }
-  } else {
+  // For server-side rendering (SSR) context where we don't have access to Response object
+  if (!res) {
+    const cookies = req.headers.cookie
+      ?.split(';')
+      .map((c) => c.trim())
+      .find((c) => c.startsWith('blessed='));
+
+    const encryptedToken = cookies?.split('=')[1];
+    return validateSudoCookie(encryptedToken, getClientIp(req));
+  }
+
+  // For API context, use Cookies library
+  const cookies = new Cookies(req, res, { secure: isSecure });
+  const encryptedToken = cookies.get('blessed');
+  return validateSudoCookie(encryptedToken, getClientIp(req));
+}
+
+// Helper function to validate the sudo cookie
+function validateSudoCookie(
+  encryptedToken: string | undefined,
+  userIp: string,
+): SudoStatus {
+  if (!encryptedToken) {
     return { sudoCookieValue: false, message: '' };
   }
+
+  try {
+    const textParts = encryptedToken.split(':');
+    if (textParts.length !== 2) {
+      console.error('Invalid token format');
+      return { sudoCookieValue: false, message: 'Invalid token format' };
+    }
+
+    const decryptedToken = decrypt(encryptedToken);
+    const tokenIndex = decryptedToken.indexOf(':');
+    const ip = decryptedToken.slice(tokenIndex + 1);
+
+    if (ip === userIp) {
+      return { sudoCookieValue: true };
+    }
+
+    console.error(
+      'GetSudoCookie: IP mismatch: Extracted IP does not match User IP',
+    );
+    return {
+      sudoCookieValue: false,
+      message: 'IP mismatch: Extracted IP does not match User IP',
+      ipMismatch: true,
+    };
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return { sudoCookieValue: false, message: 'Token validation error' };
+  }
+}
+
+interface SudoStatus {
+  sudoCookieValue: boolean;
+  message?: string;
+  ipMismatch?: boolean;
 }
 
 function deleteSudoCookie(req: NextApiRequest, res: NextApiResponse) {

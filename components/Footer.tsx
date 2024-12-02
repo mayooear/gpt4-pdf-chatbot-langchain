@@ -23,23 +23,35 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
             {!siteConfig?.allowAllAnswersPage && (
               <Link
                 href="/answers"
-                className="text-sm hover:text-slate-600 cursor-pointer mx-2"
+                className="text-sm hover:text-slate-600 cursor-pointer mx-2 flex items-center"
               >
                 All Answers
+                <span className="material-icons text-sm ml-1">list_alt</span>
               </Link>
             )}
             <Link
               href="/admin/downvotes"
-              className="text-sm hover:text-slate-600 cursor-pointer mx-2"
+              className="text-sm hover:text-slate-600 cursor-pointer mx-2 flex items-center"
             >
               Review Downvotes
+              <span className="material-icons text-sm ml-1">thumb_down</span>
             </Link>
             <Link
               href="/bless"
-              className="text-sm hover:text-slate-600 cursor-pointer mx-2"
+              className="text-sm hover:text-slate-600 cursor-pointer mx-2 flex items-center"
             >
               Manage Blessing
+              <span className="material-icons text-sm ml-1">auto_fix_high</span>
             </Link>
+            {!siteConfig?.enableModelComparison && (
+              <Link
+                href="/compare-models"
+                className="text-sm hover:text-slate-600 cursor-pointer mx-2 flex items-center"
+              >
+                Compare Models
+                <span className="material-icons text-sm ml-1">compare</span>
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -47,18 +59,32 @@ const Footer: React.FC<FooterProps> = ({ siteConfig }) => {
       <footer className="bg-white text-gray-500 py-4 border-t border-t-slate-200">
         <div className="container mx-auto flex justify-center items-center">
           <div className="flex flex-wrap justify-center items-center">
-            {/* Render footer links */}
             {footerConfig.links.map((link, index) => {
+              // Add default icons if not specified in config
+              let icon = link.icon;
+              if (!icon) {
+                switch (link.label.toLowerCase()) {
+                  case 'help':
+                    icon = 'help_outline';
+                    break;
+                  case 'contact':
+                    icon = 'mail_outline';
+                    break;
+                  case 'open source':
+                  case 'open source project':
+                    icon = 'code';
+                    break;
+                  case 'compare ai models':
+                    icon = 'compare';
+                    break;
+                }
+              }
+
               const content = (
                 <>
                   {link.label}
-                  {link.icon && (
-                    <span
-                      className="material-icons ml-1 align-middle"
-                      style={{ fontFamily: "'Material Icons'" }}
-                    >
-                      {link.icon}
-                    </span>
+                  {icon && (
+                    <span className="material-icons text-sm ml-1">{icon}</span>
                   )}
                 </>
               );

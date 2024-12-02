@@ -5,15 +5,20 @@ import { loadSiteConfig } from '@/utils/server/loadSiteConfig';
 import ModelComparisonChat from '@/components/ModelComparisonChat';
 import { SavedState } from '@/components/ModelComparisonChat';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
+import { NextApiRequest } from 'next';
 
 interface ModelComparisonProps {
   siteConfig: SiteConfig | null;
+  isSudoAdmin: boolean;
+  isHidden: boolean;
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const siteConfig = await loadSiteConfig();
+  const sudoStatus = getSudoCookie(req as NextApiRequest);
 
-  if (!siteConfig?.enableModelComparison) {
+  if (!siteConfig?.enableModelComparison && !sudoStatus.sudoCookieValue) {
     return {
       notFound: true, // This will show the default Next.js 404 page
     };
@@ -22,11 +27,17 @@ export const getServerSideProps: GetServerSideProps = async () => {
   return {
     props: {
       siteConfig,
+      isSudoAdmin: !!sudoStatus.sudoCookieValue,
+      isHidden: !siteConfig?.enableModelComparison,
     },
   };
 };
 
-const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
+const ModelComparison: React.FC<ModelComparisonProps> = ({
+  siteConfig,
+  isSudoAdmin,
+  isHidden,
+}) => {
   const [savedState, setSavedState] = useLocalStorage<SavedState>(
     'modelComparisonState',
     {
@@ -43,10 +54,16 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({ siteConfig }) => {
     },
   );
 
+  if (isHidden && !isSudoAdmin) {
+    return null; // Let Next.js handle the 404
+  }
+
   return (
     <Layout siteConfig={siteConfig}>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Compare AI Models</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          Compare AI Models {isHidden && '(Admin Only)'}
+        </h1>
         <ModelComparisonChat
           siteConfig={siteConfig}
           savedState={savedState}
