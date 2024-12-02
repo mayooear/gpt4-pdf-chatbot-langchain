@@ -74,6 +74,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const [voteError, setVoteError] = useState<string | null>(null);
   const [isSudoAdmin, setIsSudoAdmin] = useState(false);
   const [showThankYouMessage, setShowThankYouMessage] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
   const modelOptions = useMemo(
     () => [
       { value: 'gpt-4o', label: 'GPT-4 Optimized' },
@@ -169,6 +170,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     setModelError(null);
     accumulatedResponseA.current = '';
     accumulatedResponseB.current = '';
+    setHasVoted(false);
   };
 
   const handleSubmit = async (e: React.FormEvent, query: string) => {
@@ -186,6 +188,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     setError(null);
     accumulatedResponseA.current = '';
     accumulatedResponseB.current = '';
+    setHasVoted(false);
 
     // Add user message immediately
     const userMessage: ExtendedAIMessage = {
@@ -380,6 +383,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
       setIsVoteModalOpen(false);
       setVoteError(null);
       setShowThankYouMessage(true);
+      setHasVoted(true);
     } catch (error) {
       setVoteError(
         error instanceof Error ? error.message : 'Failed to submit vote',
@@ -467,7 +471,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
           className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors w-fit disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={conversationStarted}
         >
-          Random Models
+          Randomize
         </button>
         {conversationStarted && (
           <button
@@ -567,7 +571,8 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                               onClick={() =>
                                 handleVoteClick(modelKey as 'A' | 'B')
                               }
-                              className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                              className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={hasVoted}
                             >
                               <span className="material-icons">thumb_up</span>
                               Vote
@@ -614,8 +619,14 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         </div>
       )}
       {showThankYouMessage && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl text-center">
+        <div
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+          onClick={() => setShowThankYouMessage(false)}
+        >
+          <div
+            className="bg-white p-6 rounded-lg shadow-xl text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-xl font-semibold mb-4">
               Thanks for your feedback!
             </h3>

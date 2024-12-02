@@ -7,6 +7,7 @@ import { SavedState } from '@/components/ModelComparisonChat';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { getSudoCookie } from '@/utils/server/sudoCookieUtils';
 import { NextApiRequest } from 'next';
+import { useState } from 'react';
 
 interface ModelComparisonProps {
   siteConfig: SiteConfig | null;
@@ -33,6 +34,54 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   };
 };
 
+const InfoModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg p-6 max-w-2xl shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-2xl font-bold mb-4">Understanding AI Models</h2>
+        <div className="text-gray-600 space-y-4">
+          <p>
+            AI models are like different chefs in a kitchen - each has their own
+            style and specialty. Some are better at certain tasks than others.
+          </p>
+          <p>
+            When we adjust the &quot;temperature&quot; setting, we&apos;re
+            telling the AI how creative to be. A low temperature (like 0) means
+            the AI will be very focused and consistent - great for factual
+            answers. A higher temperature (like 0.7) allows for more creativity
+            and variety - better for brainstorming and casual conversation.
+          </p>
+          <p>
+            Your feedback helps us understand which AI &quot;chef&quot; and
+            which &quot;cooking style&quot; works best for different situations.
+            This helps us provide better service to everyone!
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ModelComparison: React.FC<ModelComparisonProps> = ({
   siteConfig,
   isSudoAdmin,
@@ -53,6 +102,7 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({
       collection: 'master_swami',
     },
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (isHidden && !isSudoAdmin) {
     return null; // Let Next.js handle the 404
@@ -64,6 +114,20 @@ const ModelComparison: React.FC<ModelComparisonProps> = ({
         <h1 className="text-3xl font-bold mb-6">
           Compare AI Models {isHidden && '(Admin Only)'}
         </h1>
+        {!isHidden && (
+          <div className="text-gray-600 mb-6">
+            <p className="inline-block">
+              Help us improve our service by rating the answers you receive.{' '}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-blue-600 hover:underline"
+              >
+                Learn more
+              </button>
+            </p>
+          </div>
+        )}
+        <InfoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         <ModelComparisonChat
           siteConfig={siteConfig}
           savedState={savedState}
