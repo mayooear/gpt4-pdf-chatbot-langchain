@@ -689,13 +689,19 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
         </div>
       )}
       {isSudoAdmin && (
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex justify-center gap-4">
           <button
             onClick={handleExport}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Export Data
           </button>
+          <Link
+            href="/admin/model-stats"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            View Results
+          </Link>
         </div>
       )}
       {showThankYouMessage && (
