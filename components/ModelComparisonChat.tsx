@@ -92,17 +92,15 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
       modelOptions[Math.floor(Math.random() * modelOptions.length)].value;
     const getRandomTemp = () => Number((Math.random() * 1).toFixed(1));
 
-    // Get first random selections
     const firstModel = getRandomModel();
     const firstTemp = getRandomTemp();
-
-    // Get second selections, ensuring at least one is different
-    let secondModel = getRandomModel();
+    const secondModel = getRandomModel();
     let secondTemp = getRandomTemp();
 
-    // Keep trying until either model or temperature is different
-    while (firstModel === secondModel && firstTemp === secondTemp) {
-      secondModel = getRandomModel();
+    while (
+      firstModel === secondModel &&
+      Math.abs(firstTemp - secondTemp) < 0.3
+    ) {
       secondTemp = getRandomTemp();
     }
 
@@ -120,9 +118,9 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   }, [handleRandomize]);
 
   useEffect(() => {
-    if (modelA === modelB && temperatureA === temperatureB) {
+    if (modelA === modelB && Math.abs(temperatureA - temperatureB) < 0.3) {
       setModelError(
-        'Both models and temperatures are the same. Please select different models or temperatures for comparison.',
+        'When comparing the same model, temperatures must differ by at least 0.3 to ensure meaningful differences.',
       );
     } else {
       setModelError(null);
@@ -515,14 +513,14 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+    <div className="flex flex-col h-full">
+      <div className="flex justify-end mb-4">
         <button
           onClick={handleRandomize}
-          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors w-fit disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={conversationStarted}
         >
-          Randomize
+          Random Settings
         </button>
         {conversationStarted && (
           <button
@@ -530,19 +528,19 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
               handleReset();
               handleRandomize();
             }}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors w-fit"
+            className="ml-2 px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
           >
             Reset
           </button>
         )}
       </div>
 
-      <div className="max-h-[600px] overflow-y-auto">
+      <div className="overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           {['A', 'B'].map((modelKey) => (
-            <div key={modelKey} className="flex-1 min-w-0">
+            <div key={modelKey} className="flex flex-col min-w-0">
               <div className="text-xl font-semibold mb-2">Model {modelKey}</div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mb-4">
                 <select
                   value={modelKey === 'A' ? modelA : modelB}
                   onChange={(e) =>
@@ -580,46 +578,44 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                   </span>
                 </div>
               </div>
-              <div className="border rounded-lg p-4 h-full overflow-x-auto">
+              <div className="flex-grow overflow-y-auto border rounded-lg">
                 {(modelKey === 'A' ? messagesA : messagesB).map(
                   (message: ExtendedAIMessage, index: number) => (
-                    <div key={index} className="relative">
-                      <MessageItem
-                        message={message}
-                        index={index}
-                        isLastMessage={
-                          index ===
-                          (modelKey === 'A' ? messagesA : messagesB).length - 1
-                        }
-                        loading={loading}
-                        collectionChanged={false}
-                        hasMultipleCollections={false}
-                        likeStatuses={{}}
-                        linkCopied={
-                          modelKey === 'A' ? copiedMessageA : copiedMessageB
-                        }
-                        votes={{}}
-                        siteConfig={siteConfig}
-                        handleLikeCountChange={() => {}}
-                        handleCopyLink={
-                          modelKey === 'A' ? handleCopyLinkA : handleCopyLinkB
-                        }
-                        handleVote={() => {}}
-                        lastMessageRef={null}
-                        messageKey={`model${modelKey}-${index}`}
-                        voteError={null}
-                        privateSession={false}
-                        allowAllAnswersPage={false}
-                        showSourcesBelow={false}
-                        previousMessage={messagesA[messagesA.length - 2]}
-                      />
-                    </div>
+                    <MessageItem
+                      key={index}
+                      message={message}
+                      index={index}
+                      isLastMessage={
+                        index ===
+                        (modelKey === 'A' ? messagesA : messagesB).length - 1
+                      }
+                      loading={loading}
+                      collectionChanged={false}
+                      hasMultipleCollections={false}
+                      likeStatuses={{}}
+                      linkCopied={
+                        modelKey === 'A' ? copiedMessageA : copiedMessageB
+                      }
+                      votes={{}}
+                      siteConfig={siteConfig}
+                      handleLikeCountChange={() => {}}
+                      handleCopyLink={
+                        modelKey === 'A' ? handleCopyLinkA : handleCopyLinkB
+                      }
+                      handleVote={() => {}}
+                      lastMessageRef={null}
+                      messageKey={`model${modelKey}-${index}`}
+                      voteError={null}
+                      privateSession={false}
+                      allowAllAnswersPage={false}
+                      showSourcesBelow={false}
+                      previousMessage={
+                        modelKey === 'A'
+                          ? messagesA[messagesA.length - 2]
+                          : messagesB[messagesB.length - 2]
+                      }
+                    />
                   ),
-                )}
-                {loading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50">
-                    <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
                 )}
               </div>
             </div>
