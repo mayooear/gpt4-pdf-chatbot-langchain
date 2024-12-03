@@ -80,7 +80,8 @@ const ModelStats = ({ siteConfig }: ModelStatsProps) => {
   }, [currentPage]);
 
   const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
+    const date = new Date(timestamp);
+    return `${date.toLocaleDateString([], { year: '2-digit', month: 'numeric', day: 'numeric' })}\n${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const getReasonsList = (reasons?: ModelComparison['reasons']) => {
@@ -111,26 +112,24 @@ const ModelStats = ({ siteConfig }: ModelStatsProps) => {
               <table className="w-full bg-white border border-gray-200">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="whitespace-nowrap px-6 py-2 border">
+                    <th className="whitespace-normal px-6 py-2 border w-[90px]">
                       Timestamp
                     </th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[200px]">
                       Question
                     </th>
-                    <th className="whitespace-nowrap px-6 py-2 border">
-                      Winner
-                    </th>
+                    <th className="whitespace-nowrap px-6 py-2 border">Win</th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[150px]">
                       Model A
                     </th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[80px]">
-                      Answer A
+                      Ans. A
                     </th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[150px]">
                       Model B
                     </th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[80px]">
-                      Answer B
+                      Ans. B
                     </th>
                     <th className="whitespace-nowrap px-6 py-2 border w-[200px]">
                       Reasons
@@ -143,7 +142,7 @@ const ModelStats = ({ siteConfig }: ModelStatsProps) => {
                 <tbody>
                   {comparisons.map((comparison) => (
                     <tr key={comparison.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-2 border whitespace-nowrap">
+                      <td className="px-6 py-2 border whitespace-normal">
                         {formatDate(comparison.timestamp)}
                       </td>
                       <td className="px-6 py-2 border relative group">
