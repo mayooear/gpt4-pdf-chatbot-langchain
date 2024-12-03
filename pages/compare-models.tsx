@@ -45,7 +45,7 @@ const InfoModal = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
       onClick={onClose}
     >
       <div
@@ -54,6 +54,15 @@ const InfoModal = ({
       >
         <h2 className="text-2xl font-bold mb-4">Understanding AI Models</h2>
         <div className="text-gray-600 space-y-4">
+          <p>
+            Help us compare different AI models by choosing which response is
+            more helpful.
+          </p>
+          <p>
+            If neither response is helpful, you can skip and try a different
+            question - this helps avoid biasing our data when neither response
+            meets expectations.
+          </p>
           <p>
             AI models are like different chefs in a kitchen - each has their own
             style and specialty. Some are better at certain tasks than others.

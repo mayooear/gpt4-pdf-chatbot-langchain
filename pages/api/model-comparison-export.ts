@@ -13,7 +13,7 @@ interface ExportOptions {
 interface VoteData {
   id: string;
   timestamp: FirebaseFirestore.Timestamp;
-  winner: string;
+  winner: 'A' | 'B' | 'skip';
   modelAConfig: {
     model: string;
     temperature: number;

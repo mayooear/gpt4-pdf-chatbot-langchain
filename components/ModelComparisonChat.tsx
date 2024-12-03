@@ -9,7 +9,6 @@ import { SiteConfig } from '@/types/siteConfig';
 import { ChatInput } from '@/components/ChatInput';
 import MessageItem from '@/components/MessageItem';
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
-import { Dialog } from '@headlessui/react';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import Link from 'next/link';
 
@@ -36,6 +35,7 @@ interface VoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (reasons: VoteReasons, comments: string) => void;
+  selectedModel: 'A' | 'B' | null;
 }
 
 interface VoteReasons {
@@ -162,6 +162,13 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     checkSudoStatus();
   }, []);
 
+  useEffect(() => {
+    // Focus the text input on component mount
+    if (textAreaRef.current) {
+      textAreaRef.current.focus();
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   const handleReset = () => {
     setConversationStarted(false);
     setMessagesA([]);
@@ -171,6 +178,11 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     accumulatedResponseA.current = '';
     accumulatedResponseB.current = '';
     setHasVoted(false);
+
+    // Focus the input after reset
+    if (textAreaRef.current) {
+      textAreaRef.current.focus();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent, query: string) => {
@@ -343,9 +355,48 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   };
 
   const handleVoteClick = async (winner: 'A' | 'B') => {
-    if (!conversationStarted) return;
-    setSelectedWinner(winner);
-    setIsVoteModalOpen(true);
+    if (!conversationStarted || loading) return;
+
+    // Only show modal if we have responses from both models
+    if (messagesA.length > 0 && messagesB.length > 0) {
+      setSelectedWinner(winner);
+      setIsVoteModalOpen(true);
+    }
+  };
+
+  const handleSkipAndNew = async () => {
+    try {
+      await fetch('/api/model-comparison-vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: getOrCreateUUID(),
+          winner: 'skip',
+          modelAConfig: {
+            model: modelA,
+            temperature: temperatureA,
+            response: messagesA[messagesA.length - 1]?.message || '',
+          },
+          modelBConfig: {
+            model: modelB,
+            temperature: temperatureB,
+            response: messagesB[messagesB.length - 1]?.message || '',
+          },
+          question: messagesA[messagesA.length - 2]?.message || '',
+          collection,
+          mediaTypes,
+        }),
+      });
+    } catch (error) {
+      console.error('Error recording skip:', error);
+    } finally {
+      handleReset();
+      handleRandomize();
+      // Focus the input after skip
+      if (textAreaRef.current) {
+        textAreaRef.current.focus();
+      }
+    }
   };
 
   const handleVoteSubmit = async (reasons: VoteReasons, comments: string) => {
@@ -368,7 +419,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             temperature: temperatureB,
             response: messagesB[messagesB.length - 1]?.message || '',
           },
-          question: messagesA[messagesA.length - 2]?.message || '', // Get the last user message
+          question: messagesA[messagesA.length - 2]?.message || '',
           reasons,
           userComments: comments,
           collection,
@@ -485,6 +536,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
           </button>
         )}
       </div>
+
       <div className="max-h-[600px] overflow-y-auto">
         <div className="flex flex-col md:flex-row gap-4">
           {['A', 'B'].map((modelKey) => (
@@ -561,24 +613,6 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                         showSourcesBelow={false}
                         previousMessage={messagesA[messagesA.length - 2]}
                       />
-                      {message.type === 'apiMessage' &&
-                        index ===
-                          (modelKey === 'A' ? messagesA : messagesB).length -
-                            1 &&
-                        conversationStarted && (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() =>
-                                handleVoteClick(modelKey as 'A' | 'B')
-                              }
-                              className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              disabled={hasVoted}
-                            >
-                              <span className="material-icons">thumb_up</span>
-                              Vote
-                            </button>
-                          </div>
-                        )}
                     </div>
                   ),
                 )}
@@ -592,16 +626,62 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
           ))}
         </div>
       </div>
+
+      {conversationStarted &&
+        !loading &&
+        messagesA.length > 0 &&
+        messagesB.length > 0 &&
+        !hasVoted && (
+          <div className="p-6 border rounded-lg bg-gray-50">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-medium">
+                Which response was more helpful?
+              </h3>
+              <p className="text-sm text-gray-600 mt-2">
+                If neither response was helpful, skip and try a different
+                question
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => handleVoteClick('A')}
+                className="flex-1 max-w-[200px] px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
+              >
+                Response A
+              </button>
+              <button
+                onClick={() => handleVoteClick('B')}
+                className="flex-1 max-w-[200px] px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
+              >
+                Response B
+              </button>
+            </div>
+
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={handleSkipAndNew}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Skip & Try New Question
+              </button>
+            </div>
+          </div>
+        )}
+
       {modelError && (
         <div className="text-red-500 text-sm mb-4">{modelError}</div>
       )}
+
       <div className="mt-4">
         <ChatInput {...chatInputProps} />
       </div>
+
       <VoteModal
         isOpen={isVoteModalOpen}
         onClose={() => setIsVoteModalOpen(false)}
         onSubmit={handleVoteSubmit}
+        selectedModel={selectedWinner}
       />
       {voteError && (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow">
@@ -634,7 +714,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
               <button
                 onClick={() => {
                   setShowThankYouMessage(false);
-                  handleReset();
+                  handleSkipAndNew();
                 }}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
@@ -654,7 +734,12 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   );
 };
 
-const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const VoteModal: React.FC<VoteModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  selectedModel,
+}) => {
   const [reasons, setReasons] = useState<VoteReasons>({
     moreAccurate: false,
     betterWritten: false,
@@ -692,14 +777,22 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, onSubmit }) => {
     onSubmit(reasons, comments);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+    <div className="fixed inset-0 z-50">
+      <div
+        className="fixed inset-0 bg-black/30"
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="mx-auto max-w-sm rounded bg-white p-6">
-          <Dialog.Title className="text-lg font-medium mb-4">
-            Why was this response better?
-          </Dialog.Title>
+        <div className="mx-auto max-w-sm rounded bg-white p-6">
+          <h2 className="text-lg font-medium mb-4">
+            {selectedModel
+              ? `What made Response ${selectedModel} better?`
+              : 'Compare Responses'}
+          </h2>
           <div className="space-y-4">
             {Object.entries(reasons).map(([key, value]) => (
               <label key={key} className="flex items-center space-x-2">
@@ -751,9 +844,9 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, onSubmit }) => {
               </button>
             </div>
           </div>
-        </Dialog.Panel>
+        </div>
       </div>
-    </Dialog>
+    </div>
   );
 };
 

@@ -4,6 +4,37 @@ import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { withApiMiddleware } from '@/utils/server/apiMiddleware';
 import { isDevelopment } from '@/utils/env';
 
+interface ComparisonVote {
+  userId: string;
+  timestamp: Date;
+  winner: 'A' | 'B' | 'skip';
+  modelAConfig: {
+    model: string;
+    temperature: number;
+    response: string;
+  };
+  modelBConfig: {
+    model: string;
+    temperature: number;
+    response: string;
+  };
+  question: string;
+  reasons?: {
+    moreAccurate: boolean;
+    betterWritten: boolean;
+    moreHelpful: boolean;
+    betterReasoning: boolean;
+    betterSourceUse: boolean;
+  };
+  userComments?: string;
+  collection: string;
+  mediaTypes: {
+    text: boolean;
+    audio: boolean;
+    youtube: boolean;
+  };
+}
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -11,7 +42,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const isAllowed = await genericRateLimiter(req, res, {
     windowMs: 60 * 1000, // 1 minute
-    max: 3, // 3 votes per minute
+    max: 5, // 5 votes per minute
     name: 'model_comparison_vote',
   });
 
@@ -19,60 +50,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return; // Rate limiter already sent the response
   }
 
-  const {
-    userId,
-    winner,
-    modelAConfig,
-    modelBConfig,
-    question,
-    reasons,
-    userComments,
-    collection,
-    mediaTypes,
-  } = req.body;
+  const voteData: ComparisonVote = req.body;
 
   // Validate required fields
-  if (!userId || !winner || !modelAConfig || !modelBConfig || !question) {
+  if (
+    !voteData.userId ||
+    !voteData.modelAConfig ||
+    !voteData.modelBConfig ||
+    !voteData.question
+  ) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
     const prefix = isDevelopment() ? 'dev_' : 'prod_';
-    console.log('Starting vote recording...');
-    console.log('Collection name:', `${prefix}model_comparison_votes`);
-    console.log('Vote data:', {
-      userId,
-      timestamp: new Date(),
-      winner,
-      modelAConfig,
-      modelBConfig,
-      question,
-      reasons,
-      userComments,
-      collection,
-      mediaTypes,
-    });
-
     const voteRef = db.collection(`${prefix}model_comparison_votes`);
-    const docRef = await voteRef.add({
-      userId,
-      timestamp: new Date(),
-      winner,
-      modelAConfig,
-      modelBConfig,
-      question,
-      reasons,
-      userComments,
-      collection,
-      mediaTypes,
-    });
-    console.log('Vote recorded successfully with ID:', docRef.id);
-    console.log('Full path:', `${prefix}model_comparison_votes/${docRef.id}`);
 
-    // Verify the document was written
-    const docSnapshot = await docRef.get();
-    console.log('Document exists:', docSnapshot.exists);
-    console.log('Document data:', docSnapshot.data());
+    await voteRef.add({
+      ...voteData,
+      timestamp: new Date(),
+      // Only include reasons and comments if it's not a skip
+      ...(voteData.winner !== 'skip' && {
+        reasons: voteData.reasons,
+        userComments: voteData.userComments,
+      }),
+    });
 
     res.status(200).json({ message: 'Vote recorded successfully' });
   } catch (error) {
