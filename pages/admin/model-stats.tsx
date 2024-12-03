@@ -146,8 +146,18 @@ const ModelStats = ({ siteConfig }: ModelStatsProps) => {
                       <td className="px-6 py-2 border whitespace-nowrap">
                         {formatDate(comparison.timestamp)}
                       </td>
-                      <td className="px-6 py-2 border truncate">
-                        {comparison.question}
+                      <td className="px-6 py-2 border relative group">
+                        {comparison.question.split(' ').slice(0, 10).join(' ')}
+                        {comparison.question.split(' ').length > 10 && (
+                          <>
+                            ...
+                            <div className="invisible group-hover:visible absolute z-50 left-0 mt-2 p-4 bg-white border rounded-lg shadow-lg w-96 max-h-96 overflow-y-auto">
+                              <pre className="whitespace-pre-wrap text-sm">
+                                {comparison.question}
+                              </pre>
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td className="px-6 py-2 border text-center">
                         {comparison.winner}
@@ -177,10 +187,23 @@ const ModelStats = ({ siteConfig }: ModelStatsProps) => {
                         </div>
                       </td>
                       <td className="px-6 py-2 border">
-                        {getReasonsList(comparison.reasons)}
+                        {comparison.reasons &&
+                          Object.values(comparison.reasons).some((v) => v) &&
+                          getReasonsList(comparison.reasons)}
                       </td>
-                      <td className="px-6 py-2 border">
-                        {comparison.userComments || 'None'}
+                      <td className="px-6 py-2 border text-center">
+                        {comparison.userComments && (
+                          <div className="relative group">
+                            <span className="material-icons cursor-help">
+                              comment
+                            </span>
+                            <div className="invisible group-hover:visible absolute z-50 left-0 mt-2 p-4 bg-white border rounded-lg shadow-lg w-96 max-h-96 overflow-y-auto">
+                              <pre className="whitespace-pre-wrap text-sm">
+                                {comparison.userComments}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
