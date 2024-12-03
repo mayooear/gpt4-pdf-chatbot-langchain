@@ -538,9 +538,9 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
       </div>
 
       <div className="max-h-[600px] overflow-y-auto">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           {['A', 'B'].map((modelKey) => (
-            <div key={modelKey} className="flex-1">
+            <div key={modelKey} className="flex-1 min-w-0">
               <div className="text-xl font-semibold mb-2">Model {modelKey}</div>
               <div className="flex flex-col gap-2">
                 <select
@@ -580,7 +580,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                   </span>
                 </div>
               </div>
-              <div className="border rounded p-4 mt-4 min-h-[100px] transition-[min-height] duration-300 relative">
+              <div className="border rounded-lg p-4 h-full overflow-x-auto">
                 {(modelKey === 'A' ? messagesA : messagesB).map(
                   (message: ExtendedAIMessage, index: number) => (
                     <div key={index} className="relative">
