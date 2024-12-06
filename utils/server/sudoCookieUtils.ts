@@ -129,7 +129,7 @@ function validateSudoCookie(
     }
 
     console.error(
-      'GetSudoCookie: IP mismatch: Extracted IP does not match User IP',
+      `GetSudoCookie: IP mismatch: Cookie IP "${ip}" does not match User IP "${userIp}"`,
     );
     return {
       sudoCookieValue: false,
