@@ -221,45 +221,12 @@ export default function Home({
     }
   }, [abortController, setLoading, setAbortController]);
 
-  const [sourceDocs, setSourceDocs] = useState<Document[] | null>(null);
+  const [, setSourceDocs] = useState<Document[] | null>(null);
   const [lastRelatedQuestionsUpdate, setLastRelatedQuestionsUpdate] = useState<
     string | null
   >(null);
 
   const accumulatedResponseRef = useRef('');
-
-  const updateMessageState = useCallback(
-    (newResponse: string, newSourceDocs: Document[] | null) => {
-      setMessageState((prevState) => {
-        const updatedMessages = [...prevState.messages];
-        const lastMessage = updatedMessages[updatedMessages.length - 1];
-        if (lastMessage.type === 'apiMessage') {
-          updatedMessages[updatedMessages.length - 1] = {
-            ...lastMessage,
-            message: newResponse,
-            sourceDocs: newSourceDocs || lastMessage.sourceDocs,
-          };
-        } else {
-          updatedMessages.push({
-            type: 'apiMessage',
-            message: newResponse,
-            sourceDocs: newSourceDocs,
-          } as ExtendedAIMessage);
-        }
-        return {
-          ...prevState,
-          messages: updatedMessages,
-          history: [
-            ...prevState.history.slice(0, -1),
-            [prevState.history[prevState.history.length - 1][0], newResponse],
-          ],
-        };
-      });
-
-      scrollToBottom();
-    },
-    [setMessageState, scrollToBottom],
-  );
 
   const fetchRelatedQuestions = useCallback(async (docId: string) => {
     try {
@@ -281,17 +248,58 @@ export default function Home({
     }
   }, []);
 
+  const [sourceCount, setSourceCount] = useState<number>(4);
+
+  const updateMessageState = useCallback(
+    (newResponse: string, newSourceDocs: Document[] | null) => {
+      setMessageState((prevState) => {
+        const updatedMessages = [...prevState.messages];
+        const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+        if (lastMessage.type === 'apiMessage') {
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            message: newResponse,
+            sourceDocs: newSourceDocs
+              ? [...newSourceDocs]
+              : lastMessage.sourceDocs || [],
+          };
+        } else {
+          updatedMessages.push({
+            type: 'apiMessage',
+            message: newResponse,
+            sourceDocs: newSourceDocs ? [...newSourceDocs] : [],
+          } as ExtendedAIMessage);
+        }
+
+        return {
+          ...prevState,
+          messages: updatedMessages,
+          history: [
+            ...prevState.history.slice(0, -1),
+            [prevState.history[prevState.history.length - 1][0], newResponse],
+          ],
+        };
+      });
+
+      scrollToBottom();
+    },
+    [setMessageState, scrollToBottom],
+  );
+
   const handleStreamingResponse = useCallback(
     (data: StreamingResponseData) => {
       if (data.token) {
         accumulatedResponseRef.current += data.token;
-        updateMessageState(accumulatedResponseRef.current, sourceDocs);
+        updateMessageState(accumulatedResponseRef.current, null);
       }
 
       if (data.sourceDocs) {
-        setSourceDocs(data.sourceDocs);
-        // Update the message state with the new source docs
-        updateMessageState(accumulatedResponseRef.current, data.sourceDocs);
+        // Create an immutable copy of the source docs
+        const immutableSourceDocs = [...data.sourceDocs];
+        setSourceCount(immutableSourceDocs.length);
+        setSourceDocs(immutableSourceDocs);
+        updateMessageState(accumulatedResponseRef.current, immutableSourceDocs);
       }
 
       if (data.done) {
@@ -335,12 +343,12 @@ export default function Home({
       }
     },
     [
-      updateMessageState,
-      sourceDocs,
       setLoading,
       setError,
       setMessageState,
       fetchRelatedQuestions,
+      setSourceCount,
+      updateMessageState,
     ],
   );
 
@@ -390,10 +398,10 @@ export default function Home({
     // Scroll to bottom after adding user message
     setTimeout(scrollToBottom, 0);
 
-    const newAbortController = new AbortController();
-    setAbortController(newAbortController);
-
     try {
+      const newAbortController = new AbortController();
+      setAbortController(newAbortController);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -405,6 +413,7 @@ export default function Home({
           collection,
           privateSession,
           mediaTypes,
+          sourceCount,
         }),
         signal: newAbortController.signal,
       });
@@ -427,10 +436,8 @@ export default function Home({
       const decoder = new TextDecoder();
 
       while (true) {
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
-        }
+        const { done, value } = await reader.read();
+        if (done) break;
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -450,7 +457,6 @@ export default function Home({
       }
 
       setLoading(false);
-
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(
@@ -586,7 +592,6 @@ export default function Home({
 
   // Effect to set initial collection and focus input on component mount
   useEffect(() => {
-    
     // Retrieve and set the collection from the cookie
     // TODO: This is a hack for jairam site test
     const savedCollection =
@@ -720,6 +725,8 @@ export default function Home({
                 isNearBottom={isNearBottom}
                 setIsNearBottom={setIsNearBottom}
                 isLoadingQueries={isLoadingQueries}
+                sourceCount={sourceCount}
+                onSourceCountChange={setSourceCount}
               />
             )}
           </div>

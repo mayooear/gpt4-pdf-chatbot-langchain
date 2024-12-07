@@ -67,6 +67,8 @@ interface ChatInputProps {
   setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
   isLoadingQueries: boolean;
   showPrivateSessionOptions?: boolean;
+  sourceCount: number;
+  onSourceCountChange: (count: number) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -93,6 +95,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setIsNearBottom,
   isLoadingQueries,
   showPrivateSessionOptions = true,
+  sourceCount,
+  onSourceCountChange,
 }) => {
   // State variables for managing component behavior
   const [, setLocalQuery] = useState<string>('');
@@ -372,6 +376,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     <span className="align-middle">Start Private Session</span>
                   </button>
                 )}
+              <select
+                value={sourceCount}
+                onChange={(e) => {
+                  const count = Number(e.target.value);
+                  onSourceCountChange(count);
+                  logEvent('change_source_count', 'UI', count.toString());
+                }}
+                className="px-2 py-1 text-sm rounded border border-gray-300"
+              >
+                {[4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <option key={num} value={num}>
+                    {num} sources
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
