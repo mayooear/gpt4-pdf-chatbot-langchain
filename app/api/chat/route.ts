@@ -38,6 +38,7 @@ interface ChatRequestBody {
   history: [string, string][];
   privateSession: boolean;
   mediaTypes: Record<string, boolean>;
+  sourceCount: number;
 }
 
 interface ComparisonRequestBody extends ChatRequestBody {
@@ -203,6 +204,7 @@ async function setupVectorStoreAndRetriever(
     error?: string;
     docId?: string;
   }) => void,
+  sourceCount: number = 4,
 ): Promise<{
   vectorStore: PineconeStore;
   retriever: ReturnType<PineconeStore['asRetriever']>;
@@ -218,12 +220,6 @@ async function setupVectorStoreAndRetriever(
     },
   );
 
-  // Set up promise to resolve with retrieved documents
-  let resolveWithDocuments: (value: Document[]) => void;
-  const documentPromise = new Promise<Document[]>((resolve) => {
-    resolveWithDocuments = resolve;
-  });
-
   // Create retriever with callback to send source documents
   const retriever = vectorStore.asRetriever({
     callbacks: [
@@ -234,6 +230,13 @@ async function setupVectorStoreAndRetriever(
         },
       } as Partial<BaseCallbackHandler>,
     ],
+    k: sourceCount,
+  });
+
+  // Set up promise to resolve with retrieved documents
+  let resolveWithDocuments: (value: Document[]) => void;
+  const documentPromise = new Promise<Document[]>((resolve) => {
+    resolveWithDocuments = resolve;
   });
 
   return { vectorStore, retriever, documentPromise };
@@ -245,9 +248,14 @@ async function setupAndExecuteLanguageModelChain(
   sanitizedQuestion: string,
   history: [string, string][],
   sendData: (data: StreamingResponseData) => void,
+  sourceCount: number = 4,
 ): Promise<string> {
-  // Create language model chain
-  const chain = await makeChain(retriever);
+  // Create language model chain with sourceCount
+  const chain = await makeChain(
+    retriever,
+    { model: 'gpt-4o', temperature: 0 },
+    sourceCount,
+  );
 
   // Format chat history for the language model
   const pastMessages = history
@@ -368,12 +376,17 @@ async function handleComparisonRequest(
         );
 
         const { retriever, documentPromise } =
-          await setupVectorStoreAndRetriever(index, filter, (data) => {
-            if (data.sourceDocs) {
-              sendData({ ...data, model: 'A' });
-              sendData({ ...data, model: 'B' });
-            }
-          });
+          await setupVectorStoreAndRetriever(
+            index,
+            filter,
+            (data) => {
+              if (data.sourceDocs) {
+                sendData({ ...data, model: 'A' });
+                sendData({ ...data, model: 'B' });
+              }
+            },
+            requestBody.sourceCount,
+          );
 
         // Create chains for both models
         const chainA = await makeChain(retriever, {
@@ -522,7 +535,12 @@ export async function POST(req: NextRequest) {
         );
 
         const { retriever, documentPromise } =
-          await setupVectorStoreAndRetriever(index, filter, sendData);
+          await setupVectorStoreAndRetriever(
+            index,
+            filter,
+            sendData,
+            sanitizedInput.sourceCount || 4,
+          );
 
         // Execute language model chain
         const fullResponse = await setupAndExecuteLanguageModelChain(
@@ -530,6 +548,7 @@ export async function POST(req: NextRequest) {
           sanitizedInput.question,
           sanitizedInput.history,
           sendData,
+          sanitizedInput.sourceCount || 4,
         );
 
         // Log warning if no sources were found

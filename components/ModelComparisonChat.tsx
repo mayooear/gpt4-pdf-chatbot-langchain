@@ -11,6 +11,7 @@ import MessageItem from '@/components/MessageItem';
 import { ExtendedAIMessage } from '@/types/ExtendedAIMessage';
 import { getOrCreateUUID } from '@/utils/client/uuid';
 import Link from 'next/link';
+import { logEvent } from '@/utils/client/analytics';
 
 export interface SavedState {
   modelA: string;
@@ -46,6 +47,8 @@ interface VoteReasons {
   betterSourceUse: boolean;
 }
 
+const PAGE = 'model_comparison';
+
 const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   siteConfig,
   savedState,
@@ -75,6 +78,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   const [isSudoAdmin, setIsSudoAdmin] = useState(false);
   const [showThankYouMessage, setShowThankYouMessage] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [sourceCount, setSourceCount] = useState<number>(4);
   const modelOptions = useMemo(
     () => [
       { value: 'gpt-4o', label: 'GPT-4 Optimized' },
@@ -87,27 +91,50 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
   );
   const hasRandomized = useRef(false);
 
+  const handleModelChange = useCallback(
+    (modelKey: 'A' | 'B', value: string) => {
+      if (modelKey === 'A') {
+        setModelA(value);
+        logEvent(`${PAGE}_change_model`, PAGE, `Model A: ${value}`);
+      } else {
+        setModelB(value);
+        logEvent(`${PAGE}_change_model`, PAGE, `Model B: ${value}`);
+      }
+    },
+    [],
+  );
+
+  const handleTemperatureChange = useCallback(
+    (modelKey: 'A' | 'B', value: number) => {
+      if (modelKey === 'A') {
+        setTemperatureA(value);
+        logEvent(`${PAGE}_change_temperature`, PAGE, `Model A: ${value}`);
+      } else {
+        setTemperatureB(value);
+        logEvent(`${PAGE}_change_temperature`, PAGE, `Model B: ${value}`);
+      }
+    },
+    [],
+  );
+
   const handleRandomize = useCallback(() => {
     const getRandomModel = () =>
       modelOptions[Math.floor(Math.random() * modelOptions.length)].value;
     const getRandomTemp = () => Number((Math.random() * 1).toFixed(1));
 
-    const firstModel = getRandomModel();
-    const firstTemp = getRandomTemp();
-    const secondModel = getRandomModel();
-    let secondTemp = getRandomTemp();
+    const newModelA = getRandomModel();
+    const newModelB = getRandomModel();
+    const newTempA = getRandomTemp();
+    let newTempB = getRandomTemp();
 
-    while (
-      firstModel === secondModel &&
-      Math.abs(firstTemp - secondTemp) < 0.3
-    ) {
-      secondTemp = getRandomTemp();
+    while (newModelA === newModelB && Math.abs(newTempA - newTempB) < 0.3) {
+      newTempB = getRandomTemp();
     }
 
-    setModelA(firstModel);
-    setModelB(secondModel);
-    setTemperatureA(firstTemp);
-    setTemperatureB(secondTemp);
+    setModelA(newModelA);
+    setModelB(newModelB);
+    setTemperatureA(newTempA);
+    setTemperatureB(newTempB);
   }, [modelOptions]);
 
   useEffect(() => {
@@ -252,8 +279,6 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(5));
-                console.log('Received data:', data); // Debug log
-
                 if (data.error) {
                   setError(data.error);
                   break;
@@ -359,10 +384,12 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     if (messagesA.length > 0 && messagesB.length > 0) {
       setSelectedWinner(winner);
       setIsVoteModalOpen(true);
+      logEvent(`${PAGE}_vote`, PAGE, `Selected Model ${winner}`);
     }
   };
 
   const handleSkipAndNew = async () => {
+    logEvent(`${PAGE}_skip`, PAGE, 'Skip and Try New');
     try {
       await fetch('/api/model-comparison-vote', {
         method: 'POST',
@@ -390,7 +417,6 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     } finally {
       handleReset();
       handleRandomize();
-      // Focus the input after skip
       if (textAreaRef.current) {
         textAreaRef.current.focus();
       }
@@ -510,6 +536,19 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     setIsNearBottom: () => {},
     isLoadingQueries: false,
     showPrivateSessionOptions: false,
+    sourceCount,
+    onSourceCountChange: setSourceCount,
+  };
+
+  const handleCompareAnotherClick = () => {
+    logEvent(
+      `${PAGE}_click_compare_another`,
+      PAGE,
+      'User clicked Compare Another',
+    );
+    setShowThankYouMessage(false);
+    handleReset();
+    handleRandomize();
   };
 
   return (
@@ -544,9 +583,7 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                 <select
                   value={modelKey === 'A' ? modelA : modelB}
                   onChange={(e) =>
-                    modelKey === 'A'
-                      ? setModelA(e.target.value)
-                      : setModelB(e.target.value)
+                    handleModelChange(modelKey as 'A' | 'B', e.target.value)
                   }
                   className="w-full p-2 border rounded"
                   disabled={conversationStarted}
@@ -566,9 +603,10 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
                     step="0.1"
                     value={modelKey === 'A' ? temperatureA : temperatureB}
                     onChange={(e) =>
-                      modelKey === 'A'
-                        ? setTemperatureA(parseFloat(e.target.value))
-                        : setTemperatureB(parseFloat(e.target.value))
+                      handleTemperatureChange(
+                        modelKey as 'A' | 'B',
+                        parseFloat(e.target.value),
+                      )
                     }
                     className="flex-grow"
                     disabled={conversationStarted}
@@ -714,17 +752,16 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
             </h3>
             <div className="flex gap-4 justify-center">
               <button
-                onClick={() => {
-                  setShowThankYouMessage(false);
-                  handleReset();
-                  handleRandomize();
-                }}
+                onClick={handleCompareAnotherClick}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
                 Compare Another
               </button>
               <Link
                 href="/"
+                onClick={() =>
+                  logEvent(`${PAGE}_post_vote`, PAGE, 'Return Home')
+                }
                 className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
               >
                 Home

@@ -160,6 +160,7 @@ interface ModelConfig {
 export const makeChain = async (
   retriever: VectorStoreRetriever,
   modelConfig: ModelConfig = { model: 'gpt-4o', temperature: 0 },
+  sourceCount: number = 4,
 ) => {
   const { model, temperature, label } = modelConfig;
 
@@ -205,16 +206,25 @@ export const makeChain = async (
     new StringOutputParser(),
   ]);
 
+  // Set the number of documents to retrieve
+  retriever.k = sourceCount;
+
   // Create a chain to retrieve and format documents based on a query
-  const retrievalChain = retriever.pipe((docs: Document[]) => {
-    if (docs.length === 0) {
-      console.warn(`Warning: makeChain: No sources returned for query`);
-    }
-    return {
-      documents: docs,
-      combinedContent: combineDocumentsFn(docs),
-    };
-  });
+  const retrievalChain = RunnableSequence.from([
+    (input: string) => {
+      return input;
+    },
+    retriever,
+    (docs: Document[]) => {
+      if (docs.length === 0) {
+        console.warn(`Warning: makeChain: No sources returned for query`);
+      }
+      return {
+        documents: docs,
+        combinedContent: combineDocumentsFn(docs),
+      };
+    },
+  ]);
 
   // Generate an answer to the standalone question based on the chat history
   // and retrieved documents. Additionally, we return the source documents directly.
