@@ -362,20 +362,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   />
                 </div>
               )}
-              {showPrivateSessionOptions &&
-                !privateSession &&
-                siteConfig?.allowPrivateSessions && (
-                  <button
-                    type="button"
-                    onClick={handlePrivateSessionChange}
-                    className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
-                  >
-                    <span className="material-icons text-sm mr-1 align-middle">
-                      lock
-                    </span>
-                    <span className="align-middle">Start Private Session</span>
-                  </button>
-                )}
               <select
                 value={sourceCount}
                 onChange={(e) => {
@@ -391,6 +377,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   </option>
                 ))}
               </select>
+              {showPrivateSessionOptions &&
+                !privateSession &&
+                siteConfig?.allowPrivateSessions && (
+                  <button
+                    type="button"
+                    onClick={handlePrivateSessionChange}
+                    className="px-2 py-1 text-xs sm:text-sm rounded bg-purple-100 text-purple-800 whitespace-nowrap"
+                  >
+                    <span className="material-icons text-sm mr-1 align-middle">
+                      lock
+                    </span>
+                    <span className="align-middle">Start Private Session</span>
+                  </button>
+                )}
             </div>
           )}
 
