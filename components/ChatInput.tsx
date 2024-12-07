@@ -105,6 +105,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState(false);
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
+  const [showControlsInfo, setShowControlsInfo] = useState(false);
   //const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Effect to set initial suggestions expanded state based on visit count
@@ -295,18 +296,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </button>
           </div>
 
-          {/* Mobile options toggle */}
-          {isMobile && (
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={() => setShowOptions(!showOptions)}
-                className="text-blue-500 hover:underline mb-2"
-              >
-                {showOptions ? 'Hide options' : 'Show options'}
-              </button>
-            </div>
-          )}
+          {/* Mobile options toggle - only show if there are options available */}
+          {isMobile &&
+            (showMediaTypeSelection ||
+              showAuthorSelection ||
+              siteConfig?.showSourceCountSelector ||
+              (showPrivateSessionOptions &&
+                !privateSession &&
+                siteConfig?.allowPrivateSessions)) && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="text-blue-500 hover:underline mb-2"
+                >
+                  {showOptions ? 'Hide options' : 'Show options'}
+                </button>
+              </div>
+            )}
 
           {/* Options section (media type, collection selector, private session) */}
           {(!isMobile || showOptions) && (
@@ -362,21 +369,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   />
                 </div>
               )}
-              <select
-                value={sourceCount}
-                onChange={(e) => {
-                  const count = Number(e.target.value);
-                  onSourceCountChange(count);
-                  logEvent('change_source_count', 'UI', count.toString());
-                }}
-                className="px-2 py-1 text-sm rounded border border-gray-300"
-              >
-                {[4, 5, 6, 7, 8, 9, 10].map((num) => (
-                  <option key={num} value={num}>
-                    {num} sources
-                  </option>
-                ))}
-              </select>
+              {siteConfig?.showSourceCountSelector && (
+                <select
+                  value={sourceCount}
+                  onChange={(e) => {
+                    const count = Number(e.target.value);
+                    onSourceCountChange(count);
+                    logEvent('change_source_count', 'UI', count.toString());
+                  }}
+                  className="px-2 py-1 text-sm rounded border border-gray-300"
+                >
+                  {[4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <option key={num} value={num}>
+                      {num} sources
+                    </option>
+                  ))}
+                </select>
+              )}
               {showPrivateSessionOptions &&
                 !privateSession &&
                 siteConfig?.allowPrivateSessions && (
@@ -391,6 +400,97 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     <span className="align-middle">Start Private Session</span>
                   </button>
                 )}
+              {(showMediaTypeSelection ||
+                showAuthorSelection ||
+                siteConfig?.showSourceCountSelector ||
+                siteConfig?.allowPrivateSessions) && (
+                <button
+                  type="button"
+                  onClick={() => setShowControlsInfo(true)}
+                  className="px-2 py-1 text-xs sm:text-sm rounded-full border border-gray-300 w-6 h-6 flex items-center justify-center hover:bg-gray-100 self-center"
+                  aria-label="Controls information"
+                >
+                  <span className="material-icons text-base">info</span>
+                </button>
+              )}
+
+              {/* Controls Info Popup */}
+              {showControlsInfo && (
+                <>
+                  <div
+                    className="fixed inset-0 bg-black/30"
+                    onClick={() => setShowControlsInfo(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="fixed z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold">
+                        Available Controls
+                      </h3>
+                      <button
+                        onClick={() => setShowControlsInfo(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                        aria-label="Close"
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {showMediaTypeSelection && (
+                        <div>
+                          <h4 className="font-medium mb-1">
+                            Media Type Selection
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Choose which media types (
+                            {enabledMediaTypes
+                              .map((type) =>
+                                type === 'youtube' ? 'video' : type,
+                              )
+                              .join(', ')}
+                            ) to include for your query.
+                          </p>
+                        </div>
+                      )}
+
+                      {showAuthorSelection && (
+                        <div>
+                          <h4 className="font-medium mb-1">
+                            Collection Selection
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Select specific collections or authors to focus your
+                            search.
+                          </p>
+                        </div>
+                      )}
+
+                      {siteConfig?.showSourceCountSelector && (
+                        <div>
+                          <h4 className="font-medium mb-1">
+                            Number of Sources
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Adjust how many sources are used to generate
+                            responses (4-10).
+                          </p>
+                        </div>
+                      )}
+
+                      {siteConfig?.allowPrivateSessions && (
+                        <div>
+                          <h4 className="font-medium mb-1">Private Session</h4>
+                          <p className="text-sm text-gray-600">
+                            Enable private mode to keep your queries
+                            confidential and unlisted.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

@@ -47,4 +47,5 @@ export interface SiteConfig {
   includedLibraries?: string[];
   enabledMediaTypes?: ('text' | 'audio' | 'youtube')[];
   enableModelComparison?: boolean;
+  showSourceCountSelector?: boolean;
 }

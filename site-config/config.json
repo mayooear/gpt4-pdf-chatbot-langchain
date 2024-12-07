@@ -69,7 +69,8 @@
     },
     "npsSurveyFrequencyDays": 90,
     "queriesPerUserPerDay": 200,
-    "enableModelComparison": true
+    "enableModelComparison": true,
+    "showSourceCountSelector": true
   },
   "ananda-public": {
     "name": "The Ananda Public Chatbot",
@@ -133,7 +134,8 @@
     "queriesPerUserPerDay": 40,
     "includedLibraries": ["Ananda Youtube", "Treasures", "The Bhaktan Files"],
     "enabledMediaTypes": ["audio", "youtube"],
-    "enableModelComparison": false
+    "enableModelComparison": false,
+    "showSourceCountSelector": false
   },
   "jairam": {
     "name": "The Free Joe Hunt Chatbot",
@@ -177,7 +179,8 @@
     },
     "npsSurveyFrequencyDays": 0,
     "queriesPerUserPerDay": 100,
-    "enableModelComparison": true
+    "enableModelComparison": true,
+    "showSourceCountSelector": true
   },
   "crystal": {
     "name": "Crystal Clarity Library Magic",
@@ -221,6 +224,7 @@
     },
     "npsSurveyFrequencyDays": 0,
     "queriesPerUserPerDay": 40,
-    "enableModelComparison": false
+    "enableModelComparison": false,
+    "showSourceCountSelector": false
   }
 }
