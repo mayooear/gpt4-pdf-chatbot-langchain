@@ -67,8 +67,8 @@ interface ChatInputProps {
   setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
   isLoadingQueries: boolean;
   showPrivateSessionOptions?: boolean;
-  sourceCount: number;
-  onSourceCountChange: (count: number) => void;
+  useExtraSources: boolean;
+  onExtraSourcesChange: (useExtra: boolean) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -95,8 +95,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setIsNearBottom,
   isLoadingQueries,
   showPrivateSessionOptions = true,
-  sourceCount,
-  onSourceCountChange,
+  useExtraSources,
+  onExtraSourcesChange,
 }) => {
   // State variables for managing component behavior
   const [, setLocalQuery] = useState<string>('');
@@ -370,21 +370,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </div>
               )}
               {siteConfig?.showSourceCountSelector && (
-                <select
-                  value={sourceCount}
-                  onChange={(e) => {
-                    const count = Number(e.target.value);
-                    onSourceCountChange(count);
-                    logEvent('change_source_count', 'UI', count.toString());
-                  }}
-                  className="px-2 py-1 text-sm rounded border border-gray-300"
-                >
-                  {[4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <option key={num} value={num}>
-                      {num} sources
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="extraSources"
+                    checked={useExtraSources}
+                    onChange={(e) => {
+                      onExtraSourcesChange(e.target.checked);
+                      logEvent(
+                        'change_source_count',
+                        'UI',
+                        e.target.checked ? '10' : '4',
+                      );
+                    }}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="extraSources"
+                    className="ml-2 text-sm text-gray-700"
+                  >
+                    Use extra sources
+                  </label>
+                </div>
               )}
               {showPrivateSessionOptions &&
                 !privateSession &&
@@ -469,11 +476,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       {siteConfig?.showSourceCountSelector && (
                         <div>
                           <h4 className="font-medium mb-1">
-                            Number of Sources
+                            Use Extra Sources
                           </h4>
                           <p className="text-sm text-gray-600">
-                            Adjust how many sources are used to generate
-                            responses (4-10).
+                            Enable to use more sources (10 instead of 4) for
+                            potentially more comprehensive responses. Relevant
+                            text passages are retrieved based on similarity to
+                            your query and used as context for generating
+                            answers.
                           </p>
                         </div>
                       )}

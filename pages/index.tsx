@@ -248,7 +248,7 @@ export default function Home({
     }
   }, []);
 
-  const [sourceCount, setSourceCount] = useState<number>(4);
+  const [useExtraSources, setUseExtraSources] = useState<boolean>(false);
 
   const updateMessageState = useCallback(
     (newResponse: string, newSourceDocs: Document[] | null) => {
@@ -295,9 +295,8 @@ export default function Home({
       }
 
       if (data.sourceDocs) {
-        // Create an immutable copy of the source docs
         const immutableSourceDocs = [...data.sourceDocs];
-        setSourceCount(immutableSourceDocs.length);
+        //         setSourceCount(immutableSourceDocs.length);
         setSourceDocs(immutableSourceDocs);
         updateMessageState(accumulatedResponseRef.current, immutableSourceDocs);
       }
@@ -347,7 +346,6 @@ export default function Home({
       setError,
       setMessageState,
       fetchRelatedQuestions,
-      setSourceCount,
       updateMessageState,
     ],
   );
@@ -413,7 +411,7 @@ export default function Home({
           collection,
           privateSession,
           mediaTypes,
-          sourceCount,
+          sourceCount: useExtraSources ? 10 : 4,
         }),
         signal: newAbortController.signal,
       });
@@ -725,8 +723,10 @@ export default function Home({
                 isNearBottom={isNearBottom}
                 setIsNearBottom={setIsNearBottom}
                 isLoadingQueries={isLoadingQueries}
-                sourceCount={sourceCount}
-                onSourceCountChange={setSourceCount}
+                useExtraSources={useExtraSources}
+                onExtraSourcesChange={(useExtra: boolean): void =>
+                  setUseExtraSources(useExtra)
+                }
               />
             )}
           </div>
