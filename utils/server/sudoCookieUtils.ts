@@ -4,6 +4,7 @@ import Cookies from 'cookies';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { isDevelopment } from '@/utils/env';
 import validator from 'validator';
+import { getClientIp } from './ipUtils';
 
 const secretKey = crypto
   .createHash('sha256')
@@ -31,33 +32,6 @@ function decrypt(text: string) {
     console.error('Decryption error:', error);
     throw new Error('Decryption failed');
   }
-}
-
-export function getClientIp(req: NextApiRequest): string {
-  // Check Cloudflare headers first
-  const cfConnectingIp = req.headers['cf-connecting-ip'];
-  if (cfConnectingIp) {
-    return Array.isArray(cfConnectingIp) ? cfConnectingIp[0] : cfConnectingIp;
-  }
-
-  // Then check x-forwarded-for
-  const xForwardedFor = req.headers['x-forwarded-for'];
-  if (xForwardedFor) {
-    // Get the first IP in the list which is typically the original client IP
-    const ips = (
-      Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor
-    ).split(',');
-    return ips[0].trim();
-  }
-
-  // True-Client-IP header (used by some CDNs)
-  const trueClientIp = req.headers['true-client-ip'];
-  if (trueClientIp) {
-    return Array.isArray(trueClientIp) ? trueClientIp[0] : trueClientIp;
-  }
-
-  // Fallback to socket remote address
-  return req.socket.remoteAddress || '';
 }
 
 async function setSudoCookie(
@@ -175,4 +149,4 @@ function deleteSudoCookie(req: NextApiRequest, res: NextApiResponse) {
   return { message: 'You are not blessed' };
 }
 
-export { setSudoCookie, getSudoCookie, deleteSudoCookie };
+export { setSudoCookie, getSudoCookie, deleteSudoCookie, getClientIp };

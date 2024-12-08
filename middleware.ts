@@ -3,10 +3,11 @@ import { isDevelopment } from '@/utils/env';
 import { isTokenValid } from '@/utils/server/passwordUtils';
 import CryptoJS from 'crypto-js';
 import { loadSiteConfigSync } from '@/utils/server/loadSiteConfig';
+import { getClientIp } from '@/utils/server/ipUtils';
 
 // Log suspicious activity with details
 const logSuspiciousActivity = (req: NextRequest, reason: string) => {
-  const clientIP = req.ip || 'unknown';
+  const clientIP = getClientIp(req);
   const userAgent = req.headers.get('user-agent') || 'unknown';
   const method = req.method;
   const url = req.url;

@@ -2,7 +2,7 @@ import { db } from '@/services/firebase';
 import { isDevelopment } from '@/utils/env';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
-import { getClientIp } from '@/utils/server/sudoCookieUtils';
+import { getClientIp } from '@/utils/server/ipUtils';
 
 type RateLimitConfig = {
   windowMs: number;
@@ -28,32 +28,13 @@ export async function genericRateLimiter(
     ...config,
   };
 
-  let clientIP: string | undefined;
-
-  if (ip) {
-    clientIP = ip;
-  } else if ('headers' in req && req.headers instanceof Headers) {
-    // NextRequest
-    clientIP = req.headers.get('x-forwarded-for')?.split(',')[0];
-  } else if ('headers' in req) {
-    // NextApiRequest
-    const forwardedFor = (
-      req.headers as Record<string, string | string[] | undefined>
-    )['x-forwarded-for'];
-    clientIP = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor?.split(',')[0];
-    if (!clientIP) {
-      clientIP = (req as NextApiRequest).socket?.remoteAddress;
-    }
-  }
-
-  clientIP = clientIP || 'unknown';
+  const clientIP = ip || getClientIp(req) || 'unknown';
+  const docId = clientIP.replace(/[/.]/g, '_'); // Only sanitize for Firestore doc ID
 
   const now = Date.now();
   const rateLimitRef = db
     .collection(`${collectionPrefix}_${name}_rateLimits`)
-    .doc(clientIP);
+    .doc(docId);
 
   try {
     const rateLimitDoc = await rateLimitRef.get();

@@ -28,6 +28,7 @@ import validator from 'validator';
 import { genericRateLimiter } from '@/utils/server/genericRateLimiter';
 import { SiteConfig } from '@/types/siteConfig';
 import { StreamingResponseData } from '@/types/StreamingResponseData';
+import { getClientIp } from '@/utils/server/ipUtils';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -508,14 +509,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Get client IP for logging purposes
-  let clientIP =
-    req.headers.get('x-forwarded-for') ||
-    req.ip ||
-    req.headers.get('x-real-ip') ||
-    'unknown';
-  if (Array.isArray(clientIP)) {
-    clientIP = clientIP[0];
-  }
+  const clientIP = getClientIp(req);
 
   // Set up streaming response
   const encoder = new TextEncoder();
