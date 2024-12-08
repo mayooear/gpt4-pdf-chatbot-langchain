@@ -418,11 +418,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {showControlsInfo && (
                 <>
                   <div
-                    className="fixed inset-0 bg-black/30"
+                    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[100]"
                     onClick={() => setShowControlsInfo(false)}
                     aria-hidden="true"
                   />
-                  <div className="fixed z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+                  <div className="fixed z-[101] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="text-lg font-semibold">
                         Available Controls
