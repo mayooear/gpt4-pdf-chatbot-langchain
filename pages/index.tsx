@@ -248,7 +248,7 @@ export default function Home({
     }
   }, []);
 
-  const [useExtraSources, setUseExtraSources] = useState<boolean>(false);
+  const [sourceCount, setSourceCount] = useState<number>(4);
 
   const updateMessageState = useCallback(
     (newResponse: string, newSourceDocs: Document[] | null) => {
@@ -411,7 +411,7 @@ export default function Home({
           collection,
           privateSession,
           mediaTypes,
-          sourceCount: useExtraSources ? 10 : 4,
+          sourceCount: sourceCount,
         }),
         signal: newAbortController.signal,
       });
@@ -723,10 +723,8 @@ export default function Home({
                 isNearBottom={isNearBottom}
                 setIsNearBottom={setIsNearBottom}
                 isLoadingQueries={isLoadingQueries}
-                useExtraSources={useExtraSources}
-                onExtraSourcesChange={(useExtra: boolean): void =>
-                  setUseExtraSources(useExtra)
-                }
+                sourceCount={sourceCount}
+                setSourceCount={setSourceCount}
               />
             )}
           </div>

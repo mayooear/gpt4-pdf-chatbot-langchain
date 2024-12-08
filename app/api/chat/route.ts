@@ -47,6 +47,8 @@ interface ComparisonRequestBody extends ChatRequestBody {
   modelB: string;
   temperatureA: number;
   temperatureB: number;
+  useExtraSources: boolean;
+  sourceCount: number;
 }
 
 async function validateAndPreprocessInput(req: NextRequest): Promise<
@@ -390,16 +392,24 @@ async function handleComparisonRequest(
           );
 
         // Create chains for both models
-        const chainA = await makeChain(retriever, {
-          model: requestBody.modelA,
-          temperature: requestBody.temperatureA,
-          label: 'A',
-        });
-        const chainB = await makeChain(retriever, {
-          model: requestBody.modelB,
-          temperature: requestBody.temperatureB,
-          label: 'B',
-        });
+        const chainA = await makeChain(
+          retriever,
+          {
+            model: requestBody.modelA,
+            temperature: requestBody.temperatureA,
+            label: 'A',
+          },
+          requestBody.sourceCount,
+        );
+        const chainB = await makeChain(
+          retriever,
+          {
+            model: requestBody.modelB,
+            temperature: requestBody.temperatureB,
+            label: 'B',
+          },
+          requestBody.sourceCount,
+        );
 
         // Format chat history
         const pastMessages = requestBody.history

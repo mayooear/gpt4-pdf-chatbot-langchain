@@ -67,8 +67,8 @@ interface ChatInputProps {
   setIsNearBottom: React.Dispatch<React.SetStateAction<boolean>>;
   isLoadingQueries: boolean;
   showPrivateSessionOptions?: boolean;
-  useExtraSources: boolean;
-  onExtraSourcesChange: (useExtra: boolean) => void;
+  sourceCount: number;
+  setSourceCount: (count: number) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -95,8 +95,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setIsNearBottom,
   isLoadingQueries,
   showPrivateSessionOptions = true,
-  useExtraSources,
-  onExtraSourcesChange,
+  sourceCount,
+  setSourceCount,
 }) => {
   // State variables for managing component behavior
   const [, setLocalQuery] = useState<string>('');
@@ -370,24 +370,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </div>
               )}
               {siteConfig?.showSourceCountSelector && (
-                <div className="flex items-center">
+                <div className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     id="extraSources"
-                    checked={useExtraSources}
-                    onChange={(e) => {
-                      onExtraSourcesChange(e.target.checked);
-                      logEvent(
-                        'change_source_count',
-                        'UI',
-                        e.target.checked ? '10' : '4',
-                      );
-                    }}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    checked={sourceCount === 10}
+                    onChange={(e) => setSourceCount(e.target.checked ? 10 : 4)}
+                    className="mr-1"
                   />
                   <label
                     htmlFor="extraSources"
-                    className="ml-2 text-sm text-gray-700"
+                    className="text-sm text-gray-700 cursor-pointer"
                   >
                     Use extra sources
                   </label>

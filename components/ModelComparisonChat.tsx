@@ -236,20 +236,24 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     setMessagesB((prev) => [...prev, userMessage]);
 
     try {
-      // Changed to /api/chat endpoint
+      const requestBody = {
+        question: query,
+        modelA,
+        modelB,
+        temperatureA,
+        temperatureB,
+        mediaTypes,
+        collection,
+        history: [], // Empty for comparison mode
+        sourceCount,
+      };
+
+      console.log('Sending request with:', requestBody); // Debug log
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: query,
-          modelA,
-          modelB,
-          temperatureA,
-          temperatureB,
-          mediaTypes,
-          collection,
-          history: [], // Empty for comparison mode
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -537,7 +541,9 @@ const ModelComparisonChat: React.FC<ModelComparisonChatProps> = ({
     isLoadingQueries: false,
     showPrivateSessionOptions: false,
     sourceCount,
-    onSourceCountChange: setSourceCount,
+    setSourceCount,
+    useExtraSources: false,
+    onExtraSourcesChange: () => {},
   };
 
   const handleCompareAnotherClick = () => {
