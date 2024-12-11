@@ -375,7 +375,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     type="checkbox"
                     id="extraSources"
                     checked={sourceCount === 10}
-                    onChange={(e) => setSourceCount(e.target.checked ? 10 : 4)}
+                    onChange={(e) => {
+                      setSourceCount(e.target.checked ? 10 : 4);
+                      logEvent(
+                        'toggle_extra_sources',
+                        'Settings',
+                        e.target.checked ? 'enabled' : 'disabled',
+                      );
+                    }}
                     className="mr-1"
                   />
                   <label
