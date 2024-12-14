@@ -5,6 +5,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: supercut.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/python/supercut/supercut.py",
+      "console": "integratedTerminal",
+      "args": [
+        "importance of daily meditation",
+        "--site",
+        "ananda",
+        "--num-clips",
+        "8",
+        "--output",
+        "meditation_supercut.mp4"
+      ]
+    },
+    {
       "name": "Python Debugger: Current File with Arguments",
       "type": "debugpy",
       "request": "launch",
