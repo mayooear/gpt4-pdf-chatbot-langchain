@@ -10,6 +10,7 @@ import argparse
 import json
 import random
 import time
+import nltk
 
 # Add the project root to Python path for imports
 project_root = str(Path(__file__).parent.parent.parent)
@@ -24,6 +25,10 @@ def parse_args():
     parser.add_argument('--site', default='ananda', help='Site ID for environment variables')
     parser.add_argument('--num-clips', type=int, default=10, help='Number of clips to include')
     parser.add_argument('--output', default='supercut.mp4', help='Output file path')
+    parser.add_argument('--clip-duration', type=float, default=None, 
+                       help='Target duration for each clip in seconds. If not specified, uses full segment.')
+    parser.add_argument('--padding', type=float, default=0.5,
+                       help='Padding in seconds to add to start/end of each clip')
     return parser.parse_args()
 
 # Initialize OpenAI and Pinecone clients
@@ -57,63 +62,101 @@ class SupercutGenerator:
         )
         return response.data[0].embedding
     
-    def find_relevant_segments(self, query, num_segments=10):
-        """Find most relevant video segments"""
-        embedding = self.embed_query(query)
-        print(f"\nQuery: {query}")
-        print(f"Generated embedding length: {len(embedding)}")
+    def find_sentence_boundaries(self, text, start_time, end_time, metadata, padding=0.5, target_duration=None):
+        """Find the nearest complete sentence boundaries within target duration"""
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt', quiet=True)
         
-        # First try with video filter
+        # Get the text and word timestamps from metadata
+        words = metadata.get('words', [])
+        if not words:
+            return start_time, end_time
+        
+        sentences = nltk.sent_tokenize(text)
+        if not sentences:
+            return start_time, end_time
+        
+        # If we have a target duration, find the best sentence boundaries within that window
+        if target_duration:
+            mid_point = (start_time + end_time) / 2
+            target_start = mid_point - (target_duration / 2)
+            target_end = mid_point + (target_duration / 2)
+            
+            # Find closest sentence boundary before target_start
+            for word in words:
+                if word['start'] <= target_start:
+                    new_start = word['start']
+                else:
+                    break
+                    
+            # Find closest sentence boundary after target_end
+            for word in reversed(words):
+                if word['end'] >= target_end:
+                    new_end = word['end']
+                else:
+                    break
+        else:
+            # Original logic for finding complete sentences at start/end
+            first_sentence = sentences[0]
+            first_sentence_words = first_sentence.split()
+            for word in words:
+                if any(w.lower() in word['word'].lower() for w in first_sentence_words[-2:]):
+                    new_start = word['start']
+                    break
+            else:
+                new_start = start_time
+                
+            last_sentence = sentences[-1]
+            last_sentence_words = last_sentence.split()
+            for word in reversed(words):
+                if any(w.lower() in word['word'].lower() for w in last_sentence_words[:2]):
+                    new_end = word['end']
+                    break
+            else:
+                new_end = end_time
+        
+        # Add padding to boundaries
+        new_start = max(0, new_start - padding)  # Don't go below 0
+        new_end = new_end + padding
+        
+        return new_start, new_end
+    
+    def find_relevant_segments(self, query, num_segments=10, target_duration=None, padding=0.5):
+        """Find most relevant video segments and trim to sentence boundaries"""
+        embedding = self.embed_query(query)
         results = index.query(
             vector=embedding,
-            top_k=num_segments * 2,
-            filter={
-                "type": "youtube"
-            },
+            top_k=num_segments * 2,  # Get extra results in case some fail
+            filter={"type": "youtube"},
             include_metadata=True
         )
         
-        print(f"\nTotal matches found: {len(results['matches'])}")
-        if len(results['matches']) > 0:
-            print("\nSample metadata from first few matches:")
-            for i, match in enumerate(results['matches'][:3]):
-                print(f"\nMatch {i+1}:")
-                print(json.dumps(match['metadata'], indent=2))
-                print(f"Score: {match['score']}")
-        else:
-            # Check if any documents exist
-            stats = index.describe_index_stats()
-            print("\nIndex stats:")
-            print(f"Total vector count: {stats.total_vector_count}")
-            print(f"Dimension: {stats.dimension}")
-            print(f"Namespaces: {stats.namespaces}")
-            
-            # Try without filter to see metadata structure
-            print("\nTrying query without filter...")
-            results = index.query(
-                vector=embedding,
-                top_k=1,
-                include_metadata=True
-            )
-            if len(results['matches']) > 0:
-                print("\nSample metadata structure:")
-                print(json.dumps(results['matches'][0]['metadata'], indent=2))
-                
-                # List all unique metadata keys
-                all_keys = set()
-                for match in results['matches']:
-                    all_keys.update(match['metadata'].keys())
-                print("\nAll available metadata keys:")
-                print(json.dumps(list(all_keys), indent=2))
-        
-        # Convert to more usable format
         segments = []
         for match in results['matches'][:num_segments]:
+            metadata = match['metadata']
+            start_time = float(metadata['start_time'])
+            end_time = float(metadata['end_time'])
+            
+            # Find proper sentence boundaries using word timestamps
+            new_start, new_end = self.find_sentence_boundaries(
+                metadata.get('text', ''),
+                start_time,
+                end_time,
+                metadata,
+                padding,
+                target_duration
+            )
+            
+            metadata['start_time'] = new_start
+            metadata['end_time'] = new_end
+            
             segments.append({
                 'id': match['id'],
                 'score': match['score'],
-                'metadata': match['metadata'],
-                'text': match['metadata'].get('text', '')
+                'metadata': metadata,
+                'text': metadata.get('text', '')
             })
         
         return segments
@@ -180,8 +223,14 @@ class SupercutGenerator:
                 
         return cache_path
     
-    def extract_clip(self, video_path, start_time, end_time, output_path):
-        """Extract clip from video"""
+    def extract_clip(self, video_path, start_time, end_time, output_path, target_duration=None):
+        """Extract clip from video with optional duration target"""
+        if target_duration and (end_time - start_time) > target_duration:
+            # Center the clip around the middle
+            mid_point = (start_time + end_time) / 2
+            start_time = mid_point - (target_duration / 2)
+            end_time = mid_point + (target_duration / 2)
+        
         # First verify the source video has audio
         probe_cmd = [
             'ffprobe', '-v', 'error',
@@ -253,7 +302,7 @@ class SupercutGenerator:
         
         subprocess.run(cmd, check=True)
         
-    def create_supercut(self, query, output_path, num_clips=10):
+    def create_supercut(self, query, output_path, num_clips=10, clip_duration=None, padding=0.5):
         """End-to-end process for creating supercut"""
         print(f"\nFinding relevant segments for: {query}")
         segments = self.find_relevant_segments(query, num_clips)
@@ -264,10 +313,9 @@ class SupercutGenerator:
         
         print("\nFound segments:")
         for i, seg in enumerate(segments):
+            duration = float(seg['metadata']['end_time']) - float(seg['metadata']['start_time'])
             print(f"{i+1}. {seg['metadata'].get('title', 'Untitled')}")
-            print(f"   Type: {seg['metadata'].get('type', 'unknown')}")
-            for key in seg['metadata'].keys():
-                print(f"   {key}: {seg['metadata'][key]}")
+            print(f"   Duration: {duration:.1f}s")
             print(f"   Score: {seg['score']:.3f}\n")
         
         # Allow manual filtering
@@ -281,21 +329,19 @@ class SupercutGenerator:
         print("\nProcessing segments...")
         for seg in tqdm(segments):
             try:
-                # Download full video
                 video_path = self.download_video(seg['metadata']['url'])
                 if not video_path:
                     continue
                 
-                # Create safe filename for the clip
                 safe_id = ''.join(c if c.isalnum() else '_' for c in seg['id'])
                 clip_path = self.temp_dir / f"{safe_id}.mp4"
                 
-                # Extract clip
                 self.extract_clip(
                     video_path,
                     float(seg['metadata']['start_time']),
                     float(seg['metadata']['end_time']),
-                    clip_path
+                    clip_path,
+                    clip_duration
                 )
                 segment_paths.append(clip_path)
                 
@@ -326,7 +372,13 @@ class SupercutGenerator:
 def main():
     args = parse_args()
     generator = SupercutGenerator()
-    generator.create_supercut(args.query, args.output, args.num_clips)
+    generator.create_supercut(
+        args.query, 
+        args.output, 
+        args.num_clips,
+        args.clip_duration,
+        args.padding
+    )
 
 if __name__ == "__main__":
     main() 
