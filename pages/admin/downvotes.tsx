@@ -11,19 +11,29 @@ interface DownvotesReviewProps {
 const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
   const [downvotedAnswers, setDownvotedAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDownvotedAnswers = async () => {
       try {
         const response = await fetch('/api/downvotedAnswers');
         if (response.ok) {
-          const data = await response.json();
-          setDownvotedAnswers(data);
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            setDownvotedAnswers(data);
+            setError(null);
+          } catch (parseError) {
+            console.error('Failed to parse response:', text);
+            setError('Invalid response format');
+          }
         } else {
-          console.error('Failed to fetch downvoted answers');
+          const errorData = await response.json().catch(() => null);
+          setError(errorData?.message || 'Failed to fetch downvoted answers');
         }
       } catch (error) {
         console.error('Error fetching downvoted answers:', error);
+        setError('Failed to fetch downvoted answers');
       } finally {
         setIsLoading(false);
       }
@@ -39,6 +49,14 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
   if (!siteConfig) {
     return (
       <Layout siteConfig={null}>Error: Site configuration not available</Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout siteConfig={siteConfig}>
+        <div className="text-red-600">Error: {error}</div>
+      </Layout>
     );
   }
 

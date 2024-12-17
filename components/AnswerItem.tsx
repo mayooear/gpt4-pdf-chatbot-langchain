@@ -171,7 +171,7 @@ const AnswerItem: React.FC<AnswerItemProps> = ({
         <div className={`${markdownStyles.markdownanswer} overflow-x-auto`}>
           {/* Render the answer content */}
           <TruncatedMarkdown
-            markdown={answer.answer}
+            markdown={answer.answer || ''}
             maxCharacters={isFullPage ? 4000 : 600}
           />
 

@@ -22,14 +22,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       .limit(50)
       .get();
 
-    const downvotedAnswers = downvotedAnswersSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    res.status(200).json(downvotedAnswers);
+    const downvotedAnswers = downvotedAnswersSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        text: data.text || '',
+        vote: data.vote || 0,
+        timestamp: data.timestamp?.toDate?.() || null,
+      };
+    });
+
+    return res.status(200).json(downvotedAnswers);
   } catch (error) {
     console.error('Error fetching downvoted answers:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: error instanceof Error ? error.message : 'Something went wrong',
     });
   }

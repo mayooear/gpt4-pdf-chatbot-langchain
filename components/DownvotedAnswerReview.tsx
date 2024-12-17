@@ -65,7 +65,7 @@ const DownvotedAnswerReview: React.FC<DownvotedAnswerReviewProps> = ({
         <h2 className="text-xl font-semibold mb-2">{answer.question}</h2>
       </Link>
       <div className="mb-4">
-        <TruncatedMarkdown markdown={answer.answer} maxCharacters={300} />
+        <TruncatedMarkdown markdown={answer.answer || ''} maxCharacters={300} />
       </div>
       {parsedSources.length > 0 && (
         <SourcesList

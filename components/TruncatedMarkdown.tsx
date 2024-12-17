@@ -8,10 +8,14 @@ interface TruncatedMarkdownProps {
 }
 
 const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({
-  markdown,
+  markdown = '',
   maxCharacters,
 }) => {
   const [isTruncated, setIsTruncated] = useState(true);
+
+  if (!markdown) {
+    return <div>(No content)</div>;
+  }
 
   const toggleTruncated = (event: React.MouseEvent) => {
     event.preventDefault();
