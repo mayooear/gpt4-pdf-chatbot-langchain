@@ -13,6 +13,19 @@ const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({
 }) => {
   const [isTruncated, setIsTruncated] = useState(true);
 
+  const shouldTruncate = markdown.length >= maxCharacters * 1.1;
+
+  const displayedMarkdown = useMemo(() => {
+    if (!markdown) return '';
+    
+    const endOfTruncatedContent = markdown
+      .slice(0, maxCharacters)
+      .lastIndexOf(' ');
+    return isTruncated && shouldTruncate
+      ? markdown.slice(0, endOfTruncatedContent)
+      : markdown;
+  }, [markdown, maxCharacters, isTruncated, shouldTruncate]);
+
   if (!markdown) {
     return <div>(No content)</div>;
   }
@@ -21,17 +34,6 @@ const TruncatedMarkdown: React.FC<TruncatedMarkdownProps> = ({
     event.preventDefault();
     setIsTruncated(!isTruncated);
   };
-
-  const shouldTruncate = markdown.length >= maxCharacters * 1.1;
-
-  const displayedMarkdown = useMemo(() => {
-    const endOfTruncatedContent = markdown
-      .slice(0, maxCharacters)
-      .lastIndexOf(' ');
-    return isTruncated && shouldTruncate
-      ? markdown.slice(0, endOfTruncatedContent)
-      : markdown;
-  }, [markdown, maxCharacters, isTruncated, shouldTruncate]);
 
   return (
     <div>

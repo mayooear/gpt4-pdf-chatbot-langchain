@@ -25,6 +25,7 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
             setError(null);
           } catch (parseError) {
             console.error('Failed to parse response:', text);
+            console.log(parseError);
             setError('Invalid response format');
           }
         } else {
