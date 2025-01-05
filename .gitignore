@@ -12,6 +12,7 @@
 # supercut
 /python/supercut/cache/
 /python/supercut/temp/
+/python/supercut/silence_cache.json
 
 # firestore
 /*-debug.log
