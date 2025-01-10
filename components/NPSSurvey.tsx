@@ -213,20 +213,26 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 gurubhai?
               </h2>
               {/* Score buttons */}
-              <div className="flex justify-between mb-4">
-                {[...Array(11)].map((_, i) => (
-                  <button
-                    key={i}
-                    className={`px-2 py-1 text-sm rounded ${score === i ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                    onClick={() => setScore(i)}
-                  >
-                    {i}
-                  </button>
-                ))}
+              <div className="flex flex-col mb-4">
+                <div className="flex justify-between">
+                  {[...Array(11)].map((_, i) => (
+                    <button
+                      key={i}
+                      className={`px-2 py-1 text-sm rounded ${score === i ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                      onClick={() => setScore(i)}
+                    >
+                      {i}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>least</span>
+                  <span>most</span>
+                </div>
               </div>
               {/* Feedback textarea */}
-              <h3 className="text-lg font-semibold mb-2">
-                What&apos;s the main reason for the answer you just gave?
+              <h3 className="text-base font-medium mb-2">
+                What&apos;s the main reason for your score?
               </h3>
               <textarea
                 className="w-full p-2 border rounded mb-4"
@@ -235,8 +241,8 @@ const NPSSurvey: React.FC<NPSSurveyProps> = ({
                 maxLength={1000}
               />
               {/* Additional comments textarea */}
-              <h3 className="text-lg font-semibold mb-2">
-                Additional comments (optional)
+              <h3 className="text-base font-semibold mb-2">
+                What would make it even better? Or other comments (optional).
               </h3>
               <textarea
                 className="w-full p-2 border rounded mb-4"
