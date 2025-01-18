@@ -26,9 +26,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const data = doc.data();
       return {
         id: doc.id,
-        text: data.text || '',
+        question: data.question || '',
+        answer: data.answer || '',
         vote: data.vote || 0,
         timestamp: data.timestamp?.toDate?.() || null,
+        collection: data.collection,
+        adminAction: data.adminAction,
+        adminActionTimestamp: data.adminActionTimestamp,
+        sources: data.sources || []
       };
     });
 

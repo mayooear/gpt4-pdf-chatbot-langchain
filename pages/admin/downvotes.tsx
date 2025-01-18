@@ -18,16 +18,13 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
       try {
         const response = await fetch('/api/downvotedAnswers');
         if (response.ok) {
-          const text = await response.text();
-          try {
-            const data = JSON.parse(text);
-            setDownvotedAnswers(data);
-            setError(null);
-          } catch (parseError) {
-            console.error('Failed to parse response:', text);
-            console.log(parseError);
-            setError('Invalid response format');
-          }
+          const data = await response.json();
+          const answersWithFixedDates = data.map((answer: Answer) => ({
+            ...answer,
+            timestamp: answer.timestamp
+          }));
+          setDownvotedAnswers(answersWithFixedDates);
+          setError(null);
         } else {
           const errorData = await response.json().catch(() => null);
           setError(errorData?.message || 'Failed to fetch downvoted answers');
@@ -67,13 +64,15 @@ const DownvotesReview = ({ siteConfig }: DownvotesReviewProps) => {
       {downvotedAnswers.length === 0 ? (
         <p>No downvoted answers to review.</p>
       ) : (
-        downvotedAnswers.map((answer) => (
-          <DownvotedAnswerReview
-            key={answer.id}
-            answer={answer}
-            siteConfig={siteConfig}
-          />
-        ))
+        <div className="space-y-6">
+          {downvotedAnswers.map((answer) => (
+            <DownvotedAnswerReview
+              key={answer.id}
+              answer={answer}
+              siteConfig={siteConfig}
+            />
+          ))}
+        </div>
       )}
     </Layout>
   );

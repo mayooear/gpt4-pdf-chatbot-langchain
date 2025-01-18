@@ -45,15 +45,42 @@ const DownvotedAnswerReview: React.FC<DownvotedAnswerReviewProps> = ({
   const formatTimestamp = (timestamp: {
     _seconds: number;
     _nanoseconds: number;
-  }) => {
-    return new Date(timestamp._seconds * 1000).toLocaleString();
+  } | string | null) => {
+    if (!timestamp) {
+      return 'Unknown date';
+    }
+    
+    // Handle string timestamp format
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp).toLocaleString();
+    }
+    
+    // Handle Firestore timestamp format
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleString();
+    }
+
+    return 'Unknown date';
   };
 
   // Parse sources if they are stored as a string
   const parsedSources = answer.sources
     ? Array.isArray(answer.sources)
       ? answer.sources
-      : JSON.parse(answer.sources as unknown as string)
+      : (() => {
+          try {
+            return JSON.parse(answer.sources as unknown as string);
+          } catch {
+            // Create a basic document structure for text sources
+            return [{
+              pageContent: answer.sources,
+              metadata: {
+                type: 'text',
+                title: 'Legacy Source'
+              }
+            }];
+          }
+        })()
     : [];
 
   return (
