@@ -9,6 +9,11 @@
 /python/data_ingestion/scripts/queue-*/
 /python/data_ingestion/scripts/data/
 
+# supercut
+/python/supercut/cache/
+/python/supercut/temp/
+/python/supercut/silence_cache.json
+
 # firestore
 /*-debug.log
 /emulator-data/
