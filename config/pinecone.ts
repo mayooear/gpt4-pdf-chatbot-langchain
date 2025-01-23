@@ -1,8 +1,12 @@
 /**
- * Change the index and namespace to your own
+ * Change the namespace to the namespace on Pinecone you'd like to store your embeddings.
  */
 
-const PINECONE_INDEX_NAME = 'langchainjsfundamentals';
+if (!process.env.PINECONE_INDEX_NAME) {
+  throw new Error('Missing Pinecone index name in .env file');
+}
+
+const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME ?? '';
 
 const PINECONE_NAME_SPACE = 'pdf-test'; //namespace is optional for your vectors
 
