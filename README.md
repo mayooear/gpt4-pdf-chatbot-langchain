@@ -6,8 +6,6 @@ Tech stack used includes LangChain, Pinecone, Typescript, Openai, and Next.js. L
 
 [Tutorial video](https://www.youtube.com/watch?v=ih9PBGVVOO4)
 
-[Join the discord if you have questions](https://discord.gg/E4Mc77qwjm)
-
 The visual guide of this repo and tutorial is in the `visual guide` folder.
 
 **If you run into errors, please review the troubleshooting section further down this page.**
