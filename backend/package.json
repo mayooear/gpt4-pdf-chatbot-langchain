@@ -1,5 +1,5 @@
 {
-  "name": "ai-agent-pdf-chatbot",
+  "name": "backend",
   "version": "0.0.1",
   "description": "Chat with your PDF using this AI agent",
   "author": "Mayo Oshin",
@@ -28,6 +28,10 @@
     "@langchain/langgraph-sdk": "^0.0.36",
     "@langchain/openai": "^0.3.17",
     "@mendable/firecrawl-js": "^1.15.7",
+    "@supabase/supabase-js": "^2.48.1",
+    "chromadb": "^1.10.4",
+    "pdf-parse": "^1.1.1",
+    "uuid": "^11.0.5",
     "ws": "^8.18.0",
     "zod": "^3.24.1"
   },
