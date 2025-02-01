@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
-    "@pinecone-database/pinecone": "1.1.0",
+    "@pinecone-database/pinecone": "3.0.2",
     "@radix-ui/react-accordion": "^1.1.1",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",

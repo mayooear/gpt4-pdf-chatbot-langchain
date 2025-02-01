@@ -41,7 +41,6 @@ After installation, you should now see a `node_modules` folder.
 OPENAI_API_KEY=
 
 PINECONE_API_KEY=
-PINECONE_ENVIRONMENT=
 
 PINECONE_INDEX_NAME=
 
