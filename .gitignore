@@ -40,3 +40,5 @@ next-env.d.ts
 /Notion_DB
 
 .yarn/
+# LangGraph API
+.langgraph_api

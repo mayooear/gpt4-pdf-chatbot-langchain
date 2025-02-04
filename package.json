@@ -15,6 +15,8 @@
     "ingest": "tsx -r dotenv/config scripts/ingest-data.ts"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.37",
+    "@langchain/langgraph": "^0.2.44",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@pinecone-database/pinecone": "1.1.0",
     "@radix-ui/react-accordion": "^1.1.1",
