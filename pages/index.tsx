@@ -111,12 +111,23 @@ export default function Home() {
     }
   }
 
-  //prevent empty submissions
+  let enterCount: number = 0;
+  let timeoutId: NodeJS.Timeout;
+
   const handleEnter = (e: any) => {
-    if (e.key === 'Enter' && query) {
-      handleSubmit(e);
-    } else if (e.key == 'Enter') {
-      e.preventDefault();
+    if (e.key === 'Enter') {
+      enterCount++;
+      timeoutId = setTimeout(() => {
+        enterCount = 0;
+      }, 1000);
+      if (enterCount === 2 && query.trim() !== '') {
+        enterCount = 0; // reset conunter
+        clearTimeout(timeoutId);
+        handleSubmit(e);
+      } else {
+        // prevent empty submissions
+        e.preventDefault();
+      }
     }
   };
 
