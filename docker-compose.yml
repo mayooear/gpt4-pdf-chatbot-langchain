@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+    volumes:
+      - ./docs:/app/docs
+      - ./.env:/app/.env
