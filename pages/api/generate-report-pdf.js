@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]'; // Adjust path as needed
+import { authOptions } from './auth/[...nextauth]'; // Corrected path again
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import {
   getTotalLeadsCount,

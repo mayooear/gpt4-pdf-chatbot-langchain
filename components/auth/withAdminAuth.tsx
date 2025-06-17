@@ -17,7 +17,7 @@ const withAdminAuth = <P extends object>(WrappedComponent: ComponentType<P>) => 
         // Alternatively, could use signIn() here:
         // signIn('google', { callbackUrl: router.pathname });
         router.push('/');
-      } else if (!loading && status === 'authenticated' && session?.user?.role !== 'Admin') {
+      } else if (!loading && status === 'authenticated' && (session?.user as any)?.role !== 'Admin') {
         // Logged in, but not an admin
         router.push('/unauthorized'); // Or some other page indicating lack of permission
       }
@@ -27,7 +27,7 @@ const withAdminAuth = <P extends object>(WrappedComponent: ComponentType<P>) => 
       return <Layout><p>Loading session...</p></Layout>; // Or a dedicated loading component
     }
 
-    if (status === 'unauthenticated' || (session && session.user?.role !== 'Admin')) {
+    if (status === 'unauthenticated' || (session && (session?.user as any)?.role !== 'Admin')) {
       // Render null or a message while redirecting, or if redirect fails for some reason
       // Or a more specific "Access Denied" component within the Layout
       return <Layout><p>Access Denied. Redirecting...</p></Layout>;

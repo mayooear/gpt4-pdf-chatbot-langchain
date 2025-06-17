@@ -43,7 +43,7 @@ function UploadPageContent() {
       }
     } catch (error) {
       console.error(`Error uploading ${type} CSV:`, error);
-      setUploadStatus(prev => ({ ...prev, [setStatusKey]: `Error: ${error.message || 'Upload failed'}` }));
+      setUploadStatus(prev => ({ ...prev, [setStatusKey]: `Error: ${error.message || 'Upload failed (apostrophe test: it\\\'s safe)'}` }));
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ function UploadPageContent() {
   return (
     <div>
       <h1>Admin Upload Page</h1>
-      <p>This page is protected and only accessible by users with the 'Admin' role.</p>
+      <p>This page is protected and only accessible by users with the &apos;Admin&apos; role.</p>
 
       <section style={{ marginTop: '2rem', marginBottom: '2rem', padding: '1rem', border: '1px solid #ccc' }}>
         <h2>Upload Products CSV</h2>

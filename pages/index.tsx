@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react'; // Added for auth check
+import React, { useRef, useState, useEffect } from 'react'; // Added React import
+import { useSession, signIn } from 'next-auth/react';
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';

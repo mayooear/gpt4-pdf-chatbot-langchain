@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]'; // Ensure this path is correct
+import { authOptions } from './auth/[...nextauth]'; // Corrected path again
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { OpenAI } from '@langchain/openai'; // LLM for chat completions
 import { getPineconeClient } from '../../lib/vector'; // Using our Pinecone client wrapper

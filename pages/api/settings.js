@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import authOptions from './auth/[...nextauth]'; // Ensure this path is correct
+import { authOptions } from './auth/[...nextauth]'; // Corrected path again
 import { getAllAppSettings, updateAppSettings } from '../../lib/db';
 
 // Helper function to check admin role from session

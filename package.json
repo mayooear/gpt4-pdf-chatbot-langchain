@@ -28,7 +28,7 @@
     "langchain": "^0.3.28",
     "lucide-react": "^0.125.0",
     "next": "13.2.3",
-    "next-auth": "^4.24.11",
+    "next-auth": "4.24.11",
     "node-telegram-bot-api": "^0.66.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "1.1.1",
@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.14.6",
+    "@types/qrcode-terminal": "^0.12.2",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/parser": "^5.54.0",

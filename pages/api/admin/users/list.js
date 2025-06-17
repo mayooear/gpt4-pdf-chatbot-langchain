@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]'; // Adjusted path
-import { getAllUsers } from '../../../../lib/db'; // Adjusted path
+import { authOptions } from '../../auth/[...nextauth]'; // Corrected path again
+import { getAllUsers } from '../../../../lib/db';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

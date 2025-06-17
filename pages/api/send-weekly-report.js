@@ -11,10 +11,11 @@
 // Note: The secret should be stored as an environment variable (e.g., AUTOMATED_REPORT_SECRET)
 // and compared, not hardcoded in the path in vercel.json if using Authorization header.
 // If using query param like above, ensure it's a strong, unique secret.
-
+import { getServerSession } from 'next-auth/next'; // Added for consistency if needed, though cron uses secret
+import { authOptions } from './auth/[...nextauth]'; // Corrected path again
 import {
   // For fetching data - adapt if specific date ranges are needed for weekly reports
-  getTotalLeadsCount, // Might need a version for "last week"
+  getTotalLeadsCount,
   getTopQuestions,    // Might need a version for "last week"
   getWeeklyLeadsTrend, // This is already weekly, but might need to specify the exact week
   getMetaAdsSummary,   // Might need a version for "last week"

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]'; // Adjusted path
-import { updateUserRole, getUserById } from '../../../../lib/db'; // Adjusted path, added getUserById
+import { authOptions } from '../../auth/[...nextauth]'; // Corrected path again
+import { updateUserRole, getUserById } from '../../../../lib/db';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

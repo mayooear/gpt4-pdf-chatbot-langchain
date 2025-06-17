@@ -19,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
                 Home
               </a>
             </Link>
-            {session?.user?.role === 'Admin' && (
+            {(session?.user as any)?.role === 'Admin' && (
               <Link href="/admin/upload" legacyBehavior>
                 <a className="hover:text-slate-600 cursor-pointer">
                   Admin Upload
@@ -40,7 +40,7 @@ export default function Layout({ children }: LayoutProps) {
             {!loading && session && (
               <div className="flex items-center space-x-2">
                 <p>
-                  {session.user?.name || session.user?.email} ({session.user?.role})
+                  {session.user?.name || session.user?.email} ({(session.user as any)?.role})
                 </p>
                 <button
                   onClick={() => signOut()}
