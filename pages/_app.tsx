@@ -1,5 +1,6 @@
 import '@/styles/base.css';
 import type { AppProps } from 'next/app';
+import { SessionProvider } from 'next-auth/react';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({
@@ -7,13 +8,13 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
-function MyApp({ Component, pageProps }: AppProps) {
+function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   return (
-    <>
+    <SessionProvider session={session}>
       <main className={inter.variable}>
         <Component {...pageProps} />
       </main>
-    </>
+    </SessionProvider>
   );
 }
 

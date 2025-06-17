@@ -1,0 +1,130 @@
+.widgetContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 450px; /* Typical widget width */
+  height: 70vh; /* Or a fixed height like 600px */
+  max-height: 700px;
+  margin: 2rem auto; /* Center on page for standalone view */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+}
+
+.header {
+  background-color: #007bff; /* Example primary color */
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.messageList {
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Space between messages */
+}
+
+.message {
+  padding: 0.6rem 0.9rem;
+  border-radius: 15px;
+  max-width: 85%;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
+.userMessage {
+  background-color: #007bff;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+}
+
+.apiMessage {
+  background-color: #e9ecef;
+  color: #333;
+  align-self: flex-start;
+  border-bottom-left-radius: 5px;
+}
+
+.markdownAnswer a {
+  color: inherit; /* Ensure links in user messages are white, api messages are blue/default */
+  text-decoration: underline;
+}
+
+.apiMessage .markdownAnswer a {
+    color: #0056b3; /* Darker blue for links in API messages for better visibility */
+}
+
+
+.inputFormContainer {
+  padding: 0.75rem;
+  border-top: 1px solid #ddd;
+  background-color: #fff;
+}
+
+.inputForm {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.textarea {
+  flex-grow: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: none;
+  font-size: 1rem;
+  line-height: 1.4;
+  min-height: 40px; /* Ensure it's not too small */
+}
+
+.sendButton {
+  padding: 0.6rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.sendButton:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.sendButton:not(:disabled):hover {
+  background-color: #0056b3;
+}
+
+.errorText {
+  color: red;
+  font-size: 0.9em;
+  padding: 0.5rem 0.25rem;
+}
+
+.footer {
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.8em;
+    color: #888;
+    background-color: #f1f1f1;
+    border-top: 1px solid #ddd;
+}
+
+/* For LoadingDots, if used within a message */
+.apiMessage .loading-dots-container { /* Assuming LoadingDots wraps in such a container */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

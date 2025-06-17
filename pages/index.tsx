@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { useSession, signIn } from 'next-auth/react'; // Added for auth check
 import Layout from '@/components/layout';
 import styles from '@/styles/Home.module.css';
 import { Message } from '@/types/chat';
@@ -6,6 +7,7 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import LoadingDots from '@/components/ui/LoadingDots';
 import { Document } from 'langchain/document';
+import ProductCard from '@/components/ui/ProductCard'; // Import ProductCard
 import {
   Accordion,
   AccordionContent,
@@ -14,6 +16,7 @@ import {
 } from '@/components/ui/accordion';
 
 export default function Home() {
+  const { data: session, status } = useSession();
   const [query, setQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,11 +28,12 @@ export default function Home() {
   }>({
     messages: [
       {
-        message: 'Hi, what would you like to learn about this document?',
+        message: "Hi, I'm your product assistant. How can I help you find information today?",
         type: 'apiMessage',
       },
     ],
     history: [],
+    // pendingSourceDocs: undefined, // Ensure this is how it's initially defined if used
   });
 
   const { messages, history } = messageState;
@@ -69,6 +73,7 @@ export default function Home() {
     setQuery('');
 
     try {
+      // Changed API endpoint to /api/seller-chat (or keep /api/chat and modify it)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -93,9 +98,10 @@ export default function Home() {
               type: 'apiMessage',
               message: data.text,
               sourceDocs: data.sourceDocuments,
+              productData: data.productData, // Store productData in message state
             },
           ],
-          history: [...state.history, [question, data.text]],
+          history: [...state.history, [question, data.text]], // History only stores question and text response
         }));
       }
       console.log('messageState', messageState);
@@ -120,14 +126,43 @@ export default function Home() {
     }
   };
 
+  if (status === 'loading') {
+    return <Layout><p className="text-center p-4">Loading session...</p></Layout>;
+  }
+
+  if (!session) {
+    return (
+      <Layout>
+        <div className="text-center p-8">
+          <p className="mb-4">Please sign in to use the Product Assistant.</p>
+          <button
+            onClick={() => signIn()} // Default sign-in, or specify provider e.g., signIn('google')
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Sign In
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If user is admin, you could redirect them to /admin or show a different UI
+  // For now, we assume both Admin and other authenticated users use this chat.
+  // if (session.user?.role === 'Admin') {
+  //   // router.push('/admin'); // needs useRouter from 'next/router'
+  //   // return null;
+  // }
+
   return (
     <>
       <Layout>
         <div className="mx-auto flex flex-col gap-4">
           <h1 className="text-2xl font-bold leading-[1.1] tracking-tighter text-center">
-            Chat With Your Docs
+            Product Information Assistant
           </h1>
           <main className={styles.main}>
+            {/* Add a comment for future image/file upload here if desired */}
+            {/* <!-- Future: Consider adding an upload button/area here for image/file queries --> */}
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
                 {messages.map((message, index) => {
@@ -165,8 +200,8 @@ export default function Home() {
                         : styles.usermessage;
                   }
                   return (
-                    <>
-                      <div key={`chatMessage-${index}`} className={className}>
+                    <React.Fragment key={`chatMessageWrapper-${index}`}>
+                      <div className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
                           <ReactMarkdown linkTarget="_blank">
@@ -174,6 +209,14 @@ export default function Home() {
                           </ReactMarkdown>
                         </div>
                       </div>
+                      {/* Render ProductCard components if productData exists */}
+                      {message.type === 'apiMessage' && message.productData && message.productData.length > 0 && (
+                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {message.productData.map((product, productIndex) => (
+                            <ProductCard key={`productCard-${index}-${productIndex}`} product={product} />
+                          ))}
+                        </div>
+                      )}
                       {message.sourceDocs && (
                         <div
                           className="p-5"
@@ -184,11 +227,11 @@ export default function Home() {
                             collapsible
                             className="flex-col"
                           >
-                            {message.sourceDocs.map((doc, index) => (
-                              <div key={`messageSourceDocs-${index}`}>
-                                <AccordionItem value={`item-${index}`}>
+                            {message.sourceDocs.map((doc, docIndex) => (
+                              <div key={`messageSourceDocs-${index}-${docIndex}`}>
+                                <AccordionItem value={`item-${docIndex}`}>
                                   <AccordionTrigger>
-                                    <h3>Source {index + 1}</h3>
+                                    <h3>Source {docIndex + 1}</h3>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ReactMarkdown linkTarget="_blank">
@@ -204,7 +247,7 @@ export default function Home() {
                           </Accordion>
                         </div>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </div>
@@ -224,11 +267,12 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : 'Ask about products, e.g., "What are the claims for product X?" or "Compare product Y and Z."'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className={styles.textarea}
+                    // Future: Add handler for image/file uploads
                   />
                   <button
                     type="submit"
