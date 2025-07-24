@@ -96,9 +96,11 @@ The system consists of:
 
 2.	Install dependencies (from the monorepo root):
 
-yarn install
+   ```bash
+   yarn install
+   ```
 
-	3.	Configure environment variables in both backend and frontend. See .`env.example` files for details.
+3.	Configure environment variables in both backend and frontend. See .`env.example` files for details.
 
 ## Environment Variables
 
