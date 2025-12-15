@@ -2,7 +2,7 @@ import { StateGraph, START, END } from '@langchain/langgraph';
 import { AgentStateAnnotation } from './state.js';
 import { makeRetriever } from '../shared/retrieval.js';
 import { formatDocs } from './utils.js';
-import { HumanMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import { RESPONSE_SYSTEM_PROMPT, ROUTER_SYSTEM_PROMPT } from './prompts.js';
 import { RunnableConfig } from '@langchain/core/runnables';
@@ -12,34 +12,35 @@ import {
 } from './configuration.js';
 import { loadChatModel } from '../shared/utils.js';
 
+
+
+// IMPROVEMENT Error Handling &  Fallback
 async function checkQueryType(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
-): Promise<{
-  route: 'retrieve' | 'direct';
-}> {
-  //schema for routing
+): Promise<{ route: 'retrieve' | 'direct' }> {
   const schema = z.object({
     route: z.enum(['retrieve', 'direct']),
     directAnswer: z.string().optional(),
   });
 
-  const configuration = ensureAgentConfiguration(config);
-  const model = await loadChatModel(configuration.queryModel);
+  try {
+    const configuration = ensureAgentConfiguration(config);
+    const model = await loadChatModel(configuration.queryModel);
+    const routingPrompt = ROUTER_SYSTEM_PROMPT;
+    const formattedPrompt = await routingPrompt.invoke({
+      query: state.query,
+    });
 
-  const routingPrompt = ROUTER_SYSTEM_PROMPT;
+    const response = await model
+      .withStructuredOutput(schema)
+      .invoke(formattedPrompt.toString());
 
-  const formattedPrompt = await routingPrompt.invoke({
-    query: state.query,
-  });
-
-  const response = await model
-    .withStructuredOutput(schema)
-    .invoke(formattedPrompt.toString());
-
-  const route = response.route;
-
-  return { route };
+    return { route: response.route };
+  } catch (error) {
+    console.error('Error in checkQueryType, defaulting to retrieve:', error);
+    return { route: 'retrieve' };
+  }
 }
 
 async function answerQueryDirectly(
@@ -71,42 +72,87 @@ async function routeQuery(
   }
 }
 
+// IMPROVEMENT Error Handling &  Fallback
 async function retrieveDocuments(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
-  const retriever = await makeRetriever(config);
-  const response = await retriever.invoke(state.query);
+  try {
+    const retriever = await makeRetriever(config);
+    const response = await retriever.invoke(state.query);
 
-  return { documents: response };
+    // Validate & filter
+    if (!response || response.length === 0) {
+      console.warn('No documents retrieved for query:', state.query);
+      return {
+        documents: [],
+        hasDocuments: false,
+        retrievalWarning: 'No relevant documents found',
+      };
+    }
+
+    // Filter by relevance score (optional improvement)
+    const filtered = response.filter(
+      (doc) => (doc.metadata?.score ?? 1) >= 0.7
+    );
+
+    if (filtered.length === 0) {
+      return {
+        documents: response, // Fallback to all documents
+        hasDocuments: false,
+        retrievalWarning: 'Low confidence matches found',
+      };
+    }
+
+    return { documents: filtered, hasDocuments: true };
+  } catch (error) {
+    console.error('Error in retrieveDocuments:', error);
+    return {
+      documents: [],
+      hasDocuments: false,
+      error: 'Failed to retrieve documents',
+    };
+  }
 }
 
+// IMPROVEMENT Error Handling &  Fallback
 async function generateResponse(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
-  const configuration = ensureAgentConfiguration(config);
-  const context = formatDocs(state.documents);
-  const model = await loadChatModel(configuration.queryModel);
-  const promptTemplate = RESPONSE_SYSTEM_PROMPT;
+  try {
+    const configuration = ensureAgentConfiguration(config);
+    const context = formatDocs(state.documents);
+    const model = await loadChatModel(configuration.queryModel);
+    const promptTemplate = RESPONSE_SYSTEM_PROMPT;
 
-  const formattedPrompt = await promptTemplate.invoke({
-    question: state.query,
-    context: context,
-  });
+    // Add warning if no documents
+    const contextWithWarning = state.hasDocuments === false
+      ? context + '\n[WARNING: No relevant documents found in knowledge base]'
+      : context;
 
-  const userHumanMessage = new HumanMessage(state.query);
+    const formattedPrompt = await promptTemplate.invoke({
+      question: state.query,
+      context: contextWithWarning,
+    });
 
-  // Create a human message with the formatted prompt that includes context
-  const formattedPromptMessage = new HumanMessage(formattedPrompt.toString());
+    const userHumanMessage = new HumanMessage(state.query);
+    const formattedPromptMessage = new HumanMessage(
+      formattedPrompt.toString()
+    );
 
-  const messageHistory = [...state.messages, formattedPromptMessage];
+    const messageHistory = [...state.messages, formattedPromptMessage];
 
-  // Let MessagesAnnotation handle the message history
-  const response = await model.invoke(messageHistory);
+    const response = await model.invoke(messageHistory);
 
-  // Return both the current query and the AI response to be handled by MessagesAnnotation's reducer
-  return { messages: [userHumanMessage, response] };
+    return { messages: [userHumanMessage, response] };
+  } catch (error) {
+    console.error('Error in generateResponse:', error);
+    const errorMessage = new AIMessage(
+      'Sorry, I encountered an error generating a response. Please try again.'
+    );
+    return { messages: [new HumanMessage(state.query), errorMessage] };
+  }
 }
 
 const builder = new StateGraph(
