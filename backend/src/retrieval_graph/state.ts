@@ -5,8 +5,12 @@ import { Document } from '@langchain/core/documents';
  * Represents the state of the retrieval graph / agent.
  */
 export const AgentStateAnnotation = Annotation.Root({
-  query: Annotation<string>(),
-  route: Annotation<string>(),
+  query: Annotation<string>({
+    default: () => '',
+  }),
+  route: Annotation<string>({
+    default: () => '',
+  }),
   ...MessagesAnnotation.spec,
 
   /**
