@@ -59,7 +59,7 @@ This template is also an accompanying example to the book [Learning LangChain (O
 
 ```
 - **Supabase** is used as the vector store to store and retrieve relevant documents at query time.  
-- **OpenAI** (or other LLM providers) is used for language modeling.  
+- **OpenAI** or **MiniMax** (or other LLM providers) is used for language modeling.
 - **LangGraph** orchestrates the "graph" steps for ingestion, routing, and generating responses.  
 - **Next.js** (React) powers the user interface for uploading PDFs and real-time chat.
 
@@ -80,7 +80,9 @@ The system consists of:
      - `SUPABASE_URL`
      - `SUPABASE_SERVICE_ROLE_KEY`
      - A table named `documents` and a function named `match_documents` for vector similarity search (see [LangChain documentation for guidance on setting up the tables](https://js.langchain.com/docs/integrations/vectorstores/supabase/)).
-4. **OpenAI API Key** (or another LLM provider’s key, supported by LangChain).
+4. **LLM API Key** — one of the following:
+   - [OpenAI API Key](https://platform.openai.com/)
+   - [MiniMax API Key](https://platform.minimax.io/) (OpenAI-compatible; models: `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`)
 5. **LangChain API Key** (free and optional, but highly recommended for debugging and tracing your LangChain and LangGraph applications). Learn more [here](https://docs.smith.langchain.com/administration/how_to_guides/organization_management/create_account_api_key)
 
 ---
@@ -129,6 +131,7 @@ Create a .env file in backend:
 
 ```
     OPENAI_API_KEY=your-openai-api-key-here
+    MINIMAX_API_KEY=your-minimax-api-key-here  # Optional: for MiniMax provider
     SUPABASE_URL=your-supabase-url-here
     SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
 
@@ -146,6 +149,7 @@ Create a .env file in backend:
 -   `LANGCHAIN_TRACING_V2`:  Enable tracing to debug your application on the LangSmith platform.  Set to `true` to enable.
 -   `LANGCHAIN_PROJECT`:  The name of your LangSmith project.
 -   `OPENAI_API_KEY`: Your OpenAI API key.
+-   `MINIMAX_API_KEY`: Your MiniMax API key (optional — only needed when using `minimax/` model prefix). Get one at [platform.minimax.io](https://platform.minimax.io).
 -   `SUPABASE_URL`: Your Supabase URL.
 -   `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key.
 
@@ -249,6 +253,26 @@ You can customize the agent on the backend and frontend.
 
 - You can modify the file upload restrictions in the `app/api/ingest` route.
 - In `constants/graphConfigs.ts`, you can change the default config objects sent to the ingestion and retrieval graphs. These include the model provider, k value (no of source documents to retrieve), and retriever provider (i.e. vector store).
+
+#### Switching LLM Providers
+
+The `queryModel` config uses a `provider/model-name` format. Supported providers:
+
+| Provider | Example `queryModel` | API Key Env |
+| --- | --- | --- |
+| OpenAI | `openai/gpt-4o` | `OPENAI_API_KEY` |
+| MiniMax | `minimax/MiniMax-M2.5` | `MINIMAX_API_KEY` |
+
+To use MiniMax, set `MINIMAX_API_KEY` in `backend/.env` and change `queryModel` in the frontend config:
+
+```ts
+// frontend/constants/graphConfigs.ts
+export const retrievalAssistantStreamConfig = {
+  queryModel: 'minimax/MiniMax-M2.5',  // or 'minimax/MiniMax-M2.5-highspeed'
+  retrieverProvider: 'supabase',
+  k: 5,
+};
+```
 
 
 ## Troubleshooting
