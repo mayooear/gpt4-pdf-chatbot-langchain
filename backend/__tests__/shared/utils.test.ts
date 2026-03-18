@@ -20,8 +20,8 @@ describe('loadChatModel', () => {
       expect(model).toBeInstanceOf(ChatOpenAI);
     });
 
-    it('should parse "minimax/MiniMax-M2.5" correctly', async () => {
-      const model = await loadChatModel('minimax/MiniMax-M2.5');
+    it('should parse "minimax/MiniMax-M2.7" correctly', async () => {
+      const model = await loadChatModel('minimax/MiniMax-M2.7');
       expect(model).toBeInstanceOf(ChatOpenAI);
     });
 
@@ -31,7 +31,7 @@ describe('loadChatModel', () => {
     });
 
     it('should handle provider names case-insensitively', async () => {
-      const model = await loadChatModel('MiniMax/MiniMax-M2.5');
+      const model = await loadChatModel('MiniMax/MiniMax-M2.7');
       expect(model).toBeInstanceOf(ChatOpenAI);
     });
   });
@@ -39,21 +39,28 @@ describe('loadChatModel', () => {
   describe('MiniMax configuration', () => {
     it('should use MiniMax base URL', async () => {
       const model = (await loadChatModel(
+        'minimax/MiniMax-M2.7',
+      )) as ChatOpenAI;
+      expect(model.modelName).toBe('MiniMax-M2.7');
+    });
+
+    it('should support MiniMax-M2.7-highspeed model', async () => {
+      const model = (await loadChatModel(
+        'minimax/MiniMax-M2.7-highspeed',
+      )) as ChatOpenAI;
+      expect(model.modelName).toBe('MiniMax-M2.7-highspeed');
+    });
+
+    it('should still support previous MiniMax-M2.5 model', async () => {
+      const model = (await loadChatModel(
         'minimax/MiniMax-M2.5',
       )) as ChatOpenAI;
       expect(model.modelName).toBe('MiniMax-M2.5');
     });
 
-    it('should support MiniMax-M2.5-highspeed model', async () => {
-      const model = (await loadChatModel(
-        'minimax/MiniMax-M2.5-highspeed',
-      )) as ChatOpenAI;
-      expect(model.modelName).toBe('MiniMax-M2.5-highspeed');
-    });
-
     it('should set non-zero temperature for MiniMax', async () => {
       const model = (await loadChatModel(
-        'minimax/MiniMax-M2.5',
+        'minimax/MiniMax-M2.7',
       )) as ChatOpenAI;
       expect(model.temperature).toBeGreaterThan(0);
     });
@@ -68,7 +75,7 @@ describe('loadChatModel', () => {
 
     it('should throw when API key is missing', async () => {
       delete process.env.MINIMAX_API_KEY;
-      await expect(loadChatModel('minimax/MiniMax-M2.5')).rejects.toThrow(
+      await expect(loadChatModel('minimax/MiniMax-M2.7')).rejects.toThrow(
         'Missing API key for provider "minimax"',
       );
     });
@@ -83,7 +90,7 @@ describe('loadChatModel', () => {
   describe('default model fallback', () => {
     it('should use default model when only provider is given', async () => {
       const model = (await loadChatModel('minimax/')) as ChatOpenAI;
-      expect(model.modelName).toBe('MiniMax-M2.5');
+      expect(model.modelName).toBe('MiniMax-M2.7');
     });
   });
 });

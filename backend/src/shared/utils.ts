@@ -15,7 +15,7 @@ const PROVIDER_CONFIGS: Record<
   minimax: {
     baseURL: 'https://api.minimax.io/v1',
     apiKeyEnv: 'MINIMAX_API_KEY',
-    defaultModel: 'MiniMax-M2.5',
+    defaultModel: 'MiniMax-M2.7',
   },
 };
 
@@ -23,14 +23,14 @@ const PROVIDER_CONFIGS: Record<
  * Load a chat model based on a "provider/model-name" string.
  *
  * @param modelString - A string in the form "provider/model-name"
- *   (e.g. "openai/gpt-4o", "minimax/MiniMax-M2.5").
+ *   (e.g. "openai/gpt-4o", "minimax/MiniMax-M2.7").
  *   If only a model name is given (no slash), defaults to OpenAI.
  * @returns A BaseChatModel instance for the specified provider.
  *
  * @example
  * ```ts
  * const model = await loadChatModel('openai/gpt-4o');
- * const minimax = await loadChatModel('minimax/MiniMax-M2.5');
+ * const minimax = await loadChatModel('minimax/MiniMax-M2.7');
  * ```
  */
 export async function loadChatModel(modelString: string): Promise<BaseChatModel> {

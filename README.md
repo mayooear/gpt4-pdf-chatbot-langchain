@@ -82,7 +82,7 @@ The system consists of:
      - A table named `documents` and a function named `match_documents` for vector similarity search (see [LangChain documentation for guidance on setting up the tables](https://js.langchain.com/docs/integrations/vectorstores/supabase/)).
 4. **LLM API Key** — one of the following:
    - [OpenAI API Key](https://platform.openai.com/)
-   - [MiniMax API Key](https://platform.minimax.io/) (OpenAI-compatible; models: `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`)
+   - [MiniMax API Key](https://platform.minimax.io/) (OpenAI-compatible; models: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`, `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`)
 5. **LangChain API Key** (free and optional, but highly recommended for debugging and tracing your LangChain and LangGraph applications). Learn more [here](https://docs.smith.langchain.com/administration/how_to_guides/organization_management/create_account_api_key)
 
 ---
@@ -261,14 +261,14 @@ The `queryModel` config uses a `provider/model-name` format. Supported providers
 | Provider | Example `queryModel` | API Key Env |
 | --- | --- | --- |
 | OpenAI | `openai/gpt-4o` | `OPENAI_API_KEY` |
-| MiniMax | `minimax/MiniMax-M2.5` | `MINIMAX_API_KEY` |
+| MiniMax | `minimax/MiniMax-M2.7` | `MINIMAX_API_KEY` |
 
 To use MiniMax, set `MINIMAX_API_KEY` in `backend/.env` and change `queryModel` in the frontend config:
 
 ```ts
 // frontend/constants/graphConfigs.ts
 export const retrievalAssistantStreamConfig = {
-  queryModel: 'minimax/MiniMax-M2.5',  // or 'minimax/MiniMax-M2.5-highspeed'
+  queryModel: 'minimax/MiniMax-M2.7',  // or 'minimax/MiniMax-M2.7-highspeed'
   retrieverProvider: 'supabase',
   k: 5,
 };

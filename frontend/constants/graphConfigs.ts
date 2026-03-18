@@ -15,11 +15,13 @@ export const retrievalAssistantStreamConfig: StreamConfigurables = {
  * and swap `retrievalAssistantStreamConfig` for this config.
  *
  * Available MiniMax models:
- *   - MiniMax-M2.5       (204K context, balanced speed & quality)
+ *   - MiniMax-M2.7            (latest flagship, enhanced reasoning & coding)
+ *   - MiniMax-M2.7-highspeed  (high-speed version of M2.7 for low-latency)
+ *   - MiniMax-M2.5            (204K context, balanced speed & quality)
  *   - MiniMax-M2.5-highspeed  (204K context, optimized for speed)
  */
 export const minimaxStreamConfig: StreamConfigurables = {
-  queryModel: 'minimax/MiniMax-M2.5',
+  queryModel: 'minimax/MiniMax-M2.7',
   retrieverProvider: 'supabase',
   k: 5,
 };

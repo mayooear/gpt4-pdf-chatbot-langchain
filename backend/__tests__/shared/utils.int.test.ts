@@ -24,10 +24,10 @@ describe('loadChatModel integration', () => {
       return true;
     };
 
-    it('should invoke MiniMax-M2.5 and receive a response', async () => {
+    it('should invoke MiniMax-M2.7 and receive a response', async () => {
       if (!shouldRun()) return;
 
-      const model = await loadChatModel('minimax/MiniMax-M2.5');
+      const model = await loadChatModel('minimax/MiniMax-M2.7');
       const response = await model.invoke([
         new HumanMessage('Reply with exactly: hello'),
       ]);
@@ -45,7 +45,7 @@ describe('loadChatModel integration', () => {
         answer: z.string(),
       });
 
-      const model = await loadChatModel('minimax/MiniMax-M2.5');
+      const model = await loadChatModel('minimax/MiniMax-M2.7');
       const structured = model.withStructuredOutput(schema);
       const response = await structured.invoke(
         'What is 2+2? Respond with the answer field.',
